@@ -1,0 +1,53 @@
+require('prototype.Room');
+
+require('prototype.RoomPosition');
+
+require('prototype.RoomObject');
+require('prototype.Source');
+require('prototype.StructureSpawn');
+require('prototype.Creep');
+
+var CONSTANTS = require('constants');
+var events = require('events');
+
+var WorkforceManager = require('workforce.manager');
+
+module.exports.loop = function () {
+    if (Game.time % 10 == 0) {
+        console.log('Game.time', Game.time);
+        for (var roomName in Game.rooms) {
+            var memory = Memory.rooms[roomName];
+            if (!memory) {
+                memory = Memory.rooms[roomName] = {};
+            }
+            if (!memory.discovered) {
+                memory.discovered = true;
+                events.fire(CONSTANTS.EVENT_ROOM_DISCOVERED, roomName);
+            }
+        }
+        for(var name in Memory.creeps) {
+            if(!Game.creeps[name]) {
+                delete Memory.creeps[name];
+            }
+        }
+    }
+    events.fire(CONSTANTS.EVENT_TICK_START);
+
+    for (var roomName in Game.rooms) {
+        var room = Game.rooms[roomName];
+        var towers = room.findTowers();
+        towers.forEach((tower) => {
+            var creep = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
+            if (creep) {
+                tower.attack(creep);
+            }
+        });        
+        
+        
+        
+        
+        new WorkforceManager(room).run();
+    }
+
+    events.fire(CONSTANTS.EVENT_TICK_END);
+}
