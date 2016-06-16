@@ -26,6 +26,14 @@ class BinaryCreep extends MyCreep {
 		throw "Not Implemented !!!";
 	}
 
+	innerAction(target) {
+		throw "Not Implemented !!!";
+	}
+
+	innerHarvest(source) {
+		throw "Not Implemented !!!";
+	}
+
 	onCannotReaquireTarget() {
 		throw "Not Implemented !!!";
 	}
@@ -50,7 +58,7 @@ class BinaryCreep extends MyCreep {
 
 	    // Step away from the source
 	    if (this.action && this.source && this.creep.pos.getRangeTo(this.source.pos) == 1) {
-	        creep.moveTo(this.creep.room.controller);
+	        this.creep.moveTo(this.creep.room.controller);
 	        return;
 	    }
 

@@ -12,6 +12,10 @@ HarvesterRole.prototype.log = function() {
 };
 
 HarvesterRole.prototype.run = function() {
+
+    new HarvesterCreep(this.creep).run();
+    return;
+    
     var creep = this.creep;
 
     // Step away from the source

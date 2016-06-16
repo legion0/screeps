@@ -25,7 +25,7 @@ class Harvester extends BinaryCreep {
 	}
 
 	isValidSource(source) {
-		source.energy > 0;
+		return source.energy > 0;
 	}
 
 	isValidTarget(target) {
@@ -42,18 +42,26 @@ class Harvester extends BinaryCreep {
 	    return this.action;
 	}
 
+	innerAction(target) {
+		return this.creep.transfer(target, RESOURCE_ENERGY);
+	}
+
+	innerHarvest(source) {
+		return this.creep.harvest(source);
+	}
+
 	onCannotReaquireTarget() {
-		throw "Not Implemented !!!";
+		this.log('onCannotReaquireTarget');
 	}
 	onCannotReaquireSource() {
-		throw "Not Implemented !!!";
+		this.log('onCannotReaquireSource');
 	}
 
 	onNoPathToSource(source) {
-		throw "Not Implemented !!!";
+		this.log('onNoPathToSource');
 	}
 	onNoPathToTarget(target) {
-		throw "Not Implemented !!!";
+		this.log('onNoPathToTarget');
 	}
 }
 

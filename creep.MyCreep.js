@@ -39,6 +39,7 @@ class MyCreep {
     }
 
     resign() {
+        this.log('resigning');
         this.creep.deleteMemory();
     }
 }
