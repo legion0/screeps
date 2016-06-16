@@ -1,5 +1,10 @@
 var CONSTANTS = require('constants');
 var events = require('events');
+var BinaryCreep = require('role.BinaryCreep');
+
+class HarvesterCreep extends BinaryCreep {
+    
+}
 
 function HarvesterRole(creep) {
   this.creep = creep;
@@ -12,163 +17,198 @@ HarvesterRole.prototype.log = function() {
 
 HarvesterRole.prototype.run = function() {
     var creep = this.creep;
-    var memory = creep.memory;
+
+    // Step away from the source
+    if (this.source && this.creep.pos.getRangeTo(this.source.pos) == 1 && creep.carry.energy == creep.carryCapacity) {
+        creep.moveTo(creep.room.controller);
+        return;
+    }
 
     if (this.roadMaintenance()) {
         return;
     }
 
-    var old_action = memory.action;
-    this.selectAction();
-    if (memory.action && !old_action) {
+    var old_action = this.action;
+    this.action = this.selectAction();
+
+    if (this.action && !old_action) {
         this.onActionStart();
-    } else if (memory.action) {
+    } else if (old_action && !this.action) {
+        this.onActionEnd();
+    } else if (this.action) {
         this.onActionContinue();
-    }
-    if(memory.action) {
-        if (!this.target) {
-            var new_target = this.findTarget();
-            if (new_target) {
-                this.target = new_target;
-            } else {
-                this.onCannotReaquireTarget();
-                return;
-            }
-        }
-        this.action(this.target);
     } else {
         this.harvest();
     }
 };
 HarvesterRole.prototype.onCannotReaquireTarget = function() {
-    this.log("No target found, abandoning role", 'memory.target=', this.memory.taget);
-    delete Memory.creeps[this.creep.name];
+    this.log("No target found, abandoning role", 'this.target=', this.target);
+    this.creep.deleteMemory();
 }
 
 HarvesterRole.prototype.onActionStart = function() {
-    // this.log('finishd harvesting');
-    delete this.memory.source;
-    this.target = this.findTarget();
-    if (this.target) {
-        this.memory.target = this.target.id;
+    if (this.source instanceof Source) {
+        this.source.unregisterCreep(this.creep);
     }
+    this.target = this.findTarget();
+    this.onActionContinue();
+};
+HarvesterRole.prototype.onActionEnd = function() {
+    this.source = this.findSource();
+    this.harvest();
 };
 HarvesterRole.prototype.onActionContinue = function() {
-    this.target = Game.getObjectById(this.memory.target);
-};
-HarvesterRole.prototype.selectAction = function() {
     var creep = this.creep;
-    var memory = creep.memory;
-    if (memory.action && creep.carry.energy == 0 || memory.action == undefined && creep.carry.energy < creep.carryCapacity) {
-        memory.action = false;
-    } else if ((!memory.target || !memory.action) && creep.carry.energy == creep.carryCapacity) {
-        memory.action = true;
+    if (!this.target || !this.isValidTarget(this.target)) {
+        var new_target = this.findTarget();
+        if (new_target) {
+            this.target = new_target;
+        } else {
+            this.onCannotReaquireTarget();
+            return;
+        }
     }
-};
-HarvesterRole.prototype.action = function(target) {
-    var creep = this.creep;
-    var memory = creep.memory;
-    if (!target) {
-        target = Game.getObjectById(memory.target);
-    }
-    if (!this.isValidTarget(target)) {
-        delete memory.target;
-        return;
-    }
-    var ret_val = this.inner_action(target);
+    var ret_val = this.innerAction(this.target);
     if(ret_val == ERR_NOT_IN_RANGE) {
-        creep.moveTo(target);
+        creep.moveTo(this.target);
     } else if ([OK, ERR_NOT_ENOUGH_ENERGY].indexOf(ret_val) == -1) {
         this.log('ERROR ERROR ERROR ERROR ERROR', 'Got action ret_val of', ret_val);
     }
 };
-HarvesterRole.prototype.inner_action = function(target) {
+HarvesterRole.prototype.selectAction = function() {
+    var creep = this.creep;
+    if (this.action && creep.carry.energy == 0 || this.action == null && creep.carry.energy < creep.carryCapacity) {
+        return false;
+    } else if ((!this.target || !this.action) && creep.carry.energy == creep.carryCapacity) {
+        // this.log('Harvesting done', this.source);
+        return true;
+    }
+    return this.action;
+};
+HarvesterRole.prototype.innerAction = function(target) {
     return this.creep.transfer(target, RESOURCE_ENERGY);
 };
 HarvesterRole.prototype.harvest = function() {
     var creep = this.creep;
-    var memory = creep.memory;
-    var source = undefined;
-    if (!memory.source) {
-        source = this.findSource();
-        if (!source) {
+    if (!this.source) {
+        this.source = this.findSource();
+        if (!this.source) {
             return;
         }
-        memory.source = source.id;
     }
-    if (source == undefined) {
-        source = Game.getObjectById(creep.memory.source);
+    var harvest_res = creep.harvest(this.source);
+    if (harvest_res == ERR_INVALID_TARGET) {
+        harvest_res = this.source.transfer(creep, RESOURCE_ENERGY);
     }
-    var harvest_res = creep.harvest(source);
     if (harvest_res == OK) {
-        source.memoryShort.current_harvesters += 1;
+        if (this.source instanceof Source) {
+            this.source.registerCreep(this.creep);
+        }
         return;
     } else if (harvest_res == ERR_NOT_IN_RANGE) {
-        source.memoryShort.enroute_harvesters += 1;
-        source.memoryShort.enroute_harvesters_distance += creep.time_to_dest;
-        if (creep.moveTo(source) == ERR_NO_PATH) {
-            var new_source = this.replaceSource(source);
+        var move_res = creep.moveTo(this.source);
+        var old_source = this.source;
+        if (move_res == ERR_NO_PATH) {
+            var new_source = this.replaceSource(this.source);
             if (!new_source) {
                 return;
             }
-            if (new_source != source) {
-                this.source  = new_source;
+            this.source = new_source;
+        } else if ([OK, ERR_TIRED].indexOf(move_res) == -1) {
+            this.log('ERROR ERROR ERROR ERROR ERROR', 'Got move_res of', move_res);
+        }
+        if (this.source instanceof Source) {
+            this.source.registerCreep(this.creep, old_source);
+        }
+    } else if (harvest_res == ERR_NOT_ENOUGH_RESOURCES) {
+        if (this.source.ticksToRegeneration && this.source.ticksToRegeneration > 50) {
+            this.log('Source', this.source.id, 'out of energy and regeneration is', this.source.ticksToRegeneration, 'ticks away.');
+            var new_source = this.replaceSource(this.source);
+            if (!new_source) {
+                return;
             }
+            this.source = new_source;
+        } else if (this.source.ticksToRegeneration && this.source.ticksToRegeneration < creep.pos.getRangeTo(this.source)) {
+            creep.moveTo(this.source);
         }
     } else {
         this.log('ERROR ERROR ERROR ERROR ERROR', 'Got harvest_res of', harvest_res);
     }
 };
 HarvesterRole.prototype.replaceSource = function(old_source) {
+    // console.log('replaceSource', 'START');
     var last_replacement_source_search = this.memory.last_replacement_source_search;
     if (!last_replacement_source_search) {
         last_replacement_source_search = this.memory.last_replacement_source_search = Game.time;
     }
     if (Game.time - last_replacement_source_search < 5) {
+        // console.log('replaceSource', 'END');
         return old_source;
     }
     this.memory.last_replacement_source_search = Game.time;
+    // this.log('replaceSource ', 'old_source', old_source, 'old_source.load', old_source ? old_source.load : null);
     // this.log('searching for replacment source', 'last_replacement_source_search', last_replacement_source_search, 'current_harvesters', current_harvesters);
     // TODO: Take into account creep efficiency, source clearence and distance to new source
     // var distance_to_new_source = this.creep.pos.getRangeTo(new_source);
-    this.log('old_source.load', old_source.load, 'old_source.id', old_source.id);
-    if (old_source.load > 150) {
+    if (!(old_source instanceof Source) || old_source.load > 1.5 || old_source.energy == 0) {
         var new_source = this.findSource();
-        if (!new_source) {
-            // this.log('nothing else found');
-            return old_source;
+        // this.log('replaceSource ', 'new_source', new_source, 'new_source.load', new_source ? new_source.load : null, old_source instanceof Source, new_source instanceof Source);
+        if (new_source && (!(old_source instanceof Source) || !(new_source instanceof Source) || old_source.energy == 0 || new_source.load + new_source.estimateCreepLoad(this.creep) < 0.75 * old_source.load)) {
+            this.log('replaceSource ', old_source.id, old_source.load, '====>', new_source.id, new_source.load);
+            // console.log('replaceSource', 'END');
+            return new_source;
         }
-        // this.log('replace', old_source.id, new_source.id);
-        return new_source;
     } else {
         // this.log('wait');
     }
+    // console.log('replaceSource', 'END');
     return old_source;
 };
+// HarvesterRole.prototype.findSource = function() {
+//     var creep = this.creep;
+//     var old_source = this.source;
+//     var old_source_id = this.source ? this.source.id : null;
+//     function sourceFilter(source) {
+//         return source.id != old_source_id && source.id != creep.room.memory.lair_source_id && source.energy != 0;
+//     };
+//     var new_source = null;
+//     if (old_source && creep.target) {
+//         // We already have a source so find the closet to the target if we collected else where.
+//         // If we can't reach the closet search for the next one.
+//         new_source = creep.target.pos.findClosestByRange(FIND_SOURCES_ACTIVE, {filter: sourceFilter});
+//     } else {
+//         new_source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE, {filter: sourceFilter});
+//     }
+//     // this.log('looking for new source, old=', old_source, 'new=', source ? source.id : source);
+//     return new_source;
+// };
 HarvesterRole.prototype.findSource = function() {
     var creep = this.creep;
-    var memory = creep.memory;
-    var old_source = memory.source;
-    var source = null;
-    function sourceFilter(source) {
-        return source.id != old_source && source.id != creep.room.memory.lair_source_id;
-    };
-    if (old_source && memory.target) {
-        // We already have a source so find the closet to the target if we collected else where.
-        // If we can't reach the closet search for the next one.
-        source = Game.getObjectById(memory.target).pos.findClosestByPath(FIND_SOURCES_ACTIVE, {filter: sourceFilter});
-    } else {
-        source = creep.pos.findClosestByPath(FIND_SOURCES_ACTIVE, {filter: sourceFilter});
-    }
-    // this.log('looking for new source, old=', old_source, 'new=', source ? source.id : source);
-    return source;
+    var old_source = this.source;
+    var min_load = Infinity;
+    var new_source = null;
+    creep.findSourcesActive(this.source ? this.source.id : null).forEach((source) => {
+        var load = source.load + source.estimateCreepLoad(creep);
+        if (load < min_load) {
+            min_load = load;
+            new_source = source;
+        }
+    });
+    // this.log('findSource', new_source);
+    return new_source;
 };
 HarvesterRole.prototype.isValidTarget = function(target) {
     return [STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER].indexOf(target.structureType) != -1 && target.energy < target.energyCapacity ||
         target.structureType == STRUCTURE_CONTAINER && _.sum(target.store) < target.storeCapacity;
 };
 HarvesterRole.prototype.findTarget = function() {
-    return this.creep.findClosest(FIND_STRUCTURES, {filter: this.isValidTarget});
+    // var containers = this.creep.room.find(FIND_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_CONTAINER && _.sum(structure.store) < 0.8 * structure.storeCapacity})
+    // .sort((a,b) => a.pos.getRangeTo(this.creep.pos) - b.pos.getRangeTo(this.creep.pos));
+    // if (containers.length) {
+    //     console.log(containers[0]);
+    //     return containers[0];
+    // }
+    return this.creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: this.isValidTarget});
 };
 HarvesterRole.prototype.roadMaintenance = function() {
     var creep = this.creep;
@@ -205,35 +245,20 @@ Object.defineProperty(HarvesterRole.prototype, "target", {
         this.creep.target = target;
     }
 });
-
-Object.defineProperty(HarvesterRole.prototype, "_source_id", {
-    get: function () {
-        if (this.__source_id === undefined) {
-            this.__source_id = this.memory.source;
-            if (this.__source_id === undefined) {
-                this.__source_id = null;
-            }
-        }
-        return this.__source_id;
-    },
-    set: function (source_id) {
-        this.memory.source = this.__source_id = source_id;
-    }
-});
 Object.defineProperty(HarvesterRole.prototype, "source", {
     get: function () {
-        if (this._sourcet_object === undefined) {
-            if (this._source_id) {
-                this._sourcet_object = Game.getObjectById(this._source_id);
-            } else {
-                this._sourcet_object = null;
-            }
-        }
-        return this._sourcet_object;
+        return this.creep.source;
     },
-    set: function (sourcet_object) {
-        this._sourcet_object = sourcet_object;
-        this._source_id = sourcet_object ? sourcet_object.id : null;
+    set: function (source) {
+        this.creep.source = source;
+    }
+});
+Object.defineProperty(HarvesterRole.prototype, "action", {
+    get: function () {
+        return this.creep.action;
+    },
+    set: function (action) {
+        this.creep.action = action;
     }
 });
 
