@@ -1,10 +1,6 @@
 var CONSTANTS = require('constants');
 var events = require('events');
-var BinaryCreep = require('role.BinaryCreep');
-
-class HarvesterCreep extends BinaryCreep {
-    
-}
+var HarvesterCreep = require('creep.Harvester');
 
 function HarvesterRole(creep) {
   this.creep = creep;

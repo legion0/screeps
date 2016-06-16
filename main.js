@@ -10,8 +10,8 @@ require('prototype.Creep');
 var CONSTANTS = require('constants');
 var events = require('events');
 
-var WorkforceManager = require('manager.workforce.js');
-var DefenceManager = require('manager.defence.js');
+var WorkforceManager = require('manager.workforce');
+var DefenceManager = require('manager.defence');
 
 module.exports.loop = function () {
     if (Game.time % 100 == 0) {

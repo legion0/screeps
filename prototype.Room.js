@@ -1,118 +1,110 @@
 var CONSTANTS = require('constants');
 var events = require('events');
 
-Object.defineProperty(RoomObject.prototype, "memory", {
-    get: function () {
-        var room_objects_memory = Memory.rooms[this.room.name].room_objects;
-        // console.log('this.room.name', this.room.name, 'room_objects_memory', room_objects_memory);
-        var memory = room_objects_memory[this.id];
-        if (!memory) {
-            memory = room_objects_memory[this.id] = {};
-        }
-        return memory;
-    }
-});
+
+var ENERGY_DRAIN_EMA_GROWTH_RATE = 0.99;
+var ENERGY_DRAIN_EMA_DECAY_RATE = 0.01;
+var ENERGY_DRAIN_REPORT_CHANGE_THRESHOLD = 0.05;
+var ENERGY_DRAIN_WINDOW_SIZE = 128;
 
 events.listen(CONSTANTS.EVENT_ROOM_DISCOVERED, (event_name, roomName) => {
-    // console.log('RoomObject', 'EVENT_ROOM_DISCOVERED', event_name, roomName);
+    // console.log('Room', 'EVENT_ROOM_DISCOVERED', roomName);
     var memory = Memory.rooms[roomName];
-    memory.room_objects = {};
-    memory.room_objects_short_memory = {};
+    memory.energy_drain_ema = 0;
+    memory.energy_drain_report = 0;
+    memory.energy_available = 0;
+    // console.log('Room', 'EVENT_ROOM_DISCOVERED', roomName), 'END';
     return true;
 });
 events.listen(CONSTANTS.EVENT_TICK_START, (event_name) => {
-    // console.log('RoomObject', 'EVENT_TICK_START');
-    var oldest_memory_time = Game.time - 10;
+    // console.log('Room', 'EVENT_TICK_START');
+
     for (var roomName in Game.rooms) {
-        var room_objects_short_memory = Memory.rooms[roomName].room_objects_short_memory;
-        if (oldest_memory_time in room_objects_short_memory) {
-            delete room_objects_short_memory[oldest_memory_time];
+        var room = Game.rooms[roomName];
+
+        var drain = room.memory.energy_available - room.energy_available;
+        var prev_energy_drain_ema = room.memory.energy_drain_ema;
+        // var alpha = drain > room.memory.energy_drain_ema ? ENERGY_DRAIN_EMA_GROWTH_RATE : ENERGY_DRAIN_EMA_DECAY_RATE;
+        // var energy_drain_ema = room.memory.energy_drain_ema = alpha * drain + (1-alpha) * room.memory.energy_drain_ema;
+        var energy_drain_ema = room.memory.energy_drain_ema = prev_energy_drain_ema + drain - prev_energy_drain_ema / ENERGY_DRAIN_WINDOW_SIZE;
+
+        var prev_report = room.memory.energy_drain_report;
+        // console.log(energy_drain_ema, Math.abs(energy_drain_ema - prev_report), ENERGY_DRAIN_REPORT_CHANGE_THRESHOLD * prev_report);
+        if (Math.abs(energy_drain_ema - prev_report) > ENERGY_DRAIN_REPORT_CHANGE_THRESHOLD * Math.abs(prev_report)) {
+            room.memory.energy_drain_report = Math.ceil(energy_drain_ema / ENERGY_DRAIN_WINDOW_SIZE);
         }
-        if (Game.time % 100 == 0) {
-            for (var time in room_objects_short_memory) {
-                if (time < oldest_memory_time) {
-                    delete room_objects_short_memory[time];
-                }
-            }
-        }
+
+        room.memory.energy_drain_ema = energy_drain_ema;
+        room.memory.energy_available = room.energy_available;
     }
-    // console.log('RoomObject', 'EVENT_TICK_START', 'END');
+
+    // console.log('Room', 'EVENT_TICK_START', 'END');
     return true;
 });
 
-
-Object.defineProperty(RoomObject.prototype, "memoryShort", {
-    get: function () {
-        var short_memory = Memory.rooms[this.room.name].room_objects_short_memory;
-        var time_memory = short_memory[Game.time];
-        if (time_memory === undefined) {
-            time_memory = short_memory[Game.time] = {};
-        }
-        var room_object_short_memory = time_memory[this.id];
-        if (!room_object_short_memory) {
-            room_object_short_memory = time_memory[this.id] = {};
-        }
-        return room_object_short_memory;
+Object.defineProperty(Room.prototype, "energy_drain", {
+    get: function() {
+        return this.memory.energy_drain_report;
     }
 });
-Object.defineProperty(RoomObject.prototype, "memoryShortPrev", {
-    get: function () {
-        var short_memory = Memory.rooms[this.room.name].room_objects_short_memory;
-        var time_memory = short_memory[Game.time - 1];
-        if (time_memory === undefined) {
-            time_memory = short_memory[Game.time - 1] = {};
+Object.defineProperty(Room.prototype, "energy_capacity", {
+    get: function() {
+        if (this._energy_capacity === undefined) {
+            var energy_capacity = this.energyCapacityAvailable;
+            this.find(FIND_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_CONTAINER}).forEach((container) => {
+                // TODO: ignore other resources
+                energy_capacity += container.storeCapacity;
+            });
+            this._energy_capacity = energy_capacity;
         }
-        var room_object_short_memory = time_memory[this.id];
-        if (!room_object_short_memory) {
-            room_object_short_memory = time_memory[this.id] = {};
-        }
-        return room_object_short_memory;
+        return this._energy_capacity;
     }
 });
-
-Object.defineProperty(RoomObject.prototype, "clearance", {
-    get: function () {
-        if (this._clearance === undefined) {
-            // console.log('Fetching clearance');
-            var clearance = this.memory.clearance;
-            if (clearance === undefined) {
-                // console.log('Calculating clearance');
-                clearance = 0;
-                var room = this.room;
-                var x = this.pos.x;
-                var y = this.pos.y;
-                for (var i = x - 1; i != x + 2; ++i) {
-                    for (var j = y - 1; j != y + 2; ++j) {
-                        if (i == x && j == y) {
-                            continue;
-                        }
-                        var look_res = room.lookForAt(LOOK_TERRAIN, i, j);
-                        if (look_res.length && look_res[0] == 'plain') {
-                            ++clearance;
-                        }
-                    }
-                }
-                this.memory.clearance = clearance;
-            }
-            this._clearance = clearance;
+Object.defineProperty(Room.prototype, "energy_available", {
+    get: function() {
+        if (this._energy_available === undefined) {
+            var energy_available = this.energyAvailable;
+            this.find(FIND_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_CONTAINER}).forEach((container) => {
+                // TODO: ignore other resources
+                energy_available += container.store[RESOURCE_ENERGY];
+            });
+            this._energy_available = energy_available;
         }
-        return this._clearance;
+        return this._energy_available;
     }
 });
 
-Object.defineProperty(RoomObject.prototype, "creeps", {
-    get: function () {
-        if (this._creeps === undefined) {
-            this._creeps = this.memory.creeps;
-            if (this._creeps === undefined) {
-                this._creeps = [];
-            }
-            this._creeps = new Set(this._creeps.map((id) => Game.getObjectById(id)).filter((creep) => creep != null));
-        }
-        return this._creeps;
-    },
-    set: function (creeps) {
-        this._creeps = creeps;
-        this.memory.creeps = Array.from(creeps).map((creep) => creep.id);
-    }
-});
+Room.prototype.findMyExtensions = function() {
+    return this.find(FIND_MY_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_EXTENSION});
+};
+
+Room.prototype.findKeeperLairs = function() {
+    return this.find(FIND_HOSTILE_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_KEEPER_LAIR});
+};
+
+Room.prototype.findSources = function() {
+    return this.find(FIND_SOURCES).filter((source) => {
+        return source.id != this.memory.lair_source_id;
+    });
+};
+
+Room.prototype.findSourcesActive = function(ignore_source_id) {
+    return this.find(FIND_SOURCES_ACTIVE).filter((source) => {
+        return source.id != this.memory.lair_source_id && source.id != ignore_source_id;
+    });
+};
+
+Room.prototype.findTowers = function() {
+    return this.find(FIND_MY_STRUCTURES, {filter: (structure) => structure.structureType === STRUCTURE_TOWER});
+};
+
+Room.prototype.findContainers = function() {
+    return this.find(FIND_STRUCTURES, {filter: (structure) => structure.structureType === STRUCTURE_CONTAINER});
+};
+
+Room.prototype.findHostileStructures = function() {
+    return this.find(FIND_HOSTILE_CONSTRUCTION_SITES)
+        .concat(this.find(FIND_HOSTILE_STRUCTURES))
+        .concat(this.find(FIND_HOSTILE_SPAWNS))
+        .filter((hostile) => hostile.structureType != STRUCTURE_KEEPER_LAIR);
+};
