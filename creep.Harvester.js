@@ -11,7 +11,7 @@ class Harvester extends BinaryCreep {
 	    var new_source = null;
 	    var creep = this.creep;
 	    creep.findSourcesActive(old_source ? old_source.id : null).forEach((source) => {
-	        var load = source.load + source.estimateCreepLoad(creep);
+	        var load = source.calculateLoad(creep);
 	        if (load < min_load) {
 	            min_load = load;
 	            new_source = source;

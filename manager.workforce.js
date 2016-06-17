@@ -16,9 +16,6 @@ events.listen(CONSTANTS.EVENT_ROOM_DISCOVERED, (event_name, roomName) => {
     var room = Game.rooms[roomName];
     var memory = Memory.rooms[roomName];
 
-    room.findSources().forEach((source) => {
-        // TODO: save clearance
-    });
     var lairs = room.findKeeperLairs();
     if (lairs.length > 1) {
         console.log('ERROR ERROR ERROR ERROR ERROR', 'Found too many lairs', lairs.length);
@@ -46,6 +43,7 @@ function WorkforceManager(room) {
     this.room = room;
     this.memory = room.memory.workforce_manager;
     this.creeps = room.find(FIND_MY_CREEPS, {filter: (creep) => [CONSTANTS.ROLE_HARVESTER, CONSTANTS.ROLE_BUILDER, CONSTANTS.ROLE_UPGRADER, CONSTANTS.ROLE_MULE, null, undefined].indexOf(creep.role) != -1});
+    this.sources = room.findSources();
 }
 
 function reassignWorker(source, target, role_name) {
@@ -236,7 +234,7 @@ WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
     required_harvesters = Math.ceil(required_harvesters);
     required_harvesters += 2;
     
-    var max_harvesters = room.findSources().reduce((total_clearance, source) => total_clearance + source.clearance, 0) * 2;
+    var max_harvesters = this.sources.reduce((total_clearance, source) => total_clearance + source.clearance, 0) * 2;
     required_harvesters = Math.min(required_harvesters, max_harvesters);
     
     

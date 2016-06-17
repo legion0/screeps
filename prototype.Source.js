@@ -17,6 +17,16 @@ events.listen(CONSTANTS.EVENT_TICK_START, (event_name) => {
 
 Object.defineProperty(Source.prototype, "load", {
     get: function() {
+        var source = this;
+        var creeps = this.room
+        .find(FIND_MY_CREEPS, {filter: (creep) => creep.source == source});
+        
+        // 
+        var load = 0;
+        var 
+
+
+
         var memoryShortPrev = this.memoryShortPrev;
         var current_harvesters = memoryShortPrev.current_harvesters;
         var enroute_harvesters = memoryShortPrev.enroute_harvesters;
@@ -32,31 +42,16 @@ Object.defineProperty(Source.prototype, "load", {
         return (current_harvesters + enroute_harvesters_load) / this.clearance;
     }
 });
-Source.prototype.registerCreep = function(creep, old_source) {
-    var distance = creep.pos.getRangeTo(this);
-    if (old_source && old_source.id != this.id) {
-        old_source.creeps.delete(creep);
-        old_source.creeps = old_source.creeps;
-        //  = old_source.creeps.filter((source_creep) => source_creep.id != creep.id);
-        old_source.memoryShortPrev.enroute_harvesters -= 1;
-        old_source.memoryShortPrev.enroute_harvesters_distance -= creep.pos.getRangeTo(old_source);
-        this.memoryShortPrev.enroute_harvesters += 1;
-        this.memoryShortPrev.enroute_harvesters_distance += distance;
-    }
-    this.creeps.add(creep);
-    this.creeps = this.creeps;
-    if (distance == 1) {
-        this.memoryShort.current_harvesters += 1;
-        this.memoryShort.current_harvesters_time += creep.harvest_time_remaining;
-    } else {
-        this.memoryShort.enroute_harvesters += 1;
-        this.memoryShort.enroute_harvesters_distance += distance;
-    }
-}
 
-Source.prototype.unregisterCreep = function(creep) {
-    this.creeps.delete(creep);
-    this.creeps = this.creeps;
+Source.prototype.calculateLoad = function(new_creep) {
+    var source = this;
+    var creeps = this.room.find(FIND_MY_CREEPS, {filter: (creep) => creep.source == source && creep != new_creep});
+    creeps.append(new_creep);
+    var load = 0;
+    for (var creep of creeps) {
+        load += creep.getRangeTo(source) - 1 + creep.harvest_time_remaining;
+    }
+    return load;
 }
 
 Source.prototype.estimateCreepLoad = function(creep) {
