@@ -6,6 +6,8 @@ var UpgraderRole = require('role.upgrader');
 var BuilderRole = require('role.builder');
 var MuleRole = require('role.mule');
 
+var HarvesterCreep = require('creep.Harvester');
+
 var WORKFORCE_BODY_PARTS = [WORK,CARRY,MOVE,MOVE, MOVE,WORK, MOVE,CARRY, MOVE,WORK, MOVE,CARRY, MOVE,WORK, MOVE,CARRY, MOVE,WORK];
 var BUILDERS_BOOST = 0.5;
 
@@ -157,7 +159,7 @@ WorkforceManager.prototype.run = function() {
     }
 
     harvesters.forEach((creep) => {
-        new HarvesterRole(creep).run();
+        new HarvesterCreep(creep).run();
     });
     upgraders.forEach((creep) => {
         new UpgraderRole(creep).run();
@@ -175,7 +177,6 @@ WorkforceManager.prototype.recalculateDefaultBody = function() {
         return;
     }
     var memory = this.memory;
-    var all_body_parts = memory.all_body_parts;
     var body_parts = memory.body_parts = [];
     var body_price = 0;
     var max_body_price = this.room.energyCapacityAvailable * 0.85;
@@ -230,13 +231,8 @@ WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
     var energy_capacity = room.energy_capacity;
 
     var required_harvesters = 0;
-    // if (drainage_active) {
-    //     var creep_energy_coefficient = memory.body_price / 150;
-    //     required_harvesters = Math.sqrt(energyCapacityAvailable) / creep_energy_coefficient;
-    // } else {
-        var creep_energy_coefficient = memory.body_price / 70;
-        required_harvesters = Math.sqrt(energy_capacity - energy_available) / creep_energy_coefficient;
-    // }
+    var creep_energy_coefficient = memory.body_price / 70;
+    required_harvesters = Math.sqrt(energy_capacity - energy_available) / creep_energy_coefficient;
     required_harvesters = Math.ceil(required_harvesters);
     required_harvesters += 2;
     
