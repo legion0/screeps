@@ -3,7 +3,6 @@ var MyCreep = require('creep.MyCreep');
 class BinaryCreep extends MyCreep {
 	constructor(creep) {
 		super(creep);
-		this.action = false;
 		this.invalidate_source = true;
 		this.invalidate_target = true;
 	}
@@ -52,7 +51,7 @@ class BinaryCreep extends MyCreep {
 
 	run() {
 	    var old_action = this.action;
-	    this.action = this.selectAction();
+	    this.action = this.selectAction(old_action);
 
 	    if (this.action == null) {
 	    	this.resign();

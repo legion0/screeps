@@ -34,13 +34,13 @@ class Harvester extends BinaryCreep {
 	        target.structureType == STRUCTURE_CONTAINER && _.sum(target.store) < target.storeCapacity;
 	}
 
-	selectAction() {
-	    if (this.action && _.sum(this.creep.carry) == 0) {
+	selectAction(old_action) {
+	    if (old_action && _.sum(this.creep.carry) == 0) {
 	        return false;
-	    } else if (!this.action && _.sum(this.creep.carry) == this.creep.carryCapacity) {
+	    } else if (!old_action && _.sum(this.creep.carry) == this.creep.carryCapacity) {
 	        return true;
 	    }
-	    return this.action;
+	    return old_action;
 	}
 
 	innerAction(target) {
