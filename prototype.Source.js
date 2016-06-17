@@ -44,13 +44,20 @@ events.listen(CONSTANTS.EVENT_TICK_START, (event_name) => {
 
 Source.prototype.calculateLoad = function(new_creep) {
     var source = this;
-    var creeps = this.room.find(FIND_MY_CREEPS, {filter: (creep) => creep.source == source && creep != new_creep});
-    creeps.append(new_creep);
-    var load = 0;
-    for (var creep of creeps) {
-        load += creep.getRangeTo(source) - 1 + creep.harvest_time_remaining;
+
+    function creepLoad(creep, source) {
+        return creep.pos.getRangeTo(source) - 1 + creep.harvest_time_remaining;
     }
-    return load;
+
+    var load = creepLoad(new_creep, source);
+    var creeps = this.room.find(FIND_MY_CREEPS, {filter: (creep) => creep.source == source && creep != new_creep});
+    if (creeps.length < this.clearance) {
+        return load;
+    }
+    for (var creep of creeps) {
+        load += creepLoad(creep, source);
+    }
+    return load / this.clearance;
 }
 
 // Source.prototype.estimateCreepLoad = function(creep) {

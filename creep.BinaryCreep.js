@@ -4,6 +4,8 @@ class BinaryCreep extends MyCreep {
 	constructor(creep) {
 		super(creep);
 		this.action = false;
+		this.invalidate_source = true;
+		this.invalidate_target = true;
 	}
 
 	findSource(old_source) {
@@ -74,9 +76,15 @@ class BinaryCreep extends MyCreep {
 	}
 
 	onActionStart() {
+		if (this.invalidate_target) {
+			this.target = null;
+		}
 	    this.onActionContinue();
 	}
 	onActionEnd() {
+		if (this.invalidate_source) {
+			this.source = null;
+		}
     	this.harvest();
 	}
 
