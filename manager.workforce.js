@@ -10,7 +10,7 @@ var HarvesterCreep = require('creep.Harvester');
 var UpgraderCreep = require('creep.Upgrader');
 var BuilderCreep = require('creep.Builder');
 
-var WORKFORCE_BODY_PARTS = [WORK,CARRY,MOVE,MOVE, MOVE,WORK, MOVE,CARRY, MOVE,WORK, MOVE,CARRY, MOVE,WORK, MOVE,CARRY, MOVE,WORK];
+var WORKFORCE_BODY_PARTS = [WORK,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE];
 var BUILDERS_BOOST = 0.5;
 
 events.listen(CONSTANTS.EVENT_ROOM_DISCOVERED, (event_name, roomName) => {
@@ -64,7 +64,9 @@ WorkforceManager.prototype.run = function() {
         return;
     }
 
-    this.recalculateDefaultBody();
+    if (Game.time % 50 != 0) {
+        this.recalculateDefaultBody();
+    }
 
     var creeps = room.find(FIND_MY_CREEPS, {filter: (creep) => [CONSTANTS.ROLE_HARVESTER, CONSTANTS.ROLE_BUILDER, CONSTANTS.ROLE_UPGRADER, CONSTANTS.ROLE_MULE, null, undefined].indexOf(creep.role) != -1});
     var unemployed = _.filter(creeps, (creep) => creep.role == null);
@@ -129,7 +131,7 @@ WorkforceManager.prototype.run = function() {
         reassignWorker(builders, upgraders, CONSTANTS.ROLE_UPGRADER);
     }
 
-    // Harvester > Mule > Builder > Upgrader
+    // Harvester < Mule < Builder < Upgrader
     var min_upgraders = 0;
     if (creeps.length > 10 || creeps.length > 2 && this.room.controller.level < 2) {
         min_upgraders = 1;
@@ -187,24 +189,25 @@ WorkforceManager.prototype.run = function() {
 };
 
 WorkforceManager.prototype.recalculateDefaultBody = function() {
-    if (Game.time % 50 != 0) {
-        return;
-    }
     var memory = this.memory;
-    var body_parts = memory.body_parts = [];
-    var body_price = 0;
-    var max_body_price = this.room.energyCapacityAvailable * 0.85;
+    var new_body_parts = [];
+    var new_body_price = 0;
+    var max_body_price = this.room.energyCapacityAvailable;
     for (i in WORKFORCE_BODY_PARTS) {
-        var body_part = WORKFORCE_BODY_PARTS[i];
-        var new_body_price = body_price + BODYPART_COST[body_part];
-        if (new_body_price > max_body_price) {
+        if (i % 2 != 1) {
+            continue;
+        }
+        var body_parts = [WORKFORCE_BODY_PARTS[i-1], WORKFORCE_BODY_PARTS[i]];
+        var body_parts_price = body_parts.map((part) => BODYPART_COST[part]).reduce((price, part) => price + part, 0);
+        if (new_body_price + body_parts_price > max_body_price) {
             break;
         }
-        body_price = new_body_price;
-        body_parts.push(body_part);
+        new_body_price += body_parts_price;
+        new_body_parts = new_body_parts.concat(body_parts);
     }
-    console.log('body_price = ', body_price, '/', max_body_price, '/', this.room.energyCapacityAvailable);
-    memory.body_price = body_price;
+    // console.log('new_body_price = ', new_body_price, '/', max_body_price, '/', this.room.energyCapacityAvailable);
+    memory.body_parts = new_body_parts;
+    memory.body_price = new_body_price;
 }
 WorkforceManager.prototype.requiredBuilders = function() {
     var memory = this.memory;
@@ -246,7 +249,11 @@ WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
 
     var required_harvesters = 0;
     var creep_energy_coefficient = memory.body_price / 70;
-    required_harvesters = Math.sqrt(energy_capacity - energy_available) / creep_energy_coefficient;
+    if (drainage_active) {
+        required_harvesters = Math.sqrt(energy_capacity) / creep_energy_coefficient;
+    } else {
+        required_harvesters = Math.sqrt(energy_capacity - energy_available) / creep_energy_coefficient;
+    }
     required_harvesters = Math.ceil(required_harvesters);
     required_harvesters += 2;
     
