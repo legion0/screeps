@@ -1,6 +1,6 @@
 var BinaryCreep = require('creep.BinaryCreep')
 
-class Harvester extends BinaryCreep {
+class Upgrader extends BinaryCreep {
 	constructor(creep) {
 		super(creep);
 	}
@@ -26,7 +26,7 @@ class Harvester extends BinaryCreep {
 	}
 
 	findTarget(old_target) {
-		return this.creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: this.isValidTarget});
+		return this.creep.room.controller;
 	}
 
 	isValidSource(source) {
@@ -34,8 +34,7 @@ class Harvester extends BinaryCreep {
 	}
 
 	isValidTarget(target) {
-	    return [STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER].indexOf(target.structureType) != -1 && target.energy < target.energyCapacity ||
-	        target.structureType == STRUCTURE_CONTAINER && _.sum(target.store) < target.storeCapacity;
+	    return true;
 	}
 
 	selectAction(old_action) {
@@ -48,7 +47,7 @@ class Harvester extends BinaryCreep {
 	}
 
 	innerAction(target) {
-		return this.creep.transfer(target, RESOURCE_ENERGY);
+		return this.creep.upgradeController(target);
 	}
 
 	innerHarvest(source) {
@@ -70,4 +69,4 @@ class Harvester extends BinaryCreep {
 	}
 }
 
-module.exports = Harvester;
+module.exports = Upgrader;
