@@ -79,23 +79,17 @@ WorkforceManager.prototype.run = function() {
         upgraders.push(creep);
     }
 
-    // var required_builders = this.requiredBuilders();
-    // var required_harvesters = this.requiredHarveters();
-    // var required_upgraders = this.requiredUpgraders();
-    // var required_mules = this.requiredMules();
-    // var required_workforce_size = required_upgraders + required_harvesters + required_builders + required_mules;
-
-    // var required_harvesters_old = required_harvesters;
-    // if (creeps.length < 0.9 * required_workforce_size) {
-    //     // Task additional harvester but do not update required_workforce_size so not to build surplus harvesters
-    //     required_harvesters = this.requiredHarveters(true);
-    // }
-    var required_builders = 0;
-    var required_harvesters = 30;
-    var required_upgraders = 0;
-    var required_mules = 0;
+    var required_builders = this.requiredBuilders();
+    var required_harvesters = this.requiredHarveters();
+    var required_upgraders = this.requiredUpgraders();
+    var required_mules = this.requiredMules();
     var required_workforce_size = required_upgraders + required_harvesters + required_builders + required_mules;
+
     var required_harvesters_old = required_harvesters;
+    if (creeps.length < 0.9 * required_workforce_size) {
+        // Task additional harvester but do not update required_workforce_size so not to build surplus harvesters
+        required_harvesters = this.requiredHarveters(true);
+    }
 
     if (Game.time % 10 == 0) {
         console.log(
@@ -135,7 +129,7 @@ WorkforceManager.prototype.run = function() {
     }
 
     var min_upgraders = 0;
-    if (creeps.length > 50) {
+    if (creeps.length > 10) {
         min_upgraders = 1;
     }
     // upgraders -> harvesters
