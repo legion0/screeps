@@ -198,11 +198,13 @@ var RANGE_TO_TARGET_WINDOW_SIZE = 10;
 
 Source.prototype.registerCreep = function(new_creep) {
     var new_creep_range = new_creep.pos.getRangeTo(this);
-    var prev_range_to_target_mean = this.memory.range_to_target_mean;
+    var prev_range_to_target_mean = this.memory.range_to_target_mean * RANGE_TO_TARGET_WINDOW_SIZE;
     if (!prev_range_to_target_mean) {
         prev_range_to_target_mean = 0;
     }
-    var range_to_target_mean = this.memory.range_to_target_mean = prev_range_to_target_mean + new_creep_range - prev_range_to_target_mean / RANGE_TO_TARGET_WINDOW_SIZE;
+    var range_to_target_mean =
+      this.memory.range_to_target_mean =
+        (prev_range_to_target_mean + new_creep_range - prev_range_to_target_mean / RANGE_TO_TARGET_WINDOW_SIZE) / RANGE_TO_TARGET_WINDOW_SIZE;
     console.log(this, 'range_to_target_mean', range_to_target_mean);
 }
 
