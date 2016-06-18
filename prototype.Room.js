@@ -23,15 +23,15 @@ events.listen(CONSTANTS.EVENT_TICK_START, (event_name) => {
         var room = Game.rooms[roomName];
 
         var drain = room.memory.energy_available - room.energy_available;
-        var prev_energy_drain_ema = room.memory.energy_drain_ema;
+        var prev_energy_drain_ema = room.memory.energy_drain_ema * ENERGY_DRAIN_WINDOW_SIZE;
         // var alpha = drain > room.memory.energy_drain_ema ? ENERGY_DRAIN_EMA_GROWTH_RATE : ENERGY_DRAIN_EMA_DECAY_RATE;
         // var energy_drain_ema = room.memory.energy_drain_ema = alpha * drain + (1-alpha) * room.memory.energy_drain_ema;
-        var energy_drain_ema = room.memory.energy_drain_ema = prev_energy_drain_ema + drain - prev_energy_drain_ema / ENERGY_DRAIN_WINDOW_SIZE;
+        var energy_drain_ema = (room.memory.energy_drain_ema = prev_energy_drain_ema + drain - prev_energy_drain_ema / ENERGY_DRAIN_WINDOW_SIZE) / ENERGY_DRAIN_WINDOW_SIZE;
 
         var prev_report = room.memory.energy_drain_report;
         // console.log(energy_drain_ema, Math.abs(energy_drain_ema - prev_report), ENERGY_DRAIN_REPORT_CHANGE_THRESHOLD * prev_report);
         if (Math.abs(energy_drain_ema - prev_report) > ENERGY_DRAIN_REPORT_CHANGE_THRESHOLD * Math.abs(prev_report)) {
-            room.memory.energy_drain_report = Math.ceil(energy_drain_ema / ENERGY_DRAIN_WINDOW_SIZE);
+            room.memory.energy_drain_report = Math.ceil(energy_drain_ema);
         }
 
         room.memory.energy_drain_ema = energy_drain_ema;
