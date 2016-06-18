@@ -96,6 +96,7 @@ WorkforceManager.prototype.run = function() {
 
     if (Game.time % 10 == 0) {
         console.log(
+            Game.time,
             'builders', builders.length, '/', required_builders,
             'upgraders', upgraders.length, '/', required_upgraders,
             'harvesters', harvesters.length, '/', required_harvesters,
