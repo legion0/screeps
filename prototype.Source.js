@@ -157,7 +157,7 @@ Source.prototype.laneLoad = function(new_creep) {
     }
     creeps_on_lane /= average_harvest_time;
 
-    new_creep.log('source', source);
+    new_creep.log('source', source, 'creeps', creeps.length);
     console.log('lane_idx', lane_idx, 'creeps_on_lane', creeps_on_lane, 'current_harvesters', current_harvesters, 'lane_creeps', lane_creeps, 'lane', lanes[lane_idx]);
     return creeps_on_lane / creeps_per_lane;
 }

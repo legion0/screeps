@@ -7,17 +7,17 @@ class Harvester extends BinaryCreep {
 	}
 
 	findSource(old_source) {
-	    var min_round_trip_time = Infinity;
+	    var min_lane_load = Infinity;
 	    var new_source = null;
 	    var creep = this.creep;
 	    creep.findSourcesActive(old_source ? old_source.id : null).forEach((source) => {
-	    	var wait_time = source.waitTime(creep);
+	    	// var wait_time = source.waitTime(creep);
 	    	var lane_load = source.laneLoad(creep);
-	    	var walk_time = creep.pos.getRangeTo(source);
-	    	var round_trip_time =  Math.max(walk_time, wait_time) + walk_time;
-	        creep.log(source, 'round_trip_time', round_trip_time, 'walk_time', walk_time, 'wait_time', wait_time, 'creeps', source.getCreeps().length);
-	        if (round_trip_time < min_round_trip_time) {
-	            min_round_trip_time = round_trip_time;
+	    	// var walk_time = creep.pos.getRangeTo(source);
+	    	// var round_trip_time =  Math.max(walk_time, wait_time) + walk_time;
+	        // creep.log(source, 'round_trip_time', round_trip_time, 'walk_time', walk_time, 'wait_time', wait_time, 'creeps', source.getCreeps().length);
+	        if (lane_load < min_lane_load) {
+	            min_lane_load = lane_load;
 	            new_source = source;
 	        }
 	    });
