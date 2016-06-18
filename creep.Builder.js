@@ -70,7 +70,7 @@ class Builder extends BinaryCreep {
 	}
 
 	innerAction(target) {
-		return this.creep.upgradeController(target);
+		return this.creep.build(target);
 	}
 
 	innerHarvest(source) {

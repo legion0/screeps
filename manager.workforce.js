@@ -120,36 +120,50 @@ WorkforceManager.prototype.run = function() {
     while (harvesters.length > required_harvesters) {
         reassignWorker(harvesters, upgraders, CONSTANTS.ROLE_UPGRADER);
     }
-    // Surplus builders -> upgraders
-    while (builders.length > required_builders) {
-        reassignWorker(builders, upgraders, CONSTANTS.ROLE_UPGRADER);
-    }
     // Surplus mules -> upgraders
     while (mules.length > required_mules) {
         reassignWorker(mules, upgraders, CONSTANTS.ROLE_UPGRADER);
     }
+    // Surplus builders -> upgraders
+    while (builders.length > required_builders) {
+        reassignWorker(builders, upgraders, CONSTANTS.ROLE_UPGRADER);
+    }
 
+    // Harvester > Mule > Builder > Upgrader
     var min_upgraders = 0;
     if (creeps.length > 10) {
         min_upgraders = 1;
     }
-    // upgraders -> harvesters
+    // Upgrader > Harvester, Mule, Builder
     while (harvesters.length < required_harvesters && upgraders.length > min_upgraders) {
         reassignWorker(upgraders, harvesters, CONSTANTS.ROLE_HARVESTER);
     }
-    // upgraders -> mules
     while (mules.length < required_mules && upgraders.length > min_upgraders) {
         reassignWorker(upgraders, mules, CONSTANTS.ROLE_MULE);
     }
-    // upgraders -> builders
     while (builders.length < required_builders && upgraders.length > min_upgraders) {
         reassignWorker(upgraders, builders, CONSTANTS.ROLE_BUILDER);
     }
 
-    var min_builders = 2;
-    // builders -> mules
+    // Builder > Harvester, Mule
+    var min_builders = 0;
+    if (creeps.length > 10) {
+        min_upgraders = 2;
+    }
+    while (harvesters.length < required_harvesters && builders.length > min_builders) {
+        reassignWorker(builders, harvesters, CONSTANTS.ROLE_HARVESTER);
+    }
     while (mules.length < required_mules && builders.length > min_builders) {
         reassignWorker(builders, mules, CONSTANTS.ROLE_MULE);
+    }
+
+    // Mule -> Harvester
+    var min_mules = 0;
+    if (creeps.length > 10) {
+        min_mules = 1;
+    }
+    while (harvesters.length < required_harvesters && mules.length > min_mules) {
+        reassignWorker(mules, harvesters, CONSTANTS.ROLE_HARVESTER);
     }
 
     // TODO: If we have resources in containers than mules are more important than harvesters.
