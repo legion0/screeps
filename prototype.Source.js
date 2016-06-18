@@ -200,7 +200,7 @@ Source.prototype.registerCreep = function(new_creep) {
     var new_creep_range = new_creep.pos.getRangeTo(this);
     var prev_range_to_target_mean = this.memory.range_to_target_mean * RANGE_TO_TARGET_WINDOW_SIZE;
     if (!prev_range_to_target_mean) {
-        prev_range_to_target_mean = 0;
+        prev_range_to_target_mean = new_creep_range * RANGE_TO_TARGET_WINDOW_SIZE;
     }
     var range_to_target_mean =
       this.memory.range_to_target_mean =

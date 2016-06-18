@@ -1,6 +1,8 @@
 var BinaryCreep = require('creep.BinaryCreep')
 
-class Upgrader extends BinaryCreep {
+var BUILD_ORDER = /*other == -1*/ [STRUCTURE_ROAD, STRUCTURE_CONTAINER, STRUCTURE_EXTENSION, STRUCTURE_SPAWN];
+
+class Builder extends BinaryCreep {
 	constructor(creep) {
 		super(creep);
 		this.min_container_load = 0.0;
@@ -32,7 +34,22 @@ class Upgrader extends BinaryCreep {
 	}
 
 	findTarget(old_target) {
-		return this.creep.room.controller;
+	    var targets = this.room.find(FIND_CONSTRUCTION_SITES).sort((a,b) => {
+	        var build_idx_1 = BUILD_ORDER.indexOf(a.structureType);
+	        var build_idx_2 = BUILD_ORDER.indexOf(b.structureType);
+	        if (build_idx_1 != build_idx_2) {
+	            return build_idx_2 - build_idx_1;
+	        }
+	        if (build_idx_1 > 0) {
+	            return b.progress - a.progress;
+	        }
+	        return b.pos.getRangeTo(this.creep) - a.pos.getRangeTo(this.creep);
+	        
+	    });
+	    if (targets.length) {
+	        return targets[0];
+	    }
+	    return null;
 	}
 
 	isValidSource(source) {
@@ -40,7 +57,7 @@ class Upgrader extends BinaryCreep {
 	}
 
 	isValidTarget(target) {
-	    return true;
+	    return target && target.progress < target.progressTotal;
 	}
 
 	selectAction(old_action) {
@@ -75,4 +92,4 @@ class Upgrader extends BinaryCreep {
 	}
 }
 
-module.exports = Upgrader;
+module.exports = Builder;
