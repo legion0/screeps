@@ -221,7 +221,7 @@ Source.prototype.laneLoad2 = function(new_creep) {
     var creeps_per_lane = 1 + 2 * range_to_target_mean / average_harvest_time;
     var max_creeps = this.clearance * creeps_per_lane;
     var creeps = this.getCreeps().filter((creep) => creep != new_creep);
-    var load = creeps.length / max_creeps;
+    var load = (creeps.length + 1) / max_creeps;
 
     new_creep.log(source, 'range_to_target_mean', range_to_target_mean, 'creeps_per_lane', creeps_per_lane, 'max_creeps', max_creeps, 'creeps', creeps.length, 'load', load);
 

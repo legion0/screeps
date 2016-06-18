@@ -131,7 +131,7 @@ WorkforceManager.prototype.run = function() {
 
     // Harvester > Mule > Builder > Upgrader
     var min_upgraders = 0;
-    if (creeps.length > 10) {
+    if (creeps.length > 10 || creeps.length > 2 && this.room.controller.level < 2) {
         min_upgraders = 1;
     }
     // Upgrader > Harvester, Mule, Builder

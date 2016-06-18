@@ -17,15 +17,19 @@ class Upgrader extends BinaryCreep {
 	    } else {
 		    var min_lane_load = Infinity;
 		    var min_load_source = null;
+		    var low_load_source = null;
 		    var creep = this.creep;
 		    creep.findSourcesActive(old_source ? old_source.id : null).forEach((source) => {
 		    	var lane_load = source.laneLoad2(creep);
+		    	if (lane_load < 1 && !low_load_source) {
+		    		low_load_source = source;
+		    	}
 		        if (lane_load < min_lane_load) {
 		            min_lane_load = lane_load;
 		            min_load_source = source;
 		        }
 		    });
-		    new_source = min_load_source;
+		    new_source = low_load_source ? low_load_source : min_load_source;
 		}
 	    this.log('new_source', new_source);
 	    return new_source;
