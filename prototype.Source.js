@@ -196,17 +196,32 @@ Source.prototype.waitTime = function(new_creep) {
 
 var RANGE_TO_TARGET_WINDOW_SIZE = 10;
 
+Source.prototype.registerCreep = function(new_creep) {
+    var new_creep_range = new_creep.pos.getRangeTo(source);
+    var prev_range_to_target_mean = this.memory.range_to_target_mean;
+    if (!prev_range_to_target_mean) {
+        prev_range_to_target_mean = 0;
+    }
+    var range_to_target_mean = this.memory.range_to_target_mean = prev_range_to_target_mean + new_creep_range - prev_range_to_target_mean / RANGE_TO_TARGET_WINDOW_SIZE;
+    console.log(source, 'range_to_target_mean', range_to_target_mean);
+}
+
 Source.prototype.laneLoad2 = function(new_creep) {
     var source = this;
 
-    var range_to_target = new_creep.pos.getRangeTo(source);
+    var new_creep_range = new_creep.pos.getRangeTo(source);
+    var range_to_target_mean = this.memory.range_to_target_mean;
+    if (!range_to_target_mean) {
+        range_to_target_mean = new_creep_range;
+    }
+
     var average_harvest_time = new_creep.harvest_time_remaining;
-    var creeps_per_lane = 1 + 2 * range_to_target / average_harvest_time;
+    var creeps_per_lane = 1 + 2 * range_to_target_mean / average_harvest_time;
     var max_creeps = this.clearance * creeps_per_lane;
     var creeps = this.getCreeps().filter((creep) => creep != new_creep);
     var load = creeps.length / max_creeps;
 
-    new_creep.log(source, 'range_to_target', range_to_target, 'creeps_per_lane', creeps_per_lane, 'max_creeps', max_creeps, 'creeps', creeps.length, 'load', load);
+    new_creep.log(source, 'range_to_target_mean', range_to_target_mean, 'creeps_per_lane', creeps_per_lane, 'max_creeps', max_creeps, 'creeps', creeps.length, 'load', load);
 
     return load;
 }

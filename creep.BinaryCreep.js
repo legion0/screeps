@@ -89,6 +89,10 @@ class BinaryCreep extends MyCreep {
 		if (this.invalidate_target) {
 			this.target = null;
 		}
+		if (this.invalidate_source) {
+			this.source = this.findSource(null);
+		}
+		source.registerCreep(this.creep);
     	this.harvest();
 	}
 
