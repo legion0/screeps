@@ -68,6 +68,14 @@ class Harvester extends BinaryCreep {
 	onNoPathToTarget(target) {
 		// this.log('onNoPathToTarget');
 	}
+
+	onActionEnd() { /*override*/
+		this.source = this.findSource(null);
+		if (this.source) {
+			this.source.registerCreep(this.creep);
+		}
+    	super.onActionEnd();
+	}
 }
 
 module.exports = Harvester;
