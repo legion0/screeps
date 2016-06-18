@@ -3,6 +3,9 @@ var MyCreep = require('creep.MyCreep');
 class BinaryCreep extends MyCreep {
 	constructor(creep) {
 		super(creep);
+		if (this.action == null) {
+	    	this.action = false;
+		}
 		this.invalidate_source = true;
 		this.invalidate_target = true;
 	}
@@ -51,17 +54,19 @@ class BinaryCreep extends MyCreep {
 
 	run() {
 	    var old_action = this.action;
-	    this.action = this.selectAction(old_action);
+	    var new_action = this.selectAction(old_action);
 
-	    if (this.action == null) {
+	    if (new_action == null) {
 	    	this.resign();
 		}
 
 	    // Step away from the source
-	    if (this.action && this.source && this.creep.pos.getRangeTo(this.source.pos) == 1) {
+	    if (new_action && this.source && this.creep.pos.getRangeTo(this.source.pos) == 1) {
 	        this.creep.moveTo(this.creep.room.controller);
 	        return;
 	    }
+
+	    this.action = new_action;
 
 	    if (this.action && !old_action) {
 	        this.onActionStart();
@@ -75,14 +80,14 @@ class BinaryCreep extends MyCreep {
 	}
 
 	onActionStart() {
-		if (this.invalidate_target) {
-			this.target = null;
+		if (this.invalidate_source) {
+			this.source = null;
 		}
 	    this.onActionContinue();
 	}
 	onActionEnd() {
-		if (this.invalidate_source) {
-			this.source = null;
+		if (this.invalidate_target) {
+			this.target = null;
 		}
     	this.harvest();
 	}

@@ -12,7 +12,7 @@ class Harvester extends BinaryCreep {
 	    var creep = this.creep;
 	    creep.findSourcesActive(old_source ? old_source.id : null).forEach((source) => {
 	        var load = source.calculateLoad(creep);
-	        creep.log(source, 'load', load, 'load * source.clearance', load * source.clearance);
+	        creep.log(source, 'load', load, 'distance', creep.pos.getRangeTo(source), 'creeps', source.getCreeps().length);
 	        if (load < min_load) {
 	            min_load = load;
 	            new_source = source;
@@ -52,17 +52,17 @@ class Harvester extends BinaryCreep {
 	}
 
 	onCannotReaquireTarget() {
-		this.log('onCannotReaquireTarget');
+		// this.log('onCannotReaquireTarget');
 	}
 	onCannotReaquireSource() {
-		this.log('onCannotReaquireSource');
+		// this.log('onCannotReaquireSource');
 	}
 
 	onNoPathToSource(source) {
-		this.log('onNoPathToSource');
+		// this.log('onNoPathToSource');
 	}
 	onNoPathToTarget(target) {
-		this.log('onNoPathToTarget');
+		// this.log('onNoPathToTarget');
 	}
 }
 
