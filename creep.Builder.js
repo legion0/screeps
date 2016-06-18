@@ -29,7 +29,7 @@ class Builder extends BinaryCreep {
 		    });
 		    new_source = min_load_source;
 		}
-	    this.log('new_source', new_source);
+	    // this.log('new_source', new_source);
 	    return new_source;
 	}
 

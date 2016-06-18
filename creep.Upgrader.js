@@ -31,7 +31,7 @@ class Upgrader extends BinaryCreep {
 		    });
 		    new_source = low_load_source ? low_load_source : min_load_source;
 		}
-	    this.log('new_source', new_source);
+	    // this.log('new_source', new_source);
 	    return new_source;
 	}
 
