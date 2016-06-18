@@ -194,17 +194,21 @@ Source.prototype.waitTime = function(new_creep) {
 //     return creeps_on_lane / creeps_per_lane;
 // }
 
+var RANGE_TO_TARGET_WINDOW_SIZE = 10;
+
 Source.prototype.laneLoad2 = function(new_creep) {
     var source = this;
 
     var range_to_target = new_creep.pos.getRangeTo(source);
-    var average_harvest_time = creep.harvest_time_remaining;
-    var creeps_per_lane = 1 + 2 * range_to_target / average_harvest_time;
+    var range_to_target_mean = this.memory.range_to_target_mean = this.memory.range_to_target_mean + range_to_target - this.memory.range_to_target_mean / RANGE_TO_TARGET_WINDOW_SIZE;
+
+    var average_harvest_time = new_creep.harvest_time_remaining;
+    var creeps_per_lane = 1 + 2 * range_to_target_mean / average_harvest_time;
     var max_creeps = this.clearance * creeps_per_lane;
     var creeps = this.getCreeps().filter((creep) => creep != new_creep);
     var load = creeps.length / max_creeps;
 
-    new_creep.log('source', source, 'range_to_target', range_to_target, 'creeps_per_lane', creeps_per_lane, 'max_creeps', max_creeps, 'creeps', creeps.length, 'load', load);
+    new_creep.log('source', source, 'range_to_target_mean', range_to_target_mean, 'creeps_per_lane', creeps_per_lane, 'max_creeps', max_creeps, 'creeps', creeps.length, 'load', load);
 
     return load;
 }
