@@ -1,3 +1,5 @@
+var CONSTANTS = require('constants');
+
 var MyCreep = require('creep.MyCreep');
 
 class BinaryCreep extends MyCreep {
@@ -92,7 +94,9 @@ class BinaryCreep extends MyCreep {
 		if (this.invalidate_source) {
 			this.source = this.findSource(null);
 		}
-		source.registerCreep(this.creep);
+		if (this.source && this.role == CONSTANTS.ROLE_HARVESTER) {
+			this.source.registerCreep(this.creep);
+		}
     	this.harvest();
 	}
 
