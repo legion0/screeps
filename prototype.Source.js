@@ -98,4 +98,33 @@ Source.prototype.calculateLoad = function(new_creep) {
 Source.prototype.getCreeps = function() {
     var source = this;
     return this.room.find(FIND_MY_CREEPS, {filter: (creep) => creep.source == source});
-};
+}
+
+Source.prototype.waitTime = function(new_creep) {
+    var source = this;
+
+    var creeps = this.getCreeps().filter((creep) => creep != new_creep);
+    var current_harvesters = creeps.filter((creep) => creep.pos.getRangeTo(source) == 1)
+    .sort((creep_a, creep_b) => creep_a.harvest_time_remaining - creep_b.harvest_time_remaining);
+    var line_creeps = creeps
+    .filter((creep) => creep.pos.getRangeTo(source) != 1)
+    .sort((creep_a, creep_b) => creep_a.pos.getRangeTo(source) - creep_b.pos.getRangeTo(source));
+    console.log('source', source, 'current_harvesters', current_harvesters);
+    console.log('source', source, 'line_creeps', line_creeps);
+
+    var lines = Array(this.clearance).fill(null).map(() => []);
+    var line_idx = 0;
+
+    for (var creep of current_harvesters.concat(line_creeps)) {
+        lines[line_idx].push(creep);
+        line_idx = (line_idx + 1) % lines.length;
+    }
+
+    console.log('line_idx', line_idx, 'line', lines[line_idx]);
+    var wait_time = 0;
+    for (creep of lines[line_idx]) {
+        wait_time += creep.harvest_time_remaining;
+    }
+    var range = new_creep.pos.getRangeTo(source);
+    return wait_time;
+}
