@@ -48,23 +48,23 @@ Source.prototype.calculateLoad = function(new_creep) {
     var creeps = this.getCreeps().filter((creep) => creep != new_creep);
     var current_harvesters = creeps.filter((creep) => creep.pos.getRangeTo(source) == 1)
     .sort((creep_a, creep_b) => creep_a.harvest_time_remaining - creep_b.harvest_time_remaining);
-    var line_creeps = creeps
+    var lane_creeps = creeps
     .filter((creep) => creep.pos.getRangeTo(source) != 1)
     .sort((creep_a, creep_b) => creep_a.pos.getRangeTo(source) - creep_b.pos.getRangeTo(source));
     console.log('source', source, 'current_harvesters', current_harvesters);
-    console.log('source', source, 'line_creeps', line_creeps);
+    console.log('source', source, 'lane_creeps', lane_creeps);
 
-    var lines = Array(this.clearance).fill(null).map(() => []);
-    var line_idx = 0;
+    var lanes = Array(this.clearance).fill(null).map(() => []);
+    var lane_idx = 0;
 
-    for (var creep of current_harvesters.concat(line_creeps)) {
-        lines[line_idx].push(creep);
-        line_idx = (line_idx + 1) % lines.length;
+    for (var creep of current_harvesters.concat(lane_creeps)) {
+        lanes[lane_idx].push(creep);
+        lane_idx = (lane_idx + 1) % lanes.length;
     }
 
-    console.log('line_idx', line_idx, 'line', lines[line_idx]);
+    console.log('lane_idx', lane_idx, 'line', lanes[lane_idx]);
     var wait_time = 0;
-    for (creep of lines[line_idx]) {
+    for (creep of lanes[lane_idx]) {
         wait_time += creep.harvest_time_remaining;
     }
     var range = new_creep.pos.getRangeTo(source);
@@ -106,25 +106,58 @@ Source.prototype.waitTime = function(new_creep) {
     var creeps = this.getCreeps().filter((creep) => creep != new_creep);
     var current_harvesters = creeps.filter((creep) => creep.pos.getRangeTo(source) == 1)
     .sort((creep_a, creep_b) => creep_a.harvest_time_remaining - creep_b.harvest_time_remaining);
-    var line_creeps = creeps
+    var lane_creeps = creeps
     .filter((creep) => creep.pos.getRangeTo(source) != 1)
     .sort((creep_a, creep_b) => creep_a.pos.getRangeTo(source) - creep_b.pos.getRangeTo(source));
-    console.log('source', source, 'current_harvesters', current_harvesters);
-    console.log('source', source, 'line_creeps', line_creeps);
 
-    var lines = Array(this.clearance).fill(null).map(() => []);
-    var line_idx = 0;
+    var lanes = Array(this.clearance).fill(null).map(() => []);
+    var lane_idx = 0;
 
-    for (var creep of current_harvesters.concat(line_creeps)) {
-        lines[line_idx].push(creep);
-        line_idx = (line_idx + 1) % lines.length;
+    for (var creep of current_harvesters.concat(lane_creeps)) {
+        lanes[lane_idx].push(creep);
+        lane_idx = (lane_idx + 1) % lanes.length;
     }
 
-    console.log('line_idx', line_idx, 'line', lines[line_idx]);
     var wait_time = 0;
-    for (creep of lines[line_idx]) {
-        wait_time += creep.harvest_time_remaining;
+    for (creep of lanes[lane_idx]) {
+        wait_time += creep.harvest_time_remaining + 4/*pathing penalty heuristic*/;
     }
     var range = new_creep.pos.getRangeTo(source);
+
+    new_creep.log('source', source);
+    console.log('lane_idx', lane_idx, 'current_harvesters', current_harvesters, 'lane_creeps', lane_creeps, 'line', lanes[lane_idx]);
+
     return wait_time;
+}
+
+Source.prototype.laneLoad = function(new_creep) {
+    var source = this;
+
+    var creeps = this.getCreeps().filter((creep) => creep != new_creep);
+    var current_harvesters = creeps.filter((creep) => creep.pos.getRangeTo(source) == 1)
+    .sort((creep_a, creep_b) => creep_a.harvest_time_remaining - creep_b.harvest_time_remaining);
+    var lane_creeps = creeps
+    .filter((creep) => creep.pos.getRangeTo(source) != 1)
+    .sort((creep_a, creep_b) => creep_a.pos.getRangeTo(source) - creep_b.pos.getRangeTo(source));
+
+    var lanes = Array(this.clearance).fill(null).map(() => []);
+    var lane_idx = 0;
+
+    for (var creep of current_harvesters.concat(lane_creeps)) {
+        lanes[lane_idx].push(creep);
+        lane_idx = (lane_idx + 1) % lanes.length;
+    }
+
+    var source_target_range = new_creep.pos.getRangeTo(source);
+    var average_harvest_time = creep.harvest_time_remaining;
+    var creeps_per_lane = 1 + 2 * source_target_range / average_harvest_time;
+    var creeps_on_lane = 0;
+    for (creep of lanes[lane_idx]) {
+        creeps_on_lane += creep.harvest_time_remaining;
+    }
+    creeps_on_lane /= average_harvest_time;
+
+    new_creep.log('source', source);
+    console.log('lane_idx', lane_idx, 'creeps_on_lane', creeps_on_lane, 'current_harvesters', current_harvesters, 'lane_creeps', lane_creeps, 'lane', lanes[lane_idx]);
+    return creeps_on_lane / creeps_per_lane;
 }
