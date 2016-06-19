@@ -1,14 +1,10 @@
 var CONSTANTS = require('constants');
 var events = require('events');
 
-var HarvesterRole = require('role.harvester');
-var UpgraderRole = require('role.upgrader');
-var BuilderRole = require('role.builder');
-var MuleRole = require('role.mule');
-
 var HarvesterCreep = require('creep.Harvester');
 var UpgraderCreep = require('creep.Upgrader');
 var BuilderCreep = require('creep.Builder');
+var MuleCreep = require('creep.Mule');
 
 var WORKFORCE_BODY_PARTS = [WORK,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE];
 var BUILDERS_BOOST = 0.5;
@@ -185,7 +181,7 @@ WorkforceManager.prototype.run = function() {
         new BuilderCreep(creep).run();
     });
     mules.forEach((creep) => {
-        new MuleRole(creep).run();
+        new MuleCreep(creep).run();
     });
 };
 

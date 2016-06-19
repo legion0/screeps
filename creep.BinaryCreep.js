@@ -26,7 +26,7 @@ class BinaryCreep extends MyCreep {
 		throw "Not Implemented !!!";
 	}
 
-	selectAction() {
+	selectAction(old_action) {
 		throw "Not Implemented !!!";
 	}
 
