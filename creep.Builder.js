@@ -14,6 +14,7 @@ class Builder extends BinaryCreep {
 	    var container = this.creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (structure) => {
 	        return structure.structureType == STRUCTURE_CONTAINER && structure.store[RESOURCE_ENERGY] > this.min_container_load * structure.storeCapacity;
 	    }});
+	    // TODO: check distance to container, if > 1.5 distance to source prefer source.
 	    if (container) {
 	        new_source = container;
 	    } else {
@@ -43,7 +44,7 @@ class Builder extends BinaryCreep {
 	        if (build_idx_1 > 0) {
 	            return b.progress - a.progress;
 	        }
-	        return b.pos.getRangeTo(this.creep) - a.pos.getRangeTo(this.creep);
+	        return a.pos.getRangeTo(this.creep) - b.pos.getRangeTo(this.creep);
 	        
 	    });
 	    if (targets.length) {
@@ -74,7 +75,11 @@ class Builder extends BinaryCreep {
 	}
 
 	innerHarvest(source) {
-		return this.creep.harvest(source);
+		var harvest_res = this.creep.harvest(source);
+	    if (harvest_res == ERR_INVALID_TARGET) {
+	        harvest_res = source.transfer(this.creep, RESOURCE_ENERGY);
+	    }
+	    return harvest_res;
 	}
 
 	onCannotReaquireTarget() {

@@ -61,7 +61,11 @@ class Upgrader extends BinaryCreep {
 	}
 
 	innerHarvest(source) {
-		return this.creep.harvest(source);
+		var harvest_res = this.creep.harvest(source);
+	    if (harvest_res == ERR_INVALID_TARGET) {
+	        harvest_res = source.transfer(this.creep, RESOURCE_ENERGY);
+	    }
+	    return harvest_res;
 	}
 
 	onCannotReaquireTarget() {

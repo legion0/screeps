@@ -206,7 +206,7 @@ WorkforceManager.prototype.recalculateDefaultBody = function() {
         new_body_price += body_parts_price;
         new_body_parts = new_body_parts.concat(body_parts);
     }
-    // console.log('new_body_price = ', new_body_price, '/', max_body_price, '/', this.room.energyCapacityAvailable);
+    // console.log('new_body_price = ', new_body_price, '/', max_body_price);
     memory.body_parts = new_body_parts;
     memory.body_price = new_body_price;
 }
@@ -241,6 +241,7 @@ WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
     if (this.creeps.length < 5) {
         return 5;
     }
+    // TODO: if not full work at full, if full 2 checks in a row go to 0 and lower check interval;
     if (Game.time - memory.last_harvesters_eval < 5) {
         return memory.required_harvesters;
     }
