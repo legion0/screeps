@@ -228,3 +228,20 @@ Source.prototype.laneLoad2 = function(new_creep) {
 
     return load;
 }
+
+//TODO: make cached property
+Source.prototype.maxCreeps = function() {
+    var source = this;
+
+    var range_to_target_mean = this.memory.range_to_target_mean;
+    if (!range_to_target_mean) {
+        return 2 * this.clearance; // heuristic
+    }
+
+    range_to_target_mean += 1; // Bad pathing heuristic
+    // TODO: store average harvest time from register creep
+    var average_harvest_time = 25;
+    var creeps_per_lane = 1 + 2 * range_to_target_mean / average_harvest_time;
+    var max_creeps = this.clearance * creeps_per_lane;
+    return Math.ceil(max_creeps);
+}

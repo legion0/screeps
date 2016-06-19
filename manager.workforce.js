@@ -27,12 +27,10 @@ events.listen(CONSTANTS.EVENT_ROOM_DISCOVERED, (event_name, roomName) => {
     }
 
     memory.workforce_manager = {
-        body_parts: [MOVE,WORK, MOVE,CARRY],
+        body_parts: [WORK,MOVE CARRY,MOVE],
         body_price: 250,
         required_builders: 0,
         last_builders_eval: 0,
-        required_harvesters: 0,
-        last_harvesters_eval: -Infinity,
     };
     return true;
 });
@@ -84,20 +82,13 @@ WorkforceManager.prototype.run = function() {
     var required_mules = this.requiredMules();
     var required_workforce_size = required_upgraders + required_harvesters + required_builders + required_mules;
 
-    var required_harvesters_old = required_harvesters;
-    if (creeps.length < 0.9 * required_workforce_size) {
-        // Task additional harvester but do not update required_workforce_size so not to build surplus harvesters
-        required_harvesters = this.requiredHarveters(true);
-    }
-
     if (Game.time % 10 == 0) {
         console.log(
             Game.time,
             'builders', builders.length, '/', required_builders,
             'upgraders', upgraders.length, '/', required_upgraders,
             'harvesters', harvesters.length, '/', required_harvesters,
-            'mules', mules.length, '/', required_mules,
-            'required_harvesters_old', required_harvesters_old);
+            'mules', mules.length, '/', required_mules);
     }
     if (creeps.length < required_workforce_size && room.energyAvailable >= memory.body_price) {
         var spawns = room.find(FIND_MY_SPAWNS);
@@ -234,33 +225,36 @@ WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
     var room = this.room;
     var memory = this.memory;
 
-    if (this.creeps.length < 5) {
-        return 5;
-    }
     // TODO: if not full work at full, if full 2 checks in a row go to 0 and lower check interval;
-    if (Game.time - memory.last_harvesters_eval < 5) {
-        return memory.required_harvesters;
-    }
-    memory.last_harvesters_eval = Game.time;
-    var energy_available = room.energy_available;
-    var energy_capacity = room.energy_capacity;
+    var max_harvesters = this.sources.reduce((total_creeps, source) => {
+        var containers = source.pos.findInRange(FIND_STRUCTURES, 10, {filter: (structure) => structure.structureType == STRUCTURE_CONTAINER});
+        if (containers.length) {
+            return total_creeps + source.maxCreeps();
+        }
+        return total_creeps + source.clearance;
+    }, 0);
 
+    // Beginnig or the room
+    var energy_capacity = room.energy_capacity;
+    if (energy_capacity < 1000) { // we do not yet have containers
+        return max_harvesters;
+    }
+
+    var energy_available = room.energy_available;
     var required_harvesters = 0;
     var creep_energy_coefficient = memory.body_price / 70;
-    if (drainage_active) {
+    if (energy_available < 0.9 * energy_capacity) {
         required_harvesters = Math.sqrt(energy_capacity) / creep_energy_coefficient;
     } else {
         required_harvesters = Math.sqrt(energy_capacity - energy_available) / creep_energy_coefficient;
     }
     required_harvesters = Math.ceil(required_harvesters);
-    required_harvesters += 2;
     
-    var max_harvesters = this.sources.reduce((total_clearance, source) => total_clearance + source.clearance, 0) * 2;
     required_harvesters = Math.min(required_harvesters, max_harvesters);
     
     
     // console.log(Game.time, 'required_harvesters', required_harvesters, energy_available, energy_capacity);
-    return memory.required_harvesters = required_harvesters;
+    return required_harvesters;
 };
 WorkforceManager.prototype.requiredUpgraders = function() {
     var room = this.room;
