@@ -13,18 +13,30 @@ Object.defineProperty(RoomObject.prototype, "memory", {
     }
 });
 
-events.listen(CONSTANTS.EVENT_ROOM_DISCOVERED, (event_name, roomName) => {
-    // console.log('RoomObject', 'EVENT_ROOM_DISCOVERED', event_name, roomName);
-    var memory = Memory.rooms[roomName];
+events.listen(CONSTANTS.EVENT_ROOM_DISCOVERED, (event_name, room_name) => {
+    // console.log('RoomObject', 'EVENT_ROOM_DISCOVERED', event_name, room_name);
+    var memory = Memory.rooms[room_name];
     memory.room_objects = {};
     memory.room_objects_short_memory = {};
     return true;
 });
 events.listen(CONSTANTS.EVENT_TICK_START, (event_name) => {
     // console.log('RoomObject', 'EVENT_TICK_START');
+
     var oldest_memory_time = Game.time - 10;
-    for (var roomName in Game.rooms) {
-        var room_objects_short_memory = Memory.rooms[roomName].room_objects_short_memory;
+
+    for (var room_name in Game.rooms) {
+        if (Game.time % 50 == 0) {
+            // GC
+            var room_objects_memory = Memory.rooms[room_name].room_objects;
+            for (var id of Object.keys(room_objects_memory)) {
+                if (!Game.getObjectById(id)) {
+                    delete room_objects_memory[id];
+                }
+            }
+        }
+
+        var room_objects_short_memory = Memory.rooms[room_name].room_objects_short_memory;
         if (oldest_memory_time in room_objects_short_memory) {
             delete room_objects_short_memory[oldest_memory_time];
         }
