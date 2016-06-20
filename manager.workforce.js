@@ -259,8 +259,7 @@ WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
 WorkforceManager.prototype.requiredUpgraders = function() {
     var room = this.room;
 
-    var required_upgraders = Math.ceil(2.0 * (8 - room.controller.level));
-    required_upgraders = required_upgraders < 1 ? 1 : required_upgraders;
+    var required_upgraders = 2 * room.controller.level;
     return required_upgraders;
 }
 WorkforceManager.prototype.requiredMules = function() {
