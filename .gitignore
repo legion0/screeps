@@ -1,3 +1,4 @@
 Gruntfile.js
+.sublime-grunt.cache
 node_modules/
 
