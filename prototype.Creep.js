@@ -2,7 +2,7 @@
 Object.defineProperty(Creep.prototype, "harvest_speed", {
     get: function () {
         if (this._harvest_speed === undefined) {
-            this._harvest_speed = this.bodyPartsActive(WORK) * 2;
+            this._harvest_speed = this.getActiveBodyparts(WORK) * 2;
         }
         return this._harvest_speed;
     }
@@ -145,16 +145,4 @@ Creep.prototype.findSourcesActive = function(ignore_source_id) {
     return this.room.find(FIND_SOURCES).filter((source) => {
         return (source.energy != 0 || this.pos.getRangeTo(source) > source.ticksToRegeneration) && source.id != this.room.memory.lair_source_id && source.id != ignore_source_id;
     }).sort((a, b) => a.pos.getRangeTo(creep.pos) - b.pos.getRangeTo(creep.pos));
-};
-
-Creep.prototype.bodyPartsActive = function(type) {
-    var body = this.body;
-    var count = 0;
-    for (i in body) {
-        var part = body[i];
-        if (part.type == type && part.hits != 0) {
-            ++count;
-        }
-    }
-    return count;
 };

@@ -7,7 +7,7 @@ class Mule extends BinaryCreep {
 	}
 
 	findSource(old_source) {
-		return this.creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: this.isValidSource});
+		return this.creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (structure) => this.isValidSource(structure)});
 	}
 
 	findTarget() {

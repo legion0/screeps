@@ -27,7 +27,7 @@ events.listen(CONSTANTS.EVENT_ROOM_DISCOVERED, (event_name, roomName) => {
     }
 
     memory.workforce_manager = {
-        body_parts: [WORK,MOVE CARRY,MOVE],
+        body_parts: [WORK,MOVE, CARRY,MOVE],
         body_price: 250,
         required_builders: 0,
         last_builders_eval: 0,
@@ -198,6 +198,7 @@ WorkforceManager.prototype.recalculateDefaultBody = function() {
     memory.body_price = new_body_price;
 }
 WorkforceManager.prototype.requiredBuilders = function() {
+    // TODO: limit based on containers resources if we have containers, otherwise limit by sources (take into account harvesters)
     var memory = this.memory;
 
     var creep_build_coefficient = memory.body_price / 50;
