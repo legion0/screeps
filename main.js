@@ -16,14 +16,6 @@ var DefenceManager = require('manager.defence');
 
 module.exports.loop = function () {
     try {
-        if (Game.time % 100 == 0) {
-            // console.log(Game.time, 'Dead creep GC.');
-            for(var name in Memory.creeps) {
-                if(!Game.creeps[name]) {
-                    delete Memory.creeps[name];
-                }
-            }
-        }
         if (Game.time % 10 == 0) {
             // console.log(Game.time, 'Checking for new rooms.');
             for (var roomName in Game.rooms) {
