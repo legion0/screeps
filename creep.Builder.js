@@ -35,18 +35,8 @@ class Builder extends BinaryCreep {
 	}
 
 	findTarget(old_target) {
-	    var targets = this.room.find(FIND_CONSTRUCTION_SITES).sort((a,b) => {
-	        var build_idx_1 = BUILD_ORDER.indexOf(a.structureType);
-	        var build_idx_2 = BUILD_ORDER.indexOf(b.structureType);
-	        if (build_idx_1 != build_idx_2) {
-	            return build_idx_2 - build_idx_1;
-	        }
-	        if (build_idx_1 > 0) {
-	            return b.progress - a.progress;
-	        }
-	        return a.pos.getRangeTo(this.creep) - b.pos.getRangeTo(this.creep);
-	        
-	    });
+	    var targets = this.room.find(FIND_CONSTRUCTION_SITES)
+	    .sort((a,b) => a.construction_start_time - b.construction_start_time);
 	    if (targets.length) {
 	        return targets[0];
 	    }
