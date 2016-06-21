@@ -23,8 +23,7 @@ Object.defineProperty(Creep.prototype, "harvest_speed", {
 });
 Object.defineProperty(Creep.prototype, "harvest_time_remaining", {
     get: function () {
-        // TODO: Take into account other resources
-        return (this.carryCapacity - this.carry.energy) / this.harvest_speed;
+        return (this.carryCapacity - _.sum(this.carry)) / this.harvest_speed;
     }
 });
 

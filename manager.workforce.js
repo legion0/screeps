@@ -156,9 +156,9 @@ WorkforceManager.prototype.run = function() {
         reassignWorker(mules, harvesters, CONSTANTS.ROLE_HARVESTER);
     }
 
-    // TODO: If we have resources in containers than mules are more important than harvesters.
+    var min_harvesters = 5;
     // upgraders -> mules
-    while (mules.length < required_mules && harvesters.length) {
+    while (mules.length < required_mules && harvesters.length > min_harvesters) {
         reassignWorker(harvesters, mules, CONSTANTS.ROLE_MULE);
     }
 
@@ -226,7 +226,6 @@ WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
     var room = this.room;
     var memory = this.memory;
 
-    // TODO: if not full work at full, if full 2 checks in a row go to 0 and lower check interval;
     var max_harvesters = this.sources.reduce((total_creeps, source) => {
         var containers = source.pos.findInRange(FIND_STRUCTURES, 10, {filter: (structure) => structure.structureType == STRUCTURE_CONTAINER});
         if (containers.length) {
