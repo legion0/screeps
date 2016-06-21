@@ -11,6 +11,11 @@ class Mule extends BinaryCreep {
 	}
 
 	findTarget() {
+		var tower = this.creep.pos.findClosestByRange(FIND_STRUCTURES,
+			{filter: (structure) => structure.structureType == STRUCTURE_TOWER && structure.energy < structure.energyCapacity});
+		if (tower) {
+			return tower;
+		}
 		return this.creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: this.isValidTarget});
 	}
 
