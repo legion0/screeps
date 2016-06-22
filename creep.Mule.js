@@ -20,7 +20,9 @@ class Mule extends BinaryCreep {
 	}
 
 	isValidSource(source) {
-		return source.structureType == STRUCTURE_CONTAINER && source.store[RESOURCE_ENERGY] > this.min_container_load * source.storeCapacity;
+		return source.structureType == STRUCTURE_CONTAINER &&
+		source.store[RESOURCE_ENERGY] > this.min_container_load * source.storeCapacity &&
+		(!source.mule || source.mule == this.creep);
 	}
 
 	isValidTarget(target) {
