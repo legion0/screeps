@@ -3,6 +3,7 @@ require('prototype.Room');
 require('prototype.RoomPosition');
 
 require('prototype.RoomObject');
+require('prototype.Structure');
 require('prototype.ConstructionSite');
 require('prototype.Source');
 require('prototype.StructureSpawn');

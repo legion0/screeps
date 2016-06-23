@@ -5,6 +5,9 @@ events.listen(CONSTANTS.EVENT_TICK_START, (event_name) => {
     // console.log('Source', 'EVENT_TICK_START', event_name);
     for (var roomName in Game.rooms) {
         Game.rooms[roomName].findSources().forEach((source) => {
+
+            source._updateDrain();
+
             source.memoryShort.current_harvesters = 0;
             source.memoryShort.current_harvesters_time = 0;
             source.memoryShort.enroute_harvesters = 0;
@@ -246,33 +249,28 @@ Source.prototype.maxCreeps = function() {
     return Math.ceil(max_creeps);
 }
 
-Object.defineProperty(Source.prototype, "mule_id", {
-    get: function () {
-        if (this._mule_id === undefined) {
-            this._mule_id = this.memory.mule;
-            if (this._mule_id === undefined) {
-                this._mule_id = this.memory.mule = null;
-            }
-        }
-        return this._mule_id;
-    },
-    set: function (mule_id) {
-        this._mule_id = this.memory.mule = mule_id;
+Source.prototype._updateDrain = function() {
+    var current_energy = this.energy;
+    var prev_energy = this.memory.energy;
+    if (prev_energy === undefined) {
+        prev_energy = current_energy;
     }
-});
-Object.defineProperty(Source.prototype, "mule", {
+    this.memory.energy = current_energy;
+
+    if (this.ticksToRegeneration !== undefined) {
+        this.memory.drain = prev_energy - current_energy;
+    } else {
+        this.memory.drain = 0;
+    }
+}
+
+Object.defineProperty(Source.prototype, "drain", {
     get: function () {
-        if (this._mule_object === undefined) {
-            if (this.mule_id) {
-                this._mule_object = Game.getObjectById(this.mule_id);
-            } else {
-                this._mule_object = null;
-            }
+        // console.log(this, 'drain', this.memory.drain);
+        var drain = this.memory.drain;
+        if (drain === undefined) {
+            drain = 0;
         }
-        return this._mule_object;
-    },
-    set: function (mule_object) {
-        this._mule_object = mule_object;
-        this.mule_id = mule_object ? mule_object.id : null;
+        return drain;
     }
 });
