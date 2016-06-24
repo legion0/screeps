@@ -41,7 +41,7 @@ function rebuildMissingStructures() {
     for (let room_name in Game.rooms) {
         let room = Game.rooms[room_name];
         let saved_structures = room.memory.saved_structures;
-        if (!saved_structures.length) {
+        if (!saved_structures || !saved_structures.length) {
             return;
         }
         for (let structure of saved_structures) {

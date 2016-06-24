@@ -10,10 +10,12 @@ events.listen(CONSTANTS.EVENT_TICK_START, () => {
         for (var site of new_sites) {
             let saved_structures = room.memory.saved_structures;
             let construction_time = Game.time;
-            for (let structure of saved_structures) {
-                if (structure.x == site.pos.x && structure.y == site.pos.y && structure.type == site.structureType) {
-                    construction_time = structure.time;
-                    break;
+            if (saved_structures && saved_structures.length) {
+                for (let structure of saved_structures) {
+                    if (structure.x == site.pos.x && structure.y == site.pos.y && structure.type == site.structureType) {
+                        construction_time = structure.time;
+                        break;
+                    }
                 }
             }
             site.memory.construction_start_time = construction_time;
