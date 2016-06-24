@@ -1,4 +1,13 @@
 
+Object.defineProperty(Structure.prototype, "health", {
+    get: function () {
+        if (this._health === undefined) {
+            this._health = this.hits / this.hitsMax;
+        }
+        return this._health;
+    }
+});
+
 Object.defineProperty(Structure.prototype, "mule_id", {
     get: function () {
         if (this._mule_id === undefined) {
