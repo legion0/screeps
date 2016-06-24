@@ -38,7 +38,7 @@ class MyCreep {
     }
 
     run() {
-        throw "Not Implemented !!!";
+        throw new Error("Not Implemented !!!");
     }
 
     resign() {

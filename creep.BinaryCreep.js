@@ -13,45 +13,45 @@ class BinaryCreep extends MyCreep {
 	}
 
 	findSource(old_source) {
-		throw "Not Implemented !!!";
+		throw new Error("Not Implemented !!!");
 	}
 
 	findTarget() {
-		throw "Not Implemented !!!";
+		throw new Error("Not Implemented !!!");
 	}
 
 	isValidSource(source) {
-		throw "Not Implemented !!!";
+		throw new Error("Not Implemented !!!");
 	}
 
 	isValidTarget(target) {
-		throw "Not Implemented !!!";
+		throw new Error("Not Implemented !!!");
 	}
 
 	selectAction(old_action) {
-		throw "Not Implemented !!!";
+		throw new Error("Not Implemented !!!");
 	}
 
 	innerAction(target) {
-		throw "Not Implemented !!!";
+		throw new Error("Not Implemented !!!");
 	}
 
 	innerHarvest(source) {
-		throw "Not Implemented !!!";
+		throw new Error("Not Implemented !!!");
 	}
 
 	onCannotReaquireTarget() {
-		throw "Not Implemented !!!";
+		throw new Error("Not Implemented !!!");
 	}
 	onCannotReaquireSource() {
-		throw "Not Implemented !!!";
+		throw new Error("Not Implemented !!!");
 	}
 
 	onNoPathToSource(source) {
-		throw "Not Implemented !!!";
+		throw new Error("Not Implemented !!!");
 	}
 	onNoPathToTarget(target) {
-		throw "Not Implemented !!!";
+		throw new Error("Not Implemented !!!");
 	}
 
 	run() {

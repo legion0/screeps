@@ -16,5 +16,5 @@ RoomPosition.prototype.findClosestHostile = function() {
 };
 
 RoomPosition.prototype.findClosestByPathIgnoreMyCreeps = function(type_or_objects, opts) {
-    throw "Not Implemented !!!";
+    throw new Error("Not Implemented !!!");
 };

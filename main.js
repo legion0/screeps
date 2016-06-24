@@ -58,6 +58,6 @@ module.exports.loop = function () {
             console.log(Game.time, 'High CPU Usage', cpu_usage);
         }
     } catch (e) {
-        console.log(Game.time, 'ERROR', e);
+        console.log(Game.time, 'EXCEPTION', e, e.stack);
     }
 }
