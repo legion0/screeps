@@ -1,5 +1,11 @@
 var BinaryCreep = require('creep.BinaryCreep')
 
+let TARGET_VALIDATORS = [
+	(target) => target.structureType == STRUCTURE_TOWER && target.hits < target.hitsMax,
+	(target) => [STRUCTURE_EXTENSION, STRUCTURE_SPAWN].indexOf(target.structureType) != -1 && target.hits < target.hitsMax,
+	(target) => target.structureType == STRUCTURE_WALL && target.hits < target.hitsMax
+];
+
 class Repair extends BinaryCreep {
 	constructor(creep) {
 		super(creep);
@@ -13,20 +19,12 @@ class Repair extends BinaryCreep {
 	findTarget() {
 		let structures = this.room.find(FIND_STRUCTURES, {filter: (structure) => this.isValidTarget(structure)});
 
-		let targets = structures.filter((s) => this.isValidTarget1(s))
-		.sort((a,b) => a.health - b.health);
-		if (targets.length) {
-			return targets[0];
-		}
-		targets = structures.filter((s) => this.isValidTarget2(s))
-		.sort((a,b) => a.health - b.health);
-		if (targets.length) {
-			return targets[0];
-		}
-		targets = structures.filter((s) => this.isValidTarget3(s))
-		.sort((a,b) => a.health - b.health);
-		if (targets.length) {
-			return targets[0];
+		for (let validator of TARGET_VALIDATORS) {
+			let targets = structures.filter((s) => validator(s))
+			.sort((a,b) => a.health - b.health);
+			if (targets.length) {
+				return targets[0];
+			}
 		}
 		return null;
 	}
@@ -37,17 +35,12 @@ class Repair extends BinaryCreep {
 	}
 
 	isValidTarget(target) {
-		return this.isValidTarget1(target) || this.isValidTarget2(target) || this.isValidTarget3(target);
-	}
-
-	isValidTarget1(target) {
-		return target.structureType == STRUCTURE_TOWER && target.hits < target.hitsMax;
-	}
-	isValidTarget2(target) {
-		return [STRUCTURE_EXTENSION, STRUCTURE_SPAWN].indexOf(target.structureType) != -1 && target.hits < target.hitsMax;
-	}
-	isValidTarget3(target) {
-		return target.structureType == STRUCTURE_WALL && target.hits < target.hitsMax;
+		for (let validator of TARGET_VALIDATORS) {
+			if (validator(target)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	selectAction(old_action) {
