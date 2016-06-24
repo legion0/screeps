@@ -3,11 +3,8 @@ var BinaryCreep = require('creep.BinaryCreep')
 function sourceIsBound(source) {
 	return source.mule && source.mule.source == source;
 }
-function sourceIsBoundToCreep(source, creep) {
-	return sourceIsBound(source) && source.mule == creep;
-}
 function sourceIsAvailableToCreep(source, creep) {
-	return sourceIsBoundToCreep(source, creep) || !sourceIsBound(source);
+	return !sourceIsBound(source) || source.mule == creep;
 }
 
 class Mule extends BinaryCreep {
@@ -15,7 +12,8 @@ class Mule extends BinaryCreep {
 		super(creep);
 		this.fill_spawns = fill_spawns;
 		this.min_container_load = 0.0;
-		this.invalidate_source = false;
+		this.invalidate_source_on_action_start = false;
+		this.invalidate_source_on_action_end = true;
 	}
 
 	findSource(old_source) {
@@ -39,7 +37,6 @@ class Mule extends BinaryCreep {
 		if (target) {
 			return target;
 		}
-		this.log('rebalance');
 		return this.creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (target) => this.isValidForthTarget(target)});
 	}
 
@@ -85,7 +82,7 @@ class Mule extends BinaryCreep {
 	isValidForthTarget(target) { // balance containers
 		return !this.fill_spawns &&
 			target.structureType == STRUCTURE_CONTAINER &&
-			target.store[RESOURCE_ENERGY] < 0.8 * this.store[RESOURCE_ENERGY];
+			target.store[RESOURCE_ENERGY] < 0.8 * this.source.store[RESOURCE_ENERGY];
 	}
 
 	selectAction(old_action) {

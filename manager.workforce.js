@@ -249,10 +249,8 @@ WorkforceManager.prototype.requiredBuilders = function() {
     if (required_builders) {
         required_builders = required_builders * BUILDERS_BOOST + 2;
     }
-    required_builders = Math.ceil(required_builders);
-    
     // return memory.required_builders = Math.max(memory.required_builders, required_builders);
-    return memory.required_builders = required_builders;
+    return memory.required_builders = Math.ceil(required_builders);
 };
 WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
     var room = this.room;
@@ -277,19 +275,18 @@ WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
 
     var energy_available = room.energy_available;
     var required_harvesters = 0;
-    var creep_energy_coefficient = memory.body_price / 70;
-    if (energy_available < 0.9 * energy_capacity) {
+    var creep_energy_coefficient = memory.body_price / 25;
+    if (energy_available < 0.5 * energy_capacity) {
         required_harvesters = Math.sqrt(energy_capacity) / creep_energy_coefficient;
     } else {
         required_harvesters = Math.sqrt(energy_capacity - energy_available) / creep_energy_coefficient;
     }
-    required_harvesters = Math.ceil(required_harvesters);
     
     required_harvesters = Math.min(required_harvesters, max_harvesters);
     
     
     // console.log(Game.time, 'required_harvesters', required_harvesters, energy_available, energy_capacity);
-    return required_harvesters;
+    return Math.ceil(required_harvesters);
 };
 WorkforceManager.prototype.requiredUpgraders = function() {
     var room = this.room;
@@ -304,13 +301,15 @@ WorkforceManager.prototype.requiredMules = function() {
     // 1 mule per 10% of container energy, at most 1 mule per container.
     let mules =  containers.reduce((mules, container) => mules + 10.0 * container.store[RESOURCE_ENERGY] / CONTAINER_CAPACITY, 0);
     mules = Math.min(mules, containers.length);
-    mules = Math.ceil(mules);
-    return mules;
+    return Math.ceil(mules);
 }
 WorkforceManager.prototype.requiredRepairs = function() {
     var room = this.room;
-    // TODO: Implement
-    return 1;
+
+    let damaged_walls = room.find(FIND_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_WALL && structure.hits < structure.hitsMax});
+    let repairs =  Math.min(damaged_walls.length, 3);
+    repairs =  Math.max(repairs, 1);
+    return Math.ceil(repairs);
 }
 
 module.exports = WorkforceManager;

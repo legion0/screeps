@@ -6,8 +6,10 @@ class BinaryCreep extends MyCreep {
 		if (this.action == null) {
 			this.action = true;
 		}
-		this.invalidate_source = true;
-		this.invalidate_target = true;
+		this.invalidate_source_on_action_start = true;
+		this.invalidate_target_on_action_start = false;
+		this.invalidate_source_on_action_end = false;
+		this.invalidate_target_on_action_end = true;
 	}
 
 	findSource(old_source) {
@@ -81,14 +83,20 @@ class BinaryCreep extends MyCreep {
 	}
 
 	onActionStart() {
-		if (this.invalidate_source) {
+		if (this.invalidate_source_on_action_start) {
 			this.source = null;
+		}
+		if (this.invalidate_target_on_action_start) {
+			this.target = null;
 		}
 	    this.onActionContinue();
 	}
 	onActionEnd() {
-		if (this.invalidate_target) {
+		if (this.invalidate_target_on_action_end) {
 			this.target = null;
+		}
+		if (this.invalidate_source_on_action_end) {
+			this.source = null;
 		}
     	this.harvest();
 	}

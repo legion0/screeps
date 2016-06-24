@@ -11,11 +11,22 @@ class Repair extends BinaryCreep {
 	}
 
 	findTarget() {
-		var structures = this.room.find(FIND_STRUCTURES, {filter: this.isValidTarget})
-		.sort((a,b) => a.health - b.health);
+		let structures = this.room.find(FIND_STRUCTURES, {filter: (structure) => this.isValidTarget(structure)});
 
-		if (structures.length) {
-			return structures[0];
+		let targets = structures.filter((s) => this.isValidTarget1(s))
+		.sort((a,b) => a.health - b.health);
+		if (targets.length) {
+			return targets[0];
+		}
+		targets = structures.filter((s) => this.isValidTarget2(s))
+		.sort((a,b) => a.health - b.health);
+		if (targets.length) {
+			return targets[0];
+		}
+		targets = structures.filter((s) => this.isValidTarget3(s))
+		.sort((a,b) => a.health - b.health);
+		if (targets.length) {
+			return targets[0];
 		}
 		return null;
 	}
@@ -26,7 +37,17 @@ class Repair extends BinaryCreep {
 	}
 
 	isValidTarget(target) {
-		return [STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER].indexOf(target.structureType) != -1 && target.hits < target.hitsMax;
+		return this.isValidTarget1(target) || this.isValidTarget2(target) || this.isValidTarget3(target);
+	}
+
+	isValidTarget1(target) {
+		return target.structureType == STRUCTURE_TOWER && target.hits < target.hitsMax;
+	}
+	isValidTarget2(target) {
+		return [STRUCTURE_EXTENSION, STRUCTURE_SPAWN].indexOf(target.structureType) != -1 && target.hits < target.hitsMax;
+	}
+	isValidTarget3(target) {
+		return target.structureType == STRUCTURE_WALL && target.hits < target.hitsMax;
 	}
 
 	selectAction(old_action) {
