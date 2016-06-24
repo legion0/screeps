@@ -5,6 +5,9 @@ class MyCreep {
 	get room() {
 		return this.creep.room;
 	}
+    get pos() {
+        return this.creep.pos;
+    }
 	get memory() {
 		return this.creep.memory;
 	}
