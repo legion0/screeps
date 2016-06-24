@@ -24,6 +24,24 @@ function saveStructureLocation(room, pos, structure_type) {
     saved_structures.push(structure);
 }
 
+function removeStructureLocation(room, pos) {
+    let saved_structures = room.memory.saved_structures;
+    if (!saved_structures) {
+        return;
+    }
+    let idx = -1;
+    for (let i = 0; i < saved_structures.length; ++i) {
+        let s = saved_structures[i];
+        if (s.x == pos.x && s.y == pos.y) {
+            idx = i;
+            break;
+        }
+    }
+    if (idx != -1) {
+        saved_structures.splice(idx, 1);
+    }
+}
+
 function saveStructureLocations() {
     for (let id of Object.keys(Game.constructionSites)) {
         let construction_site = Game.constructionSites[id];
@@ -104,3 +122,8 @@ Object.defineProperty(Structure.prototype, "mule", {
         this.mule_id = mule_object ? mule_object.id : null;
     }
 });
+
+Structure.prototype.destroy2 = function() {
+    removeStructureLocation(this.room, this.pos);
+    this.destroy();
+}
