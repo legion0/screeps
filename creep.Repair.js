@@ -21,7 +21,13 @@ class Repair extends BinaryCreep {
 
 		for (let validator of TARGET_VALIDATORS) {
 			let targets = structures.filter((s) => validator(s))
-			.sort((a,b) => a.health - b.health);
+			.sort((a,b) => {
+				let delta = a.health - b.health;
+				if (delta) {
+					return delta;
+				}
+				return a.pos.getRangeTo(this.creep) - b.pos.getRangeTo(this.creep);
+			});
 			if (targets.length) {
 				return targets[0];
 			}
