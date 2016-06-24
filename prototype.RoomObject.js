@@ -86,8 +86,8 @@ Object.defineProperty(RoomObject.prototype, "clearance", {
     get: function () {
         if (this._clearance === undefined) {
             // console.log('Fetching clearance');
-            var clearance = this.memory.clearance;
-            if (clearance === undefined) {
+            let clearance = this.memory.clearance;
+            // if (clearance === undefined) {
                 // console.log('Calculating clearance');
                 clearance = 0;
                 var room = this.room;
@@ -104,8 +104,8 @@ Object.defineProperty(RoomObject.prototype, "clearance", {
                         }
                     }
                 }
-                this.memory.clearance = clearance;
-            }
+                // this.memory.clearance = clearance;
+            // }
             this._clearance = clearance;
         }
         return this._clearance;
