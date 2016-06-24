@@ -142,15 +142,15 @@ WorkforceManager.prototype.run = function() {
                 min: 0,
                 max: required_harvesters
             },{
-                role: CONSTANTS.ROLE_BUILDER,
-                creeps: builders,
-                min: min_builders,
-                max: required_builders
-            },{
                 role: CONSTANTS.ROLE_REPAIR,
                 creeps: repairs,
                 min: 0,
                 max: required_repairs
+            },{
+                role: CONSTANTS.ROLE_BUILDER,
+                creeps: builders,
+                min: min_builders,
+                max: required_builders
             },{
                 role: CONSTANTS.ROLE_UPGRADER,
                 creeps: upgraders,
