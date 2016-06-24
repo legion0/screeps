@@ -60,11 +60,12 @@ class BinaryCreep extends MyCreep {
 	    	this.resign();
 		}
 
-	    // Step away from the source
-	    if (new_action && this.source && this.creep.pos.getRangeTo(this.source.pos) == 1) {
-	        this.creep.moveTo(this.creep.room.controller);
+	    if (this._stepAwayFromSource(new_action)) {
 	        return;
 	    }
+		if (this._roadMaintanance()) {
+			return;
+		}
 
 	    this.action = new_action;
 
@@ -143,6 +144,36 @@ class BinaryCreep extends MyCreep {
         if (new_source) {
         	this.source = new_source;
     	}
+	}
+
+	_roadMaintanance() {
+		if (this.creep.carry.energy == 0) {
+		    return false;
+		}
+		var repair_targets = this.creep.pos.findInRange(FIND_STRUCTURES, 1, {
+		    filter: (structure) => [STRUCTURE_SPAWN,
+			    STRUCTURE_EXTENSION,
+			    STRUCTURE_TOWER,
+			    STRUCTURE_CONTAINER,
+			    STRUCTURE_ROAD].indexOf() != -1 && structure.hits < structure.hitsMax
+		});
+		if (!repair_targets.length) {
+		    return false;
+		}
+		var ret_val = this.creep.repair(repair_targets[0]);
+		// this.log('REPAIR', repair_targets[0].id, 'ret_val', ret_val);
+		if ([OK, ERR_NOT_ENOUGH_ENERGY].indexOf(ret_val) == -1) {
+		    this.log('ERROR ERROR ERROR ERROR ERROR', 'Got road repair ret_val of', ret_val);
+		}
+		return ret_val == OK;
+	}
+
+	_stepAwayFromSource(new_action) {
+		if (new_action && this.source && this.creep.pos.getRangeTo(this.source.pos) == 1) {
+	        this.creep.moveTo(this.creep.room.controller);
+	        return true;
+	    }
+	    return false;
 	}
 }
 
