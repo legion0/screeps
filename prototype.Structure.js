@@ -13,7 +13,8 @@ function saveStructureLocation(room, pos, structure_type) {
     let structure = {
         x: pos.x,
         y: pos.y,
-        type: structure_type
+        type: structure_type,
+        time: Game.time
     };
     for (let s of saved_structures) {
         if (s.x == structure.x && s.y == structure.y) {

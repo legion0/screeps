@@ -8,7 +8,15 @@ events.listen(CONSTANTS.EVENT_TICK_START, () => {
         var room = Game.rooms[room_name];
         var new_sites = room.find(FIND_CONSTRUCTION_SITES, {filter: (site) => site.memory.construction_start_time === undefined});
         for (var site of new_sites) {
-            site.memory.construction_start_time = Game.time;
+            let saved_structures = room.memory.saved_structures;
+            let construction_time = Game.time;
+            for (let structure of saved_structures) {
+                if (structure.x == site.pos.x && structure.y == site.pos.y && structure.type == site.structureType) {
+                    construction_time = structure.time;
+                    break;
+                }
+            }
+            site.memory.construction_start_time = construction_time;
         }
     }
 

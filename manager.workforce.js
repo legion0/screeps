@@ -95,10 +95,10 @@ WorkforceManager.prototype.run = function() {
     if (Game.time % 10 == 0) {
         console.log(
             Game.time,
-            'harvesters', harvesters.length, '/', required_harvesters,
             'mules', mules.length, '/', required_mules,
-            'builders', builders.length, '/', required_builders,
+            'harvesters', harvesters.length, '/', required_harvesters,
             'repairs', repairs.length, '/', required_repairs,
+            'builders', builders.length, '/', required_builders,
             'upgraders', upgraders.length, '/', required_upgraders);
     }
     if (creeps.length < required_workforce_size && room.energyAvailable >= memory.body_price) {
