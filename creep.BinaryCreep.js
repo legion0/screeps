@@ -4,7 +4,7 @@ class BinaryCreep extends MyCreep {
 	constructor(creep) {
 		super(creep);
 		if (this.action == null) {
-	    	this.action = false;
+			this.action = true;
 		}
 		this.invalidate_source = true;
 		this.invalidate_target = true;
