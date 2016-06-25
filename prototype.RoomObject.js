@@ -128,3 +128,34 @@ Object.defineProperty(RoomObject.prototype, "creeps", {
         this.memory.creeps = Array.from(creeps).map((creep) => creep.id);
     }
 });
+
+Object.defineProperty(RoomObject.prototype, "target_id", {
+    get: function () {
+        if (this._target_id === undefined) {
+            this._target_id = this.memory.target;
+            if (this._target_id === undefined) {
+                this._target_id = null;
+            }
+        }
+        return this._target_id;
+    },
+    set: function (target_id) {
+        this.memory.target = this._target_id = target_id;
+    }
+});
+Object.defineProperty(RoomObject.prototype, "target", {
+    get: function () {
+        if (this._target_object === undefined) {
+            if (this.target_id) {
+                this._target_object = Game.getObjectById(this.target_id);
+            } else {
+                this._target_object = null;
+            }
+        }
+        return this._target_object;
+    },
+    set: function (target_object) {
+        this._target_object = target_object;
+        this.target_id = target_object ? target_object.id : null;
+    }
+});
