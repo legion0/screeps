@@ -40,7 +40,7 @@ class Builder extends BinaryCreep {
 	}
 
 	isValidSource(source) {
-		return source.energy > 0;
+		return source.energy > 0 || (source.ticksToRegeneration && this.pos.getRangeTo(source) > source.ticksToRegeneration);
 	}
 
 	isValidTarget(target) {

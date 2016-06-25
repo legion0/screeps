@@ -31,7 +31,7 @@ class Harvester extends BinaryCreep {
 	}
 
 	isValidSource(source) {
-		return source.energy > 0;
+		return source.energy > 0 || this.pos.getRangeTo(source) > source.ticksToRegeneration;
 	}
 
 	isValidTarget(target) {
@@ -53,7 +53,11 @@ class Harvester extends BinaryCreep {
 	}
 
 	innerHarvest(source) {
-		return this.creep.harvest(source);
+		let ret_val = this.creep.harvest(source);
+		if (ret_val == ERR_NOT_ENOUGH_ENERGY && this.pos.getRangeTo(source) > source.ticksToRegeneration) {
+			ret_val = ERR_NOT_IN_RANGE;
+		}
+		return ret_val;
 	}
 
 	onCannotReaquireTarget() {
@@ -65,6 +69,15 @@ class Harvester extends BinaryCreep {
 
 	onNoPathToSource(source) {
 		// this.log('onNoPathToSource');
+		let prev_no_path = this.memory.no_path_to_source_time;
+		if (prev_no_path === undefined) {
+			prev_no_path = this.memory.no_path_to_source_time = Game.time;
+		}
+		if (Game.time - prev_no_path > 10) {
+			// this.log('re evaluating source due to no path');
+			this.memory.no_path_to_source_time = Game.time;
+			this.source = this.findSource(source);
+		}
 	}
 	onNoPathToTarget(target) {
 		// this.log('onNoPathToTarget');

@@ -62,9 +62,11 @@ class BinaryCreep extends MyCreep {
 	    	this.resign();
 		}
 
-	    if (this._stepAwayFromSource(new_action)) {
-	        return;
-	    }
+		// TODO: this is buggy, it causes creeps to step away and then back near the source if the target is to the other side of the controller.
+		// Consider moving to harvesters
+	    // if (this._stepAwayFromSource(new_action)) {
+	    //     return;
+	    // }
 		if (this._roadMaintanance()) {
 			return;
 		}
@@ -163,7 +165,7 @@ class BinaryCreep extends MyCreep {
 			    STRUCTURE_EXTENSION,
 			    STRUCTURE_TOWER,
 			    STRUCTURE_CONTAINER,
-			    STRUCTURE_ROAD].indexOf() != -1 && structure.hits < structure.hitsMax
+			    STRUCTURE_ROAD].indexOf(structure.structureType) != -1 && structure.hits < structure.hitsMax
 		});
 		if (!repair_targets.length) {
 		    return false;

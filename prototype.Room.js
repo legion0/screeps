@@ -115,7 +115,6 @@ Room.prototype._updateEnergyDrain = function() {
     }
 
     var new_drain_mean = this.memory.drain_mean = drain_mean + current_drain - drain_mean / ENERGY_DRAIN_WINDOW_SIZE;
-    // console.log('new_drain_mean', new_drain_mean / ENERGY_DRAIN_WINDOW_SIZE);
     if (new_drain_mean < 0 && new_drain_mean < drain_max || new_drain_mean > 0 && new_drain_mean > drain_max || (Game.time - drain_max_last_update_time) > ENERGY_DRAIN_WINDOW_SIZE) {
         drain_max = this.memory.drain_max = new_drain_mean;
         this.memory.energy_drain_report = new_drain_mean / ENERGY_DRAIN_WINDOW_SIZE;
