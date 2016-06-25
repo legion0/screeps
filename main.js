@@ -16,6 +16,7 @@ var events = require('events');
 
 var WorkforceManager = require('manager.workforce');
 var DefenceManager = require('manager.defence');
+var AttackManager = require('manager.Attack');
 
 module.exports.loop = function () {
     try {
@@ -52,6 +53,7 @@ module.exports.loop = function () {
             //     console.log(source, 'load', source.load);
             // });
         }
+        new AttackManager().run();
 
         events.fire(CONSTANTS.EVENT_TICK_END);
 
