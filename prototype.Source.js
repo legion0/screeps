@@ -85,10 +85,10 @@ Object.defineProperty(Source.prototype, "_distance_to_sink", {
         if (this.__distance_to_sink === undefined) {
             var source = this;
             var containers = this.pos
-            .findInRange(FIND_STRUCTURES, 10, {filter: (structure) => structure.structureType == STRUCTURE_CONTAINER})
-            .sort((a,b) => a.pos.getRangeTo(source) - b.pos.getRangeTo(source));
-            if (containers.length) {
-                this.__distance_to_sink = containers[0].pos.getRangeTo(source);
+            .findInRange(FIND_STRUCTURES, 10, {filter: (structure) => structure.structureType == STRUCTURE_CONTAINER});
+            let closest_container = Array.prototype.findSortedFirst.call(containers, (a,b) => a.pos.getRangeTo(source) - b.pos.getRangeTo(source));
+            if (closest_container) {
+                this.__distance_to_sink = closest_container.pos.getRangeTo(source);
             } else {
                 this.__distance_to_sink = 10;
             }

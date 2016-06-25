@@ -34,12 +34,9 @@ class Builder extends BinaryCreep {
 	}
 
 	findTarget(old_target) {
-	    var targets = this.room.find(FIND_CONSTRUCTION_SITES)
-	    .sort((a,b) => a.construction_start_time - b.construction_start_time);
-	    if (targets.length) {
-	        return targets[0];
-	    }
-	    return null;
+	    var targets = this.room.find(FIND_CONSTRUCTION_SITES);
+	    let target = Array.prototype.findSortedFirst.call(targets, (a,b) => a.construction_start_time - b.construction_start_time);
+	    return target;
 	}
 
 	isValidSource(source) {

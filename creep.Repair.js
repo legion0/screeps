@@ -20,16 +20,16 @@ class Repair extends BinaryCreep {
 		let structures = this.room.find(FIND_STRUCTURES, {filter: (structure) => this.isValidTarget(structure)});
 
 		for (let validator of TARGET_VALIDATORS) {
-			let targets = structures.filter((s) => validator(s))
-			.sort((a,b) => {
+			let targets = structures.filter((s) => validator(s));
+			let target = Array.prototype.findSortedFirst.call(targets, (a,b) => {
 				let delta = a.health - b.health;
 				if (delta) {
 					return delta;
 				}
 				return a.pos.getRangeTo(this.creep) - b.pos.getRangeTo(this.creep);
 			});
-			if (targets.length) {
-				return targets[0];
+			if (target) {
+				return target;
 			}
 		}
 		return null;
