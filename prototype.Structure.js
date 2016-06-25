@@ -17,14 +17,14 @@ function saveStructureLocation(room, pos, structure_type) {
         time: Game.time
     };
     for (let s of saved_structures) {
-        if (s.x == structure.x && s.y == structure.y) {
+        if (s.x == structure.x && s.y == structure.y && s.structure_type == structure.structure_type) {
             return;
         }
     }
     saved_structures.push(structure);
 }
 
-function removeStructureLocation(room, pos) {
+function removeStructureLocation(room, pos, structure_type) {
     let saved_structures = room.memory.saved_structures;
     if (!saved_structures) {
         return;
@@ -124,6 +124,6 @@ Object.defineProperty(Structure.prototype, "mule", {
 });
 
 Structure.prototype.destroy2 = function() {
-    removeStructureLocation(this.room, this.pos);
+    removeStructureLocation(this.room, this.pos, this.structureType);
     this.destroy();
 }
