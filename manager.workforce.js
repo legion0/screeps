@@ -254,24 +254,15 @@ WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
     var room = this.room;
     var memory = this.memory;
 
-    var max_harvesters = this.sources.reduce((total_creeps, source) => {
-        var containers = source.pos.findInRange(FIND_STRUCTURES, 10, {filter: (structure) => structure.structureType == STRUCTURE_CONTAINER});
-        if (containers.length) {
-            return total_creeps + source.max_creeps;
-        }
-        return total_creeps + 1.5 * source.clearance;
-    }, 0);
-    if (this.creeps.length > 7) {
-        max_harvesters = Math.min(max_harvesters, Math.floor(0.9 * this.creeps.length));
-    }
+    var max_harvesters = this.sources.reduce((total_creeps, source) => total_creeps + source.max_creeps, 0);
 
     var energy_capacity = room.energy_capacity;
     var energy_available = room.energy_available;
-    if (energy_capacity < 1000 || energy_available < 0.5 * energy_capacity) {
+    if (energy_capacity < 1000 || energy_available < 0.9 * energy_capacity) {
         // we do not yet have containers or low on energy
         required_harvesters = max_harvesters;
     } else {
-        required_harvesters = (1 - energy_capacity / energy_available) * max_harvesters;
+        required_harvesters = (1 - energy_available / energy_capacity) * max_harvesters;
     }
     
     // console.log(Game.time, 'required_harvesters', required_harvesters, energy_available, energy_capacity);
