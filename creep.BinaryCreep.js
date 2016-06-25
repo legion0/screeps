@@ -171,7 +171,7 @@ class BinaryCreep extends MyCreep {
 		    return false;
 		}
 		var ret_val = this.creep.repair(repair_targets[0]);
-		// this.log('REPAIR', repair_targets[0].id, 'ret_val', ret_val);
+		// this.log('REPAIR', repair_targets[0], 'ret_val', ret_val);
 		if ([OK, ERR_NOT_ENOUGH_ENERGY].indexOf(ret_val) == -1) {
 		    this.log('ERROR ERROR ERROR ERROR ERROR', 'Got road repair ret_val of', ret_val);
 		}
