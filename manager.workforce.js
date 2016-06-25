@@ -66,7 +66,7 @@ WorkforceManager.prototype.run = function() {
         return;
     }
 
-    if (Game.time % 50 != 0) {
+    if (Game.time % 50 == 0) {
         this.recalculateDefaultBody();
     }
 
@@ -126,10 +126,8 @@ WorkforceManager.prototype.run = function() {
     if (creeps.length > 10) {
         min_builders = 2;
     }
-    var min_upgraders = 0;
-    if (creeps.length > 10) {
-        min_upgraders = 1;
-    }
+    var min_upgraders = this.minUpgraders();
+
     this._rebalanceWorkforce([
             {
                 role: CONSTANTS.ROLE_MULE,
@@ -225,7 +223,7 @@ WorkforceManager.prototype.recalculateDefaultBody = function() {
         new_body_price += body_parts_price;
         new_body_parts = new_body_parts.concat(body_parts);
     }
-    // console.log('new_body_price = ', new_body_price, '/', max_body_price);
+    console.log('new_body_price', new_body_price, 'max_body_price', max_body_price, 'new_body_parts.length', new_body_parts.length);
     memory.body_parts = new_body_parts;
     memory.body_price = new_body_price;
 }
@@ -259,41 +257,49 @@ WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
     var max_harvesters = this.sources.reduce((total_creeps, source) => {
         var containers = source.pos.findInRange(FIND_STRUCTURES, 10, {filter: (structure) => structure.structureType == STRUCTURE_CONTAINER});
         if (containers.length) {
-            return total_creeps + source.maxCreeps();
+            return total_creeps + source.max_creeps;
         }
-        return total_creeps + source.clearance;
+        return total_creeps + 1.5 * source.clearance;
     }, 0);
     if (this.creeps.length > 7) {
         max_harvesters = Math.min(max_harvesters, Math.floor(0.9 * this.creeps.length));
     }
 
-    // Beginnig or the room
     var energy_capacity = room.energy_capacity;
-    if (energy_capacity < 1000) { // we do not yet have containers
-        return max_harvesters;
-    }
-
     var energy_available = room.energy_available;
-    var required_harvesters = 0;
-    var creep_energy_coefficient = memory.body_price / 25;
-    if (energy_available < 0.5 * energy_capacity) {
-        required_harvesters = Math.sqrt(energy_capacity) / creep_energy_coefficient;
+    if (energy_capacity < 1000 || energy_available < 0.5 * energy_capacity) {
+        // we do not yet have containers or low on energy
+        required_harvesters = max_harvesters;
     } else {
-        required_harvesters = Math.sqrt(energy_capacity - energy_available) / creep_energy_coefficient;
+        required_harvesters = (1 - energy_capacity / energy_available) * max_harvesters;
     }
-    
-    required_harvesters = Math.min(required_harvesters, max_harvesters);
-    
     
     // console.log(Game.time, 'required_harvesters', required_harvesters, energy_available, energy_capacity);
     return Math.ceil(required_harvesters);
 };
 WorkforceManager.prototype.requiredUpgraders = function() {
-    var room = this.room;
+    let room = this.room;
 
-    var required_upgraders = 2 * room.controller.level;
+    // let required_upgraders = 2 * room.controller.level;
+    let required_upgraders = 2; // PTR
+
     return required_upgraders;
 }
+
+WorkforceManager.prototype.minUpgraders = function() {
+    var room = this.room;
+
+    if (this.creeps.length > 5 && (room.controller.ticksToDowngrade < 200 || this.memory.downgrade_started)) {
+        if (room.controller.ticksToDowngrade > 600) {
+            this.memory.downgrade_started = false;
+            return 0;
+        }
+        this.memory.downgrade_started = true;
+        return 1;
+    }
+    return 0;
+}
+
 WorkforceManager.prototype.requiredMules = function() {
     var room = this.room;
     let containers = room.find(FIND_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_CONTAINER});
@@ -307,8 +313,15 @@ WorkforceManager.prototype.requiredRepairs = function() {
     var room = this.room;
 
     let damaged_walls = room.find(FIND_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_WALL && structure.hits < structure.hitsMax});
-    let repairs =  Math.min(damaged_walls.length, 3);
-    repairs =  Math.max(repairs, 1);
+    let very_damaged_walls = damaged_walls.filter((wall) => wall.hits < 0.001 * wall.hitsMax);
+
+    let repairs = 0;
+    if (very_damaged_walls.length) {
+        repairs = 3;
+    } else if (damaged_walls.length) {
+        repairs = 1;
+    }
+
     return Math.ceil(repairs);
 }
 

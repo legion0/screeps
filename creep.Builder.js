@@ -21,7 +21,7 @@ class Builder extends BinaryCreep {
 		    var min_load_source = null;
 		    var creep = this.creep;
 		    creep.findSourcesActive(old_source ? old_source.id : null).forEach((source) => {
-		    	var lane_load = source.laneLoad2(creep);
+		    	var lane_load = source.laneLoad(creep);
 		        if (lane_load < min_lane_load) {
 		            min_lane_load = lane_load;
 		            min_load_source = source;

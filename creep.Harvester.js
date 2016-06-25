@@ -11,7 +11,8 @@ class Harvester extends BinaryCreep {
 	    var low_load_source = null;
 	    var creep = this.creep;
 	    creep.findSourcesActive(old_source ? old_source.id : null).forEach((source) => {
-	    	var lane_load = source.laneLoad2(creep);
+	    	var lane_load = source.laneLoad(creep);
+	    	// this.log(source, lane_load);
 	    	if (lane_load < 1 && !low_load_source) {
 	    		low_load_source = source;
 	    	}
@@ -21,7 +22,7 @@ class Harvester extends BinaryCreep {
 	        }
 	    });
 	    var new_source = low_load_source ? low_load_source : min_load_source;
-	    // this.log('new_source', new_source);
+	    // this.log('new_source', new_source, new_source.laneLoad(creep));
 	    return new_source;
 	}
 
@@ -67,14 +68,6 @@ class Harvester extends BinaryCreep {
 	}
 	onNoPathToTarget(target) {
 		// this.log('onNoPathToTarget');
-	}
-
-	onActionEnd() { /*override*/
-		this.source = this.findSource(null);
-		if (this.source) {
-			this.source.registerCreep(this.creep);
-		}
-    	super.onActionEnd();
 	}
 }
 

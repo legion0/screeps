@@ -82,6 +82,7 @@ class Mule extends BinaryCreep {
 	isValidForthTarget(target) { // balance containers
 		return !this.fill_spawns &&
 			target.structureType == STRUCTURE_CONTAINER &&
+			this.source &&
 			target.store[RESOURCE_ENERGY] < 0.8 * this.source.store[RESOURCE_ENERGY];
 	}
 
