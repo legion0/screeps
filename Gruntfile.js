@@ -7,10 +7,10 @@ module.exports = function(grunt) {
         screeps: {
             options: {
                 branch: 'default',
-                ptr: false
+                ptr: true
             },
             dist: {
-                src: ['*.js', '!Gruntfile.js']
+                src: ['src/*.js']
             }
         }
     });
