@@ -2,52 +2,33 @@ var CONSTANTS = require('constants');
 var events = require('events');
 
 var HarvesterCreep = require('creep.Harvester');
+var Harvester2Creep = require('creep.Harvester2');
+var BootCreep = require('creep.Boot');
 var UpgraderCreep = require('creep.Upgrader');
 var BuilderCreep = require('creep.Builder');
 var MuleCreep = require('creep.Mule');
 var RepairCreep = require('creep.Repair');
 
-var WORKFORCE_BODY_PARTS = [WORK,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE];
+var WORKFORCE_BODY_PARTS = [WORK,MOVE, CARRY,MOVE, CARRY,MOVE, CARRY,MOVE];
 var BUILDERS_BOOST = 0.5;
-
-events.listen(CONSTANTS.EVENT_ROOM_DISCOVERED, (event_name, roomName) => {
-    // console.log('WorkforceManager', 'EVENT_ROOM_DISCOVERED', roomName);
-    var room = Game.rooms[roomName];
-    var memory = Memory.rooms[roomName];
-
-    var lairs = room.findKeeperLairs();
-    if (lairs.length > 1) {
-        console.log('ERROR ERROR ERROR ERROR ERROR', 'Found too many lairs', lairs.length);
-    }
-    if (lairs.length) {
-        var lair = lairs[0];
-        var source = lair.pos.findClosestByRange(FIND_SOURCES);
-        if (source) {
-            memory.lair_source_id = source.id;
-        }
-    }
-
-    memory.workforce_manager = {
-        body_parts: [WORK,MOVE, CARRY,MOVE],
-        body_price: 250,
-        required_builders: 0,
-        last_builders_eval: 0,
-    };
-    return true;
-});
 
 function WorkforceManager(room) {
     this.room = room;
     this.memory = room.memory.workforce_manager;
+    if (this.memory === undefined) {
+        this.init_memory();
+    }
     this.creeps = room.find(FIND_MY_CREEPS, {filter: (creep) => [
-        CONSTANTS.ROLE_HARVESTER,
-        CONSTANTS.ROLE_MULE,
-        CONSTANTS.ROLE_BUILDER,
-        CONSTANTS.ROLE_REPAIR,
-        CONSTANTS.ROLE_UPGRADER,
-        null,
-        undefined].indexOf(creep.role) != -1});
+            BootCreep.ROLE,
+            CONSTANTS.ROLE_BUILDER,
+            CONSTANTS.ROLE_HARVESTER,
+            Harvester2Creep.ROLE,
+            CONSTANTS.ROLE_MULE,
+            CONSTANTS.ROLE_UPGRADER,
+            CONSTANTS.ROLE_REPAIR,
+        ].indexOf(creep.role) != -1});
     this.sources = room.findSources();
+    this.containers = room.findContainers();
 }
 
 function reassignWorker(source, target, role_name) {
@@ -57,12 +38,109 @@ function reassignWorker(source, target, role_name) {
     target.push(creep);
 }
 
+WorkforceManager.prototype.init_memory = function() {
+    var lairs = this.room.findKeeperLairs();
+    if (lairs.length > 1) {
+        console.log('ERROR ERROR ERROR ERROR ERROR', 'Found too many lairs', lairs.length);
+    }
+    if (lairs.length) {
+        var lair = lairs[0];
+        var source = lair.pos.findClosestByRange(FIND_SOURCES);
+        if (source) {
+            this.room.memory.lair_source_id = source.id;
+        }
+    }
+
+    this.memory = this.room.memory.workforce_manager = {
+        body_parts: [WORK,MOVE, CARRY,MOVE],
+        body_price: 250,
+        required_builders: 0,
+        last_builders_eval: 0,
+    };
+}
+
+WorkforceManager.prototype.spawn_creeps = function(required_workforce_size) {
+    let room = this.room;
+    let memory = this.memory;
+    var spawn_creep_by_name = (name, body, memory) => {
+        var spawns = room.find(FIND_MY_SPAWNS);
+        for (i in spawns) {
+            var spawn = spawns[i];
+            var name_or_error = spawn.createCreep(body, name, memory);
+            if (_.isString(name_or_error)) {
+                return OK;
+            }
+            return name_or_error;
+        }
+    }
+    //TODO: prefer building 1 complete chain (preferably a weak one if im out completely) and not 2 harvesters
+    for (let source of this.sources) {
+        if (source.container) {
+            let name = 'harvester_' + source.id;
+            if (!Game.creeps[name]) {
+                let body =  room.truncate_body(Harvester2Creep.BODY_PARTS);
+                spawn_creep_by_name(name, body, {'role': Harvester2Creep.ROLE, 'source': source.id, 'target': source.container.id});
+                // TODO: generic code to not override creep creation
+                return;
+            }
+        } else {
+            for (let i = 0; i < source.clearance; i++) {
+                if (i > 2) { // max 3 creeps per source
+                    break;
+                }
+                let name = 'harvester_' + source.id + '_' + i;
+                if (!Game.creeps[name]) {
+                    let spawn = room.find(FIND_MY_SPAWNS)[0];
+                    spawn_creep_by_name(name, BootCreep.BODY_PARTS, {'role': BootCreep.ROLE, 'source': source.id, 'target': spawn.id, 'spawn': spawn.id});
+                    return;
+                }
+
+            }
+        }
+    }
+    for (let container of this.containers) {
+        let name = 'mule_' + container.id;
+        if (!Game.creeps[name]) {
+            let body =  room.truncate_body(MuleCreep.BODY_PARTS);
+            spawn_creep_by_name(name, body, {'role': MuleCreep.ROLE, 'source': container.id});
+            return;
+        }
+    }
+    if (this.room.storage) {
+        let name = 'mule_' + this.room.name;
+        if (!Game.creeps[name]) {
+            let body =  room.truncate_body(MuleCreep.BODY_PARTS);
+            spawn_creep_by_name(name, body, {'role': MuleCreep.ROLE, 'source': this.room.storage.id});
+            return;
+        }
+    }
+
+    var builders = _.filter(this.creeps, (creep) => creep.role == CONSTANTS.ROLE_BUILDER);
+    var repairs = _.filter(this.creeps, (creep) => creep.role == CONSTANTS.ROLE_REPAIR);
+    var upgraders = _.filter(this.creeps, (creep) => creep.role == CONSTANTS.ROLE_UPGRADER);
+
+    if (builders.length + repairs.length + upgraders.length < required_workforce_size && room.energyAvailable >= memory.body_price) {
+        var spawns = room.find(FIND_MY_SPAWNS);
+        var new_creep_count = 0;
+        for (i in spawns) {
+            var spawn = spawns[i];
+            var new_name = spawn.createCreep(memory.body_parts, undefined, {'role': CONSTANTS.ROLE_UPGRADER});
+            if (_.isString(new_name)) {
+                // console.log('Created new Spawn', new_name);
+                ++new_creep_count;
+                if (this.creeps.length + new_creep_count == required_workforce_size) {
+                    break;
+                }
+            }
+        }
+    }
+}
+
 WorkforceManager.prototype.run = function() {
     var room = this.room;
     var memory = this.memory;
 
-    if (!memory) {
-        console.log(Game.time, 'WorkforceManager waiting for memory init ...');
+    if (!room.controller.my) {
         return;
     }
 
@@ -71,6 +149,8 @@ WorkforceManager.prototype.run = function() {
     }
 
     var creeps = this.creeps;
+    var boot = _.filter(creeps, (creep) => creep.role == BootCreep.ROLE);
+    var harvesters2 = _.filter(creeps, (creep) => creep.role == Harvester2Creep.ROLE);
     var harvesters = _.filter(creeps, (creep) => creep.role == CONSTANTS.ROLE_HARVESTER);
     var mules = _.filter(creeps, (creep) => creep.role == CONSTANTS.ROLE_MULE);
     var builders = _.filter(creeps, (creep) => creep.role == CONSTANTS.ROLE_BUILDER);
@@ -90,32 +170,18 @@ WorkforceManager.prototype.run = function() {
     var required_builders = this.requiredBuilders();
     var required_repairs = this.requiredRepairs();
     var required_upgraders = this.requiredUpgraders();
-    var required_workforce_size = required_harvesters + required_mules + required_builders + required_repairs + required_upgraders;
+    var required_workforce_size = required_builders + required_repairs + required_upgraders;
 
     if (Game.time % 10 == 0) {
         console.log(
             Game.time,
             'mules', mules.length, '/', required_mules,
-            'harvesters', harvesters.length, '/', required_harvesters,
+            'harvesters', harvesters.length + harvesters2.length, '/', required_harvesters,
             'repairs', repairs.length, '/', required_repairs,
             'builders', builders.length, '/', required_builders,
             'upgraders', upgraders.length, '/', required_upgraders);
     }
-    if (creeps.length < required_workforce_size && room.energyAvailable >= memory.body_price) {
-        var spawns = room.find(FIND_MY_SPAWNS);
-        var new_creep_count = 0;
-        for (i in spawns) {
-            var spawn = spawns[i];
-            var new_name = spawn.createCreep(memory.body_parts);
-            if (_.isString(new_name)) {
-                // console.log('Created new Spawn', new_name);
-                ++new_creep_count;
-                if (creeps.length + new_creep_count == required_workforce_size) {
-                    break;
-                }
-            }
-        }
-    }
+    this.spawn_creeps(required_workforce_size);
 
     // var min_harvesters = 2;
     var min_mules = 0;
@@ -130,25 +196,15 @@ WorkforceManager.prototype.run = function() {
 
     this._rebalanceWorkforce([
             {
-                role: CONSTANTS.ROLE_MULE,
-                creeps: mules,
-                min: min_mules,
-                max: required_mules
-            },{
-                role: CONSTANTS.ROLE_HARVESTER,
-                creeps: harvesters,
-                min: 0,
-                max: required_harvesters
+                role: CONSTANTS.ROLE_BUILDER,
+                creeps: builders,
+                min: min_builders,
+                max: required_builders
             },{
                 role: CONSTANTS.ROLE_REPAIR,
                 creeps: repairs,
                 min: 0,
                 max: required_repairs
-            },{
-                role: CONSTANTS.ROLE_BUILDER,
-                creeps: builders,
-                min: min_builders,
-                max: required_builders
             },{
                 role: CONSTANTS.ROLE_UPGRADER,
                 creeps: upgraders,
@@ -158,9 +214,17 @@ WorkforceManager.prototype.run = function() {
         ]);
 
     let mule_prefer_spawns = false;
-    if (creeps.length < required_workforce_size) {
+    if (creeps.length < 0.7 * required_workforce_size) {
         mule_prefer_spawns = true;
     }
+
+
+    boot.forEach((creep) => {
+        new BootCreep(creep).run();
+    });
+    harvesters2.forEach((creep) => {
+        new Harvester2Creep(creep).run();
+    });
     harvesters.forEach((creep) => {
         new HarvesterCreep(creep).run();
     });
@@ -247,12 +311,22 @@ WorkforceManager.prototype.requiredBuilders = function() {
     if (required_builders) {
         required_builders = required_builders * BUILDERS_BOOST + 2;
     }
+    required_builders = Math.min(required_builders, 6);
     // return memory.required_builders = Math.max(memory.required_builders, required_builders);
     return memory.required_builders = Math.ceil(required_builders);
 };
 WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
+    return 0;
     var room = this.room;
     var memory = this.memory;
+
+    var required_harvesters = memory.required_harvesters;
+    if (required_harvesters === undefined) {
+        required_harvesters = memory.required_harvesters = 5;
+    }
+    if (Game.time % 50 != 0) {
+        return required_harvesters;
+    }
 
     var max_harvesters = this.sources.reduce((total_creeps, source) => total_creeps + source.max_creeps, 0);
 
@@ -264,15 +338,16 @@ WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
     } else {
         required_harvesters = (1 - energy_available / energy_capacity) * max_harvesters;
     }
-    
+
     // console.log(Game.time, 'required_harvesters', required_harvesters, energy_available, energy_capacity);
-    return Math.ceil(required_harvesters);
+    memory.required_harvesters = Math.ceil(required_harvesters)
+    return memory.required_harvesters;
 };
 WorkforceManager.prototype.requiredUpgraders = function() {
+    return 2;
     let room = this.room;
 
-    // let required_upgraders = 2 * room.controller.level;
-    let required_upgraders = 2; // PTR
+    let required_upgraders = 2 * room.controller.level;
 
     return required_upgraders;
 }
@@ -280,8 +355,8 @@ WorkforceManager.prototype.requiredUpgraders = function() {
 WorkforceManager.prototype.minUpgraders = function() {
     var room = this.room;
 
-    if (this.creeps.length > 5 && (room.controller.ticksToDowngrade < 200 || this.memory.downgrade_started)) {
-        if (room.controller.ticksToDowngrade > 600) {
+    if (this.creeps.length > 5 && (room.controller.ticksToDowngrade < 500 || this.memory.downgrade_started)) {
+        if (room.controller.ticksToDowngrade > 900) {
             this.memory.downgrade_started = false;
             return 0;
         }
@@ -292,6 +367,7 @@ WorkforceManager.prototype.minUpgraders = function() {
 }
 
 WorkforceManager.prototype.requiredMules = function() {
+    return 0;
     var room = this.room;
     let containers = room.find(FIND_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_CONTAINER});
     let energy = 0;

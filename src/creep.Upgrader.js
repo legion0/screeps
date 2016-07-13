@@ -3,13 +3,13 @@ var BinaryCreep = require('creep.BinaryCreep')
 class Upgrader extends BinaryCreep {
 	constructor(creep) {
 		super(creep);
-		this.min_container_load = 0.0;
+		this.min_container_load = 0.2;
 	}
 
 	findSource(old_source) {
 		var new_source = null;
 
-	    var container = this.creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (structure) => {
+	    var container = this.room.controller.pos.findClosestByRange(FIND_STRUCTURES, {filter: (structure) => {
 	        return structure.structureType == STRUCTURE_CONTAINER && structure.store[RESOURCE_ENERGY] > this.min_container_load * structure.storeCapacity;
 	    }});
 	    if (container) {

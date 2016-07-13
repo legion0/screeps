@@ -97,3 +97,36 @@ Object.defineProperty(Source.prototype, "_distance_to_sink", {
         return this.__distance_to_sink;
     }
 });
+
+Object.defineProperty(Source.prototype, "container_id", {
+    get: function () {
+        if (this._container_id === undefined) {
+            this._container_id = this.memory.container;
+            if (this._container_id === undefined) {
+                this._container_id = this.memory.container = null;
+            }
+        }
+        return this._container_id;
+    },
+    set: function (container_id) {
+        this._container_id = this.memory.container = container_id;
+    }
+});
+
+Object.defineProperty(Source.prototype, "container", {
+    get: function () {
+        if (this._container_object === undefined) {
+            if (this.container_id) {
+                this._container_object = Game.getObjectById(this.container_id);
+            } else {
+                this._container_object = null;
+            }
+            if (!this._container_object) {
+                let containers = this.pos.findInRange(FIND_STRUCTURES, 1, {filter: s => s.structureType == STRUCTURE_CONTAINER});
+                this._container_object = containers.length ? containers[0] : null;
+                this.container_id = this._container_object ? this._container_object.id : null;
+            }
+        }
+        return this._container_object;
+    }
+});
