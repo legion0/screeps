@@ -67,9 +67,20 @@ class BinaryCreep extends MyCreep {
 	    // if (this._stepAwayFromSource(new_action)) {
 	    //     return;
 	    // }
-		if (this._roadMaintanance()) {
-			return;
-		}
+
+	    // pickup stray energy
+	    if (this.creep.carry.energy != this.creep.carryCapacity) {
+	        var dropped_energies = this.pos.findInRange(FIND_DROPPED_ENERGY, 1);
+	        if (dropped_energies.length) {
+	            this.creep.pickup(dropped_energies[0]);
+	            return;
+	        }
+
+	    }
+
+// 		if (this._roadMaintanance()) {
+// 			return;
+// 		}
 
 	    this.action = new_action;
 

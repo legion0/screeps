@@ -91,37 +91,45 @@ Object.defineProperty(Structure.prototype, "health", {
     }
 });
 
-Object.defineProperty(Structure.prototype, "mule_id", {
+Object.defineProperty(Structure.prototype, "creep_id", {
     get: function () {
-        if (this._mule_id === undefined) {
-            this._mule_id = this.memory.mule;
-            if (this._mule_id === undefined) {
-                this._mule_id = this.memory.mule = null;
+        if (this._creep_id === undefined) {
+            this._creep_id = this.memory.creep;
+            if (this._creep_id === undefined) {
+                this._creep_id = this.memory.creep = null;
             }
         }
-        return this._mule_id;
+        return this._creep_id;
     },
-    set: function (mule_id) {
-        this._mule_id = this.memory.mule = mule_id;
+    set: function (creep_id) {
+        this._creep_id = this.memory.creep = creep_id;
     }
 });
 
-Object.defineProperty(Structure.prototype, "mule", {
+Object.defineProperty(Structure.prototype, "creep", {
     get: function () {
-        if (this._mule_object === undefined) {
-            if (this.mule_id) {
-                this._mule_object = Game.getObjectById(this.mule_id);
+        if (this._creep_object === undefined) {
+            if (this.creep_id) {
+                this._creep_object = Game.getObjectById(this.creep_id);
             } else {
-                this._mule_object = null;
+                this._creep_object = null;
             }
         }
-        return this._mule_object;
+        return this._creep_object;
     },
-    set: function (mule_object) {
-        this._mule_object = mule_object;
-        this.mule_id = mule_object ? mule_object.id : null;
+    set: function (creep_object) {
+        this._creep_object = creep_object;
+        this.creep_id = creep_object ? creep_object.id : null;
     }
 });
+
+Structure.prototype.is_bound = function(opt_creep) {
+	let bound = this.creep && (this.creep.source == this || this.creep.target == this);
+	if (opt_creep) {
+	    bound = bound && this.creep == opt_creep;
+	}
+	return bound;
+}
 
 Structure.prototype.destroy2 = function() {
     removeStructureLocation(this.room, this.pos, this.structureType);

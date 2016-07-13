@@ -31,3 +31,26 @@ Object.defineProperty(ConstructionSite.prototype, "construction_start_time", {
         return this.memory.construction_start_time;
     }
 });
+
+ConstructionSite.prototype.remove2 = function() {
+    removeStructureLocation(this.room, this.pos, this.structureType);
+    this.remove();
+}
+
+function removeStructureLocation(room, pos, structure_type) {
+    let saved_structures = room.memory.saved_structures;
+    if (!saved_structures) {
+        return;
+    }
+    let idx = -1;
+    for (let i = 0; i < saved_structures.length; ++i) {
+        let s = saved_structures[i];
+        if (s.x == pos.x && s.y == pos.y) {
+            idx = i;
+            break;
+        }
+    }
+    if (idx != -1) {
+        saved_structures.splice(idx, 1);
+    }
+}

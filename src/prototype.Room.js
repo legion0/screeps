@@ -8,17 +8,17 @@ var events = require('events');
 
 var ENERGY_DRAIN_WINDOW_SIZE = 128;
 
-events.listen(CONSTANTS.EVENT_TICK_START, (event_name) => {
-    // console.log('Room', 'EVENT_TICK_START');
+// events.listen(CONSTANTS.EVENT_TICK_START, (event_name) => {
+//     // console.log('Room', 'EVENT_TICK_START');
 
-    for (var roomName in Game.rooms) {
-        var room = Game.rooms[roomName];
-        room._updateEnergyDrain();
-    }
+//     for (var roomName in Game.rooms) {
+//         var room = Game.rooms[roomName];
+//         room._updateEnergyDrain();
+//     }
 
-    // console.log('Room', 'EVENT_TICK_START', 'END');
-    return true;
-});
+//     // console.log('Room', 'EVENT_TICK_START', 'END');
+//     return true;
+// });
 
 Object.defineProperty(Room.prototype, "energy_drain", {
     get: function() {
@@ -77,6 +77,10 @@ Room.prototype.findSourcesActive = function(ignore_source_id) {
         return source.id != this.memory.lair_source_id && source.id != ignore_source_id;
     });
 };
+
+Room.prototype.findContainers = function() {
+    return this.find(FIND_STRUCTURES, {filter: s => s.structureType == STRUCTURE_CONTAINER});
+}
 
 Room.prototype.findTowers = function() {
     return this.find(FIND_MY_STRUCTURES, {filter: (structure) => structure.structureType === STRUCTURE_TOWER});
@@ -143,3 +147,65 @@ Object.defineProperty(Room.prototype, "_internal_drain", {
         return drain;
     }
 });
+
+
+Room.prototype.truncate_body = function(all_body_parts, opt_max_price) {
+    let max_price = opt_max_price ? opt_max_price : this.energyCapacityAvailable;
+    var price = 0;
+    let i = 0;
+    for (let body_part of all_body_parts) {
+        if (price + BODYPART_COST[body_part] <= max_price) {
+            price += BODYPART_COST[body_part];
+            ++i;
+            continue;
+        }
+        break;
+    }
+    return all_body_parts.slice(0, i);
+}
+
+Room.prototype.build_road = function(from, to) {
+      let ret = PathFinder.search(
+        from, {pos: to, range: 1},
+        {
+          plainCost: 1,
+          swampCost: 1,
+
+          roomCallback: function(roomName) {
+
+            let room = Game.rooms[roomName];
+            // In this example `room` will always exist, but since PathFinder
+            // supports searches which span multiple rooms you should be careful!
+            if (!room) {
+                return;
+            }
+            let costs = new PathFinder.CostMatrix;
+
+            // TODO: export to structure/position property is_walkable
+            for (let structure of room.find(FIND_STRUCTURES)) {
+              if (structure.structureType !== STRUCTURE_CONTAINER &&
+                         (structure.structureType !== STRUCTURE_RAMPART ||
+                          !structure.my)) {
+                // Can't walk through non-walkable buildings
+                costs.set(structure.pos.x, structure.pos.y, 0xff);
+              }
+            }
+
+            return costs;
+          },
+        }
+      );
+
+      let path = ret.path;
+
+      for (let pos of path) {
+          console.log('pos', pos);
+          if (!Game.rooms[pos.roomName]) {
+              console.log('No room', pos.roomName);
+              return;
+          }
+      }
+      for (let pos of path) {
+          Game.rooms[pos.roomName].createConstructionSite(pos, STRUCTURE_ROAD);
+      }
+}

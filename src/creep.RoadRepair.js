@@ -6,24 +6,14 @@ let TARGET_VALIDATORS = [
 	(target) => target.structureType == STRUCTURE_WALL && target.hits < target.hitsMax
 ];
 
-class Repair extends BinaryCreep {
+class RoadRepair extends BinaryCreep {
 	constructor(creep) {
 		super(creep);
-		this.min_container_load = 0.2;
-		this.min_storage_load = 0.01;
+		this.min_container_load = 0.0;
 	}
 
 	findSource(old_source) {
-	    let storage = this.creep.room.storage;
-        if (storage) {
-            return this.isValidSource(storage) ? storage : null;
-        }
-        let pos = this.creep.pos;
-        if (this.creep.target) {
-            pos = this.creep.target.pos;
-        }
-	    let source = pos.findClosestByRange(FIND_STRUCTURES, {filter: (source) => this.isValidSource(source)});
-	    return source;
+		return this.pos.findClosestByRange(FIND_STRUCTURES, {filter: (structure) => this.isValidSource(structure)});
 	}
 
 	findTarget() {
@@ -46,8 +36,8 @@ class Repair extends BinaryCreep {
 	}
 
 	isValidSource(source) {
-		return source.structureType == STRUCTURE_STORAGE   && source.store.energy > this.min_storage_load   * source.storeCapacity ||
-               source.structureType == STRUCTURE_CONTAINER && source.store.energy > this.min_container_load * source.storeCapacity;
+		return source.structureType == STRUCTURE_CONTAINER &&
+		source.store[RESOURCE_ENERGY] > this.min_container_load * source.storeCapacity;
 	}
 
 	isValidTarget(target) {
@@ -87,4 +77,4 @@ class Repair extends BinaryCreep {
 	}
 }
 
-module.exports = Repair;
+module.exports = RoadRepair;

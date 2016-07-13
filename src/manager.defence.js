@@ -46,23 +46,36 @@ DefenceManager.prototype.run = function() {
         }
     } else {
         // rampart looses 3 hits per tick
-        // tower repairs 150 per tick (worst case)
-        if (Game.time % 5 != 0) { // Slow Repair
-            return;
-        }
-        if (Game.time % 50 == 0 || (this.repair_target && this.repair_target.hits == this.repair_target.hitsMax)) {
-            let ramparts = room.find(FIND_MY_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_RAMPART && structure.hits < structure.hitsMax});
-            this.repair_target = Array.prototype.findSortedFirst.call(ramparts, (a,b) => a.hits - b.hits);
-        }
-        if (!this.repair_target) {
-            this.repair_target = null;
-            return;
-        }
+        // tower repairs 200 per tick (worst case) at 10 energy cost
+        // so repair rampart at least every 50 ticks to maintain slow health grow
         for (let tower of towers) {
-            if (tower.energy > 0.9 * tower.energyCapacity) {
-                tower.repair(this.repair_target);
+            if (tower.energy <= 0.9 * tower.energyCapacity) {
+                continue;
             }
-            
+            if (Game.time % 50 == 0 || (this.repair_target && this.repair_target.hits == this.repair_target.hitsMax)) {
+                let ramparts = room.find(FIND_MY_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_RAMPART && structure.hits < structure.hitsMax});
+                this.repair_target = Array.prototype.findSortedFirst.call(ramparts, (a,b) => a.hits - b.hits);
+            }
+            if (this.repair_target && Game.time % 25 == 0) {
+                tower.repair(this.repair_target);
+                continue;
+            }
+
+            let damaged_creep = tower.pos.findClosestByRange(FIND_MY_CREEPS, {filter: c => c.hits < c.hitsMax});
+            if (damaged_creep) {
+                tower.heal(damaged_creep);
+                continue;
+            }
+            let damaged_container = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: s => s.structureType == STRUCTURE_CONTAINER && s.hits < s.hitsMax});
+            if (damaged_container) {
+                tower.repair(damaged_container);
+                continue;
+            }
+            let damaged_road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: s => s.structureType == STRUCTURE_ROAD && s.hits < s.hitsMax});
+            if (damaged_road) {
+                tower.repair(damaged_road);
+                continue;
+            }
         }
     }
 
