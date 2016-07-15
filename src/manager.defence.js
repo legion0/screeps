@@ -52,11 +52,13 @@ DefenceManager.prototype.run = function() {
             if (tower.energy <= 0.9 * tower.energyCapacity) {
                 continue;
             }
-            if (Game.time % 50 == 0 || (this.repair_target && this.repair_target.hits == this.repair_target.hitsMax)) {
+            let speed = 8;
+
+            if (Game.time % (speed * 10) == 0 || (this.repair_target && this.repair_target.hits == this.repair_target.hitsMax)) {
                 let ramparts = room.find(FIND_MY_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_RAMPART && structure.hits < structure.hitsMax});
                 this.repair_target = Array.prototype.findSortedFirst.call(ramparts, (a,b) => a.hits - b.hits);
             }
-            if (this.repair_target && Game.time % 25 == 0) {
+            if (this.repair_target && Game.time % speed == 0) {
                 tower.repair(this.repair_target);
                 continue;
             }
