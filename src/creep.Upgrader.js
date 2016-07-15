@@ -4,35 +4,20 @@ class Upgrader extends BinaryCreep {
 	constructor(creep) {
 		super(creep);
 		this.min_container_load = 0.2;
+		this.min_storage_load = 0.01;
 	}
 
 	findSource(old_source) {
-		var new_source = null;
-
-	    var container = this.room.controller.pos.findClosestByRange(FIND_STRUCTURES, {filter: (structure) => {
-	        return structure.structureType == STRUCTURE_CONTAINER && structure.store[RESOURCE_ENERGY] > this.min_container_load * structure.storeCapacity;
-	    }});
-	    if (container) {
-	        new_source = container;
-	    } else {
-		    var min_lane_load = Infinity;
-		    var min_load_source = null;
-		    var low_load_source = null;
-		    var creep = this.creep;
-		    creep.findSourcesActive(old_source ? old_source.id : null).forEach((source) => {
-		    	var lane_load = source.laneLoad(creep);
-		    	if (lane_load < 1 && !low_load_source) {
-		    		low_load_source = source;
-		    	}
-		        if (lane_load < min_lane_load) {
-		            min_lane_load = lane_load;
-		            min_load_source = source;
-		        }
-		    });
-		    new_source = low_load_source ? low_load_source : min_load_source;
-		}
-	    // this.log('new_source', new_source);
-	    return new_source;
+		let storage = this.creep.room.storage;
+        if (storage) {
+            return this.isValidSource(storage) ? storage : null;
+        }
+        let pos = this.creep.pos;
+        if (this.creep.target) {
+            pos = this.creep.target.pos;
+        }
+	    let source = pos.findClosestByRange(FIND_STRUCTURES, {filter: (source) => this.isValidSource(source)});
+	    return source;
 	}
 
 	findTarget(old_target) {
@@ -40,7 +25,8 @@ class Upgrader extends BinaryCreep {
 	}
 
 	isValidSource(source) {
-		return source.energy > 0 || (source.ticksToRegeneration && this.pos.getRangeTo(source) > source.ticksToRegeneration);
+		return source.structureType == STRUCTURE_STORAGE   && source.store.energy > this.min_storage_load   * source.storeCapacity ||
+               source.structureType == STRUCTURE_CONTAINER && source.store.energy > this.min_container_load * source.storeCapacity;
 	}
 
 	isValidTarget(target) {
