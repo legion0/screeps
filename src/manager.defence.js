@@ -52,14 +52,11 @@ DefenceManager.prototype.run = function() {
             if (tower.energy <= 0.9 * tower.energyCapacity) {
                 continue;
             }
-            let speed = 8;
 
-            if (Game.time % (speed * 10) == 0 || (this.repair_target && this.repair_target.hits == this.repair_target.hitsMax)) {
-                let ramparts = room.find(FIND_MY_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_RAMPART && structure.hits < structure.hitsMax});
-                this.repair_target = Array.prototype.findSortedFirst.call(ramparts, (a,b) => a.hits - b.hits);
-            }
-            if (this.repair_target && Game.time % speed == 0) {
-                tower.repair(this.repair_target);
+            let new_ramparts = room.find(FIND_MY_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_RAMPART && structure.hits < 5000});
+            if (new_ramparts.length) {
+                let rampart = Array.prototype.findSortedFirst.call(new_ramparts, (a,b) => a.hits - b.hits);
+                tower.repair(rampart);
                 continue;
             }
 
@@ -68,14 +65,37 @@ DefenceManager.prototype.run = function() {
                 tower.heal(damaged_creep);
                 continue;
             }
+
             let damaged_container = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: s => s.structureType == STRUCTURE_CONTAINER && s.hits < s.hitsMax});
             if (damaged_container) {
                 tower.repair(damaged_container);
                 continue;
             }
+
             let damaged_road = tower.pos.findClosestByRange(FIND_STRUCTURES, {filter: s => s.structureType == STRUCTURE_ROAD && s.hits < s.hitsMax});
             if (damaged_road) {
                 tower.repair(damaged_road);
+                continue;
+            }
+
+            let speed = this.memory.speed;
+            if (speed === undefined) {
+                speed = this.memory.speed = 10;
+            }
+            if (Game.time % (speed * 10) == 0 || (this.repair_target && this.repair_target.hits == this.repair_target.hitsMax)) {
+                let ramparts = room.find(FIND_MY_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_RAMPART && structure.hits < structure.hitsMax});
+                if (ramparts.length) {
+                    // TODO: move target rampart health and weight to memory
+                    speed = Math.floor(((200/3)/ramparts.length/1.1));
+                    if (speed == 0) {
+                        speed = 1;
+                    }
+                    this.memory.speed = speed;
+                    this.repair_target = Array.prototype.findSortedFirst.call(ramparts, (a,b) => a.hits - b.hits);
+                }
+            }
+            if (this.repair_target && Game.time % speed == 0) {
+                tower.repair(this.repair_target);
                 continue;
             }
         }

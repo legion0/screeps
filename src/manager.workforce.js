@@ -9,7 +9,7 @@ var BuilderCreep = require('creep.Builder');
 var MuleCreep = require('creep.Mule');
 var RepairCreep = require('creep.Repair');
 
-var WORKFORCE_BODY_PARTS = [WORK,MOVE, CARRY,MOVE, CARRY,MOVE, CARRY,MOVE];
+var WORKFORCE_BODY_PARTS = [WORK,MOVE, CARRY,MOVE, CARRY,MOVE, CARRY,MOVE, WORK,MOVE, CARRY,MOVE, CARRY,MOVE, CARRY,MOVE, WORK,MOVE];
 var BUILDERS_BOOST = 0.5;
 
 function WorkforceManager(room) {
@@ -140,9 +140,9 @@ WorkforceManager.prototype.run = function() {
     var room = this.room;
     var memory = this.memory;
 
-    if (!room.controller.my) {
-        return;
-    }
+    // if (!room.controller.my) {
+    //     return;
+    // }
 
     if (Game.time % 50 == 0) {
         this.recalculateDefaultBody();
@@ -181,7 +181,10 @@ WorkforceManager.prototype.run = function() {
             'builders', builders.length, '/', required_builders,
             'upgraders', upgraders.length, '/', required_upgraders);
     }
-    this.spawn_creeps(required_workforce_size);
+
+    if (room.controller.my && (!Game.flags.attack || Game.creeps.a)) {
+        this.spawn_creeps(required_workforce_size);
+    }
 
     // var min_harvesters = 2;
     var min_mules = 0;
@@ -344,7 +347,7 @@ WorkforceManager.prototype.requiredHarveters = function(drainage_active) {
     return memory.required_harvesters;
 };
 WorkforceManager.prototype.requiredUpgraders = function() {
-    return 2;
+    return 1;
     let room = this.room;
 
     let required_upgraders = 2 * room.controller.level;
@@ -377,6 +380,7 @@ WorkforceManager.prototype.requiredMules = function() {
     return Math.ceil(mules);
 }
 WorkforceManager.prototype.requiredRepairs = function() {
+    return 0;
     var room = this.room;
 
     let damaged_walls = room.find(FIND_STRUCTURES, {filter: (structure) => structure.structureType == STRUCTURE_WALL && structure.hits < structure.hitsMax});
@@ -384,6 +388,7 @@ WorkforceManager.prototype.requiredRepairs = function() {
 
     let repairs = 0;
     if (very_damaged_walls.length) {
+        // TODO: per room memory parameter;
         repairs = 3;
     } else if (damaged_walls.length) {
         repairs = 1;

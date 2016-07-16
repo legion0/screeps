@@ -61,17 +61,22 @@ class Mule extends BinaryCreep {
 	            return target;
 	        }
 	    }
+	    if (Game.flags.fill) {
+	        return Game.flags.fill.room.storage;
+	    }
 	    return null;
 	}
 
 	isValidSource(source) {
+	    if (this.creep.name == 'b') {
+	        this.log('isValidSource', this.isValidFirstSource(source) || this.isValidSecondSource(source));
+	    }
 		return this.isValidFirstSource(source) || this.isValidSecondSource(source);
 	}
 
 	isValidFirstSource(source) {
 		return source.structureType == STRUCTURE_CONTAINER &&
-		source.store[RESOURCE_ENERGY] > this.min_container_load * source.storeCapacity &&
-		sourceIsAvailableToCreep(source, this.creep);
+		source.store[RESOURCE_ENERGY] > this.min_container_load * source.storeCapacity;
 	}
 	isValidSecondSource(source) {
 		return source.structureType == STRUCTURE_CONTAINER &&
@@ -79,6 +84,9 @@ class Mule extends BinaryCreep {
 	}
 
 	isValidTarget(target) {
+		if (!target.room.controller.my) {
+			return false;
+		}
 	    if (target == this.source) {
 	        return false;
 	    }
@@ -135,6 +143,8 @@ class Mule extends BinaryCreep {
 }
 
 Mule.ROLE = 'MULE';
-Mule.BODY_PARTS = [CARRY,MOVE, CARRY,MOVE, CARRY,MOVE, CARRY,MOVE, CARRY,MOVE, CARRY,MOVE, CARRY,MOVE, CARRY,MOVE];
+// TODO: make body parts dependant on highway to source and harvesting speed
+Mule.BODY_PARTS = [MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY];
+// Mule.BODY_PARTS = [CARRY, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE];
 
 module.exports = Mule;

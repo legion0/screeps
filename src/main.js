@@ -30,17 +30,24 @@ function attack_flag() {
     }
 
     let creep = Game.creeps.a;
-    if (creep.pos.getRangeTo(flag) != 0) {
+    let range = creep.pos.getRangeTo(flag);
+    if (range != 0) {
         creep.moveTo(flag);
-    } else {
-        let structure = creep.pos.findClosestByRange(FIND_HOSTILE_STRUCTURES);
-        if (structure && structure.pos.getRangeTo(creep) <= 1) {
-            creep.attack(structure);
-        } else {
-            let enemy_creeps = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
-            creep.attack(enemy_creeps);
-            
-        }
+    }
+    if (creep.room != flag.room) {
+        return;
+    }
+
+    let enemy_creeps = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 1);
+    if (enemy_creeps.length) {
+        creep.attack(enemy_creeps[0]);
+        return;
+    }
+
+    let structures = creep.pos.findInRange(FIND_HOSTILE_STRUCTURES, 1);
+    if (structures.length) {
+        creep.attack(structures[0]);
+        return;
     }
 }
 
