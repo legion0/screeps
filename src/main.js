@@ -10,6 +10,7 @@ require('prototype.ConstructionSite');
 require('prototype.Source');
 require('prototype.StructureSpawn');
 require('prototype.Creep');
+require('prototype.Flag');
 
 var CONSTANTS = require('constants');
 var events = require('events');
