@@ -1,6 +1,8 @@
 var CONSTANTS = require('constants');
 var events = require('events');
 
+var Pathing = require('Pathing');
+
 
 // var ENERGY_DRAIN_EMA_GROWTH_RATE = 0.99;
 // var ENERGY_DRAIN_EMA_DECAY_RATE = 0.01;
@@ -165,38 +167,7 @@ Room.prototype.truncate_body = function(all_body_parts, opt_max_price) {
 }
 
 Room.prototype.build_road = function(from, to) {
-      let ret = PathFinder.search(
-        from, {pos: to, range: 1},
-        {
-          plainCost: 1,
-          swampCost: 1,
-
-          roomCallback: function(roomName) {
-
-            let room = Game.rooms[roomName];
-            // In this example `room` will always exist, but since PathFinder
-            // supports searches which span multiple rooms you should be careful!
-            if (!room) {
-                return;
-            }
-            let costs = new PathFinder.CostMatrix;
-
-            // TODO: export to structure/position property is_walkable
-            for (let structure of room.find(FIND_STRUCTURES)) {
-              if (structure.structureType !== STRUCTURE_CONTAINER &&
-                         (structure.structureType !== STRUCTURE_RAMPART ||
-                          !structure.my)) {
-                // Can't walk through non-walkable buildings
-                costs.set(structure.pos.x, structure.pos.y, 0xff);
-              }
-            }
-
-            return costs;
-          },
-        }
-      );
-
-      let path = ret.path;
+      let path = Pathing.highway_path(from, to);
 
       for (let pos of path) {
           console.log('pos', pos);

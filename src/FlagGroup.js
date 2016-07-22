@@ -25,24 +25,7 @@ class FlagGroup {
 
 	add_flag(flag) {
 		flag.group = this;
-		this.memory.flags.push({
-			name: flag.name,
-			memory: flag.memory,
-			color: flag.color,
-			secondaryColor: flag.secondaryColor,
-			pos: flag.pos,
-		});
-	}
-
-	update_positions() {
-		for (let flag of this.memory.flags) {
-			let flag_object = Game.flags[flag.name];
-			if (flag_object) {
-				flag.pos = flag_object.pos;
-			} else {
-				console.log('ERROR', 'Cannot update position of flag', flag.name, 'because it is missing');
-			}
-		}
+		this.memory.flags.push(flag.name);
 	}
 
 	get_flags() {
@@ -53,40 +36,36 @@ class FlagGroup {
 	}
 
 	hide() {
-		// TODO: add is hidden property and get flag method to flag prototype to get hidden flags ?
-		this.memory.hidden = true;
-		for (let flag of this.memory.flags) {
-			let flag_object = Game.flags[flag.name];
+		for (let flag_name of this.memory.flags) {
+			let flag_object = Game.flags[flag_name];
 			if (flag_object) {
-				flag_object.remove();
+				flag_object.hide();
 			} else {
-				console.log('ERROR', 'Cannot hide flag', flag.name, 'because it is missing');
+				console.log('ERROR', 'Cannot hide flag', flag_name, 'because it is missing');
 			}
 		}
+		this.memory.hidden = true;
 	}
 
 	show() {
-		this.memory.hidden = false;
-		for (let flag of this.memory.flags) {
-			let pos = new RoomPosition(flag.pos.x, flag.pos.y, flag.pos.roomName);
-			let create_res = pos.createFlag(flag.name, flag.color, flag.secondaryColor);
-			if (create_res != flag.name) {
-				console.log('ERROR', 'Cannot show flag', flag.name, 'because of error', create_res);
+		for (let flag_name of this.memory.flags) {
+			if (!Flag.prototype.show(flag_name)) {
+				return false;
 			}
-			Game.flags[flag.name].memory = flag.memory;
 		}
+		this.memory.hidden = false;
 	}
 
-	static get_group_by_name(group_name) {
+	static load(name) {
 		let flags_memory = Memory.flags;
 		if (flags_memory === undefined) {
 			return null;
 		}
-		let memory = flags_memory[group_name];
+		let memory = flags_memory[name];
 		if (memory === undefined) {
 			return null;
 		}
-		return new FlagGroup(group_name);
+		return new FlagGroup(name);
 	}
 }
 

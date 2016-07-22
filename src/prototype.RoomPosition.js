@@ -18,3 +18,7 @@ RoomPosition.prototype.findClosestHostile = function() {
 RoomPosition.prototype.findClosestByPathIgnoreMyCreeps = function(type_or_objects, opts) {
     throw new Error("Not Implemented !!!");
 };
+
+RoomPosition.prototype.to_string = function() {
+    return this.roomName + '_' + this.x + '_' + this.y;
+};
