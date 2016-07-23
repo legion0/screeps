@@ -6,8 +6,10 @@ module.exports = function(grunt) {
     grunt.initConfig({
         screeps: {
             options: {
+                email: '',
+                password: '',
                 branch: 'default',
-                ptr: true
+                ptr: false
             },
             dist: {
                 src: ['src/*.js']
