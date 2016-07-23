@@ -37,4 +37,6 @@ class Pathing {
 	}
 }
 
+Room.prototype.Pathing = Pathing;
+
 module.exports = Pathing;

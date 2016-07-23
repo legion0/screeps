@@ -33,8 +33,8 @@ class FlagPath {
 			return null;
 		}
 		let next_path = prev_waypoint._direction == 1 ?
-			Memory.flags[flags[prev_waypoint._index]].path :
-			Memory.flags[flags[new_index]].path.slice(0).reverse();
+			Memory.flags[flags[prev_waypoint._index]].forward_path :
+			Memory.flags[flags[prev_waypoint._index]].backward_path;
 		// next_path = next_path.map(o => new RoomPosition(o.x, o.y, o.roomName));
 		return {
 			path: next_path,
@@ -47,12 +47,17 @@ class FlagPath {
 		if (!creep.memory.flag_path) {
 			creep.memory.flag_path = this.get_first_waypoint(creep.pos);
 		}
-		let target_pos = creep.memory.flag_path.pos;
-		if (target_pos && this._walk_to_pos(creep, target_pos)) {
-			return true;
+		let pos = creep.memory.flag_path.pos;
+		if (pos) {
+			pos = new RoomPosition(pos.x, pos.y, pos.roomName);
+			if (!creep.pos.isEqualTo(pos)) {
+				// TODO: Error handling
+				creep.moveTo(pos);
+				return true;
+			}
 		}
 
-		this._walk_to_waypoint(creep);
+		return this._walk_to_waypoint(creep);
 	}
 
 	_walk_to_waypoint(creep) {
@@ -60,6 +65,7 @@ class FlagPath {
 		    creep.memory.flag_path = this.get_next_waypoint(creep.memory.flag_path);
 		}
 		if (!creep.memory.flag_path) {
+			creep.log('END OF FLAG PATH');
 			return false;
 		}
 
@@ -74,22 +80,21 @@ class FlagPath {
 
 	_walk_to_pos(creep, pos) {
 		pos = new RoomPosition(pos.x, pos.y, pos.roomName);
-		if (creep.pos.getRangeTo(pos) != 0) {
+		if (!creep.pos.isEqualTo(pos)) {
 			// TODO: Error handling
-			creep.moveTo(pos);
+			let direction = creep.pos.getDirectionTo(pos);
+			creep.move(direction);
 			return true;
 		}
 		return false;
 	}
 
-	static _build_flag_group(name, from, to) {
-		let path = Pathing.highway_path(from, to);
-
+	static _build_flag_group(name, path) {
 		let flags = new FlagGroup(name);
 
 		let j = 0;
 		// TODO: does stepping on the last spot makes sense or should we just navigate from 5 squares away ?
-		for (let i = 2; i < path.length - 3; i+=5) {
+		for (let i = 0; i < path.length; i+=5) {
 			let pos = path[i];
 			let flag_name = name + '-' + (j++);
 			let create_res = pos.createFlag(flag_name);
@@ -109,15 +114,28 @@ class FlagPath {
 		for (let flag_name of this.flags.get_flags()) {
 			let flag = Game.flags[flag_name];
 			if (prev_flag) {
-				prev_flag.memory.path = Pathing.highway_path(prev_flag.pos, flag.pos, 0);
+				let path = Pathing.highway_path(prev_flag.pos, flag.pos, 0);
+				prev_flag.memory.forward_path = path;
+				path = path.slice(0);
+				path.pop();
+				path.reverse();
+				path.push(prev_flag.pos);
+				flag.memory.backward_path = path;
 			}
 			prev_flag = flag;
 		}
 	}
 
-	static create(source, destination) {
-		let name = source.to_string() + '-' + destination.to_string();
-		let flags = FlagPath._build_flag_group(name, source, destination);
+	_hide() {
+		this._build_paths();
+		this.flgas.hide();
+	}
+
+	static create(from, to) {
+		let path = Pathing.highway_path(from, to);
+		path = path.slice(2, path.length - 2);
+		let name = path[0].to_string() + '-' + path[path.length - 1].to_string();
+		let flags = FlagPath._build_flag_group(name, path);
 		let flag_path = new FlagPath(name, flags);
 		flag_path._build_paths();
 		return flag_path;

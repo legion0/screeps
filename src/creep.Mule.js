@@ -18,12 +18,12 @@ var TARGET_VALIDATORS = [
         return [STRUCTURE_EXTENSION, STRUCTURE_SPAWN].indexOf(target.structureType) != -1 &&
 			target.energy < target.energyCapacity;
     },
-    (that, target) => {
-        return !that.fill_spawns &&
-			target.structureType == STRUCTURE_CONTAINER &&
-			that.source &&
-			target.store[RESOURCE_ENERGY] < 0.8 * that.source.store[RESOURCE_ENERGY];
-    },
+   //  (that, target) => {
+   //      return !that.fill_spawns &&
+			// target.structureType == STRUCTURE_CONTAINER &&
+			// that.source &&
+			// target.store[RESOURCE_ENERGY] < 0.8 * that.source.store[RESOURCE_ENERGY];
+   //  },
     (that, target) => {
         return !that.fill_spawns &&
 			target.structureType == STRUCTURE_TOWER &&
@@ -33,12 +33,12 @@ var TARGET_VALIDATORS = [
         return !that.fill_spawns &&
 			target.structureType == STRUCTURE_STORAGE && _.sum(target.store) < target.storeCapacity;
     },
-    (that, target) => {
-        return !that.fill_spawns &&
-			target.structureType == STRUCTURE_CONTAINER &&
-			that.source &&
-			target.store[RESOURCE_ENERGY] < that.source.store[RESOURCE_ENERGY];
-    },
+   //  (that, target) => {
+   //      return !that.fill_spawns &&
+			// target.structureType == STRUCTURE_CONTAINER &&
+			// that.source &&
+			// target.store[RESOURCE_ENERGY] < that.source.store[RESOURCE_ENERGY];
+   //  },
 ];
 
 class Mule extends BinaryCreep {
@@ -144,7 +144,7 @@ class Mule extends BinaryCreep {
 
 Mule.ROLE = 'MULE';
 // TODO: make body parts dependant on highway to source and harvesting speed
-Mule.BODY_PARTS = [MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY];
+Mule.BODY_PARTS = [MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY, MOVE,CARRY,MOVE,CARRY];
 // Mule.BODY_PARTS = [CARRY, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE, CARRY,CARRY,MOVE];
 
 module.exports = Mule;

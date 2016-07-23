@@ -21,6 +21,8 @@ var WorkforceManager = require('manager.workforce');
 var DefenceManager = require('manager.defence');
 var AttackManager = require('manager.Attack');
 
+let CPU_EMA_ALPHA = 2 / (100 + 1);
+
 function attack_flag() {
 
     let flag = Game.flags.attack;
@@ -96,13 +98,15 @@ module.exports.loop = function () {
 
         events.fire(CONSTANTS.EVENT_TICK_END);
 
-        // let cpu_usage = 1.0 * Game.cpu.getUsed() / Game.cpu.limit;
-        // if (cpu_usage > 0.3) {
-        //     console.log(Game.time, 'High CPU Usage', cpu_usage, Game.cpu.getUsed(), '/', Game.cpu.limit, Game.cpu.tickLimit, Game.cpu.bucket);
-        // }
-        if (Game.creeps.b) {
-            Room.prototype.FlagPath.load('E12S47_24_25-E12S47_9_35').walk(Game.creeps.b);
+        let prev_cpu_ema = Memory.cpu_ema;
+        if (prev_cpu_ema === undefined) {
+            prev_cpu_ema = 0;
         }
+        let new_cpu_ema = Memory.cpu_ema = CPU_EMA_ALPHA * Game.cpu.getUsed() + (1-CPU_EMA_ALPHA) * prev_cpu_ema;
+        if (Game.time % 10 == 0) {
+            console.log(Game.time, 'new_cpu_ema', new_cpu_ema);
+        }
+
     } catch (e) {
         console.log(Game.time, 'EXCEPTION', e, e.stack);
     }

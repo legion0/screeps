@@ -1,4 +1,5 @@
 var MyCreep = require('creep.MyCreep');
+let FlagPath = require('FlagPath');
 
 class BinaryCreep extends MyCreep {
 	constructor(creep) {
@@ -96,6 +97,10 @@ class BinaryCreep extends MyCreep {
 	}
 
 	onActionStart() {
+		if (this.memory.flag_path_name) {
+			this.memory.use_flag_path = true;
+			this.memory.flag_path = null;
+		}
 		if (this.invalidate_source_on_action_start) {
 			this.source = null;
 		}
@@ -105,6 +110,10 @@ class BinaryCreep extends MyCreep {
 	    this.onActionContinue();
 	}
 	onActionEnd() {
+		if (this.memory.flag_path_name) {
+			this.memory.use_flag_path = true;
+			this.memory.flag_path = null;
+		}
 		if (this.invalidate_target_on_action_end) {
 			this.target = null;
 		}
@@ -126,7 +135,7 @@ class BinaryCreep extends MyCreep {
 	    var target = new_target ? new_target : this.target;
 	    var ret_val = this.innerAction(target);
 	    if(ret_val == ERR_NOT_IN_RANGE) {
-	        var move_res = this.creep.moveTo(target);
+	        var move_res = this.moveTo(target);
 	        if (move_res == ERR_NO_PATH) {
 	        	this.onNoPathToTarget(target);
 	        	return;
@@ -140,6 +149,20 @@ class BinaryCreep extends MyCreep {
 	    	this.target = new_target;
 	    }
 	}
+	moveTo(target) {
+		if (this.memory.use_flag_path && this.memory.flag_path_name) {
+			let flag_path = FlagPath.load(this.memory.flag_path_name);
+			if (flag_path) {
+				let walk_res = flag_path.walk(this.creep);
+				this.memory.use_flag_path = walk_res;
+				if (walk_res) {
+					return OK;
+				}
+			}
+		}
+		return this.creep.moveTo(target);
+	}
+
 	harvest() {
 		var new_source = null;
 	    if (!this.source || !this.isValidSource(this.source)) {
@@ -152,7 +175,7 @@ class BinaryCreep extends MyCreep {
 	    var source = new_source ? new_source : this.source;
 	    var ret_val = this.innerHarvest(source);
 	    if (ret_val == ERR_NOT_IN_RANGE) {
-	        var move_res = this.creep.moveTo(source);
+	        var move_res = this.moveTo(source);
 	        if (move_res == ERR_NO_PATH) {
 	        	this.onNoPathToSource(source);
 	        	return;
