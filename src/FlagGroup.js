@@ -9,13 +9,13 @@ class FlagGroup {
 	}
 
 	init_memory() {
-		let flags_memory = Memory.flags;
-		if (flags_memory === undefined) {
-			flags_memory = Memory.flags = {};
+		let flag_groups_memory = Memory.flag_groups;
+		if (flag_groups_memory === undefined) {
+			flag_groups_memory = Memory.flag_groups = {};
 		}
-		this.memory = flags_memory[this.name];
+		this.memory = flag_groups_memory[this.name];
 		if (this.memory === undefined) {
-			this.memory = flags_memory[this.name] = {};
+			this.memory = flag_groups_memory[this.name] = {};
 		}
 
 		if (this.memory.flags === undefined) {
@@ -29,9 +29,6 @@ class FlagGroup {
 	}
 
 	get_flags() {
-		if (!this.memory.hidden) {
-			this.update_positions();
-		}
 		return this.memory.flags;
 	}
 
@@ -56,17 +53,34 @@ class FlagGroup {
 		this.memory.hidden = false;
 	}
 
+	remove() {
+		if (this.memory.hidden) {
+			this.show();
+		}
+		for (let flag_name of this.memory.flags) {
+			let flag_object = Game.flags[flag_name];
+			if (flag_object) {
+				flag_object.remove2();
+			} else {
+				console.log('ERROR', 'Cannot remove flag', flag_name, 'because it is missing');
+			}
+		}
+		delete Memory.flag_groups[this.name];
+	}
+
 	static load(name) {
-		let flags_memory = Memory.flags;
-		if (flags_memory === undefined) {
+		let flag_groups_memory = Memory.flag_groups;
+		if (flag_groups_memory === undefined) {
 			return null;
 		}
-		let memory = flags_memory[name];
+		let memory = flag_groups_memory[name];
 		if (memory === undefined) {
 			return null;
 		}
 		return new FlagGroup(name);
 	}
 }
+
+Room.prototype.FlagGroup = FlagGroup;
 
 module.exports = FlagGroup;

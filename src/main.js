@@ -12,6 +12,8 @@ require('prototype.StructureSpawn');
 require('prototype.Creep');
 require('prototype.Flag');
 
+require('FlagPath');
+
 var CONSTANTS = require('constants');
 var events = require('events');
 
@@ -98,6 +100,9 @@ module.exports.loop = function () {
         // if (cpu_usage > 0.3) {
         //     console.log(Game.time, 'High CPU Usage', cpu_usage, Game.cpu.getUsed(), '/', Game.cpu.limit, Game.cpu.tickLimit, Game.cpu.bucket);
         // }
+        if (Game.creeps.b) {
+            Room.prototype.FlagPath.load('E12S47_24_25-E12S47_9_35').walk(Game.creeps.b);
+        }
     } catch (e) {
         console.log(Game.time, 'EXCEPTION', e, e.stack);
     }

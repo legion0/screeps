@@ -44,6 +44,13 @@ Flag.prototype.hide = function() {
     return true;
 }
 
+Flag.prototype.remove2 = function() {
+    if (Memory.flags[this.name]) {
+        delete Memory.flags[this.name];
+    }
+    this.remove();
+}
+
 // @static
 Flag.prototype.show = function(name) {
     let memory = Memory.flags[name];
@@ -69,6 +76,6 @@ Flag.prototype.get_pos = function(name) {
     }
     let memory = Memory.flags[name];
     if (memory) {
-        return memory.pos;
+        return new RoomPosition(memory.pos.x, memory.pos.y, memory.pos.roomName);
     }
 }
