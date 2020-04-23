@@ -1,32 +1,9 @@
 {
-	"name": "screeps",
-	"description": "The best project ever.",
-	"version": "0.1.0",
-	"homepage": "https://github.com/legion0/screeps",
-	"author": {
-		"name": "Legion",
-		"url": "https://github.com/legion0/"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git@github.com:legion0/screeps.git"
-	},
-	"bugs": {
-		"url": "https://github.com/legion0/screeps/issues"
-	},
-	"licenses": [{
-			"type": "MIT",
-			"url": "https://github.com/gruntjs/grunt-init-node-sample/blob/master/LICENSE-MIT"
-	}],
-	"main": "main.js",
-	"engines": {
-		"node": ">= 0.6.0"
-	},
-	"scripts": {
-		"test": "grunt nodeunit"
-	},
+	"dependencies": {},
 	"devDependencies": {
-		"grunt": "~0.4.0rc2"
-	},
-	"keywords": [ ]
+		"@types/lodash": "^4.14.150",
+		"@types/node": "^13.13.2",
+		"@types/screeps": "^3.1.0",
+		"rollup": "^2.7.2"
+	}
 }
