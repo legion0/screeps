@@ -1,4 +1,4 @@
-let _ = require('lodash');
+import _ from "lodash";
 
 let deprecatedShown = [];
 
@@ -7,6 +7,9 @@ class Register {
 	objectsByRoom: { [key: string]: number };
 	_useNewPathFinder: boolean = true;
 	objectsByRoomKeys: {};
+	byRoom: { [ket: string]: any };
+	findCache: {[key:string]: any};
+
 	// 	var register = {
 	// 	_useNewPathFinder: true,
 	// 	_objects: {},

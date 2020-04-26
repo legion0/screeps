@@ -1,4 +1,6 @@
-(global as any)._ = require('lodash');
+import _ from "lodash";
+
+(global as any)._ = _;
 
 import '../mocks/install_global';
 (global as any).StructureSpawn = jest.fn();
@@ -6,30 +8,28 @@ import '../mocks/install_global';
 import './prototype.All';
 
 import { Highway } from "./Highway";
-import { init } from '../mocks/Driver';
+import { init, generateRoomName } from '../mocks/Driver';
 import { roomNameToXY } from '../mocks/utils';
+import { Map } from '../mocks/Map';
 
-let terrain = require('@screeps/driver/native/sample-terrain.js');
-function terrainToRooms(terrainData) {
-	let rooms = [];
-
-	// let bit = Number(terrain[yy * 50 + xx]);
-	// pack[ii / 4 | 0] = pack[ii / 4 | 0] & ~(0x03 << ii % 4 * 2) | bit << ii % 4 * 2;
-
-	for (let room of terrainData) {
-		console.log(room.bits.length);
-		rooms.push({
-			room: room.room,
-			terrain: room.bits
-		});
-	}
-	// room.terrain
-	// roomNameToXY.room
-}
 init(
 	/*mod=*/require('@screeps/driver/native/build/Release/native.node'),
-	/*rooms=*/terrainToRooms(terrain)
+	/*rooms=*/Map.decodeTerrainData(require('@screeps/driver/native/sample-terrain.js'))
 );
+
+// W0N0
+// WW         WWW         WWW          WWW       S  W
+// W          WWW         SWWW         WWW         WW
+// W          WW          WW           WW WW        W
+//   W        W   W        W           W            W
+//        W   WW    S     WW            W    S     SW
+//      SS    W      S    LW           W       W   WW
+//      W     WW          WW          WWW           W
+//            W           LW           W           WW
+//            WW          WW          WWW S         W
+//          WWW           WW           WWW     WWW WW
+// WW     WWWWWWW     WW WWWWW    WWWWWWWWW     WWWWW
+// WWW    WWWWWWWWW   WWWWWWWWWL  WWWWWWWWWWW WWWWWWW
 
 test('deep', () => {
 	let from = new RoomPosition(1, 1, 'W0N0');

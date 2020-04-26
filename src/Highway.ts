@@ -106,7 +106,6 @@ export class Highway {
 	}
 
 	private roomCallback(roomName: string) {
-		console.log(roomName);
 		let room = Game.rooms[roomName];
 		// TODO: handle non visible rooms
 		// option 1: log information about room when room is discovered

@@ -2,11 +2,22 @@ import { C } from './constants';
 import { register } from './Register';
 import { runtimeData } from './RuntimeData';
 import { PathFinder } from './PathFinder';
+import _ from 'lodash';
 
 export const kMaxWorldSize = 256;
 export const kMaxWorldSize2 = kMaxWorldSize >> 1;
 
-let privateStore = {};
+let offsetsByDirection = {
+	[C.TOP]: [0,-1],
+	[C.TOP_RIGHT]: [1,-1],
+	[C.RIGHT]: [1,0],
+	[C.BOTTOM_RIGHT]: [1,1],
+	[C.BOTTOM]: [0,1],
+	[C.BOTTOM_LEFT]: [-1,1],
+	[C.LEFT]: [-1,0],
+	[C.TOP_LEFT]: [-1,-1]
+};
+
 
 export function getRoomNameFromXY(x: number | string, y: number | string) {
 	if (x < 0) {
@@ -187,68 +198,62 @@ export function _findClosestByPath2(fromPos, objects, opts) {
 	return result;
 }
 
-function getPathfindingGrid2(id, opts) {
+export function serializePath(path) {
+	if (!_.isArray(path)) {
+		throw new Error('path is not an array');
+	}
+	var result = '';
+	if (!path.length) {
+		return result;
+	}
+	if (path[0].x < 0 || path[0].y < 0) {
+		throw new Error('path coordinates cannot be negative');
+	}
+	result += path[0].x > 9 ? path[0].x : '0' + path[0].x;
+	result += path[0].y > 9 ? path[0].y : '0' + path[0].y;
 
-	if(!privateStore[id]) {
-			return new PathFinder.CostMatrix();
+	for (var i = 0; i < path.length; i++) {
+		result += path[i].direction;
 	}
 
-	var gridName = 'grid2';
-
-	opts = opts || {};
-
-	if(opts.ignoreCreeps) {
-			gridName += '_ignoreCreeps';
-	}
-	if(opts.ignoreDestructibleStructures) {
-			gridName += '_ignoreDestructibleStructures';
-	}
-	if(opts.ignoreRoads) {
-			gridName += '_ignoreRoads';
-	}
-
-	if(!privateStore[id].pfGrid[gridName]) privateStore[id].pfGrid[gridName] = makePathfindingGrid2(id, opts);
-
-	return privateStore[id].pfGrid[gridName];
+	return result;
 }
 
-function makePathfindingGrid2(id, opts) {
-
-	opts = opts || {};
-
-	var costs = new PathFinder.CostMatrix();
-
-	var obstacleTypes = _.clone(C.OBSTACLE_OBJECT_TYPES);
-	obstacleTypes.push('portal');
-
-	if(opts.ignoreDestructibleStructures) {
-			obstacleTypes = _.without(obstacleTypes, 'constructedWall','spawn','extension', 'link','storage','observer','tower','powerBank','powerSpawn','lab','terminal');
-	}
-	if(opts.ignoreCreeps || register.rooms[id].controller && register.rooms[id].controller.safeMode && register.rooms[id].controller.my) {
-			obstacleTypes = _.without(obstacleTypes, 'creep', 'powerCreep');
+export function deserializePath(path) {
+	if(!_.isString(path)) {
+			throw new Error('`path` is not a string');
 	}
 
-	if(register.objectsByRoomKeys[id]) {
-			register.objectsByRoomKeys[id].forEach((key) => {
-					var object = register.objectsByRoom[id][key];
+	var result = [];
+	if(!path.length) {
+			return result;
+	}
+	var x,y, direction, dx, dy;
 
-					if (_.includes(obstacleTypes, object.type) ||
-					!opts.ignoreCreeps && register.rooms[id].controller && register.rooms[id].controller.safeMode && register.rooms[id].controller.my && (object.type == 'creep' || object.type == 'powerCreep') && object.user == runtimeData.user._id ||
-					!opts.ignoreDestructibleStructures && object.type == 'rampart' && !object.isPublic && object.user != runtimeData.user._id ||
-					!opts.ignoreDestructibleStructures && object.type == 'constructionSite' && object.user == runtimeData.user._id && _.includes(C.OBSTACLE_OBJECT_TYPES, object.structureType)) {
+	x = parseInt(path.substring(0, 2));
+	y = parseInt(path.substring(2, 4));
+	if(_.isNaN(x) || _.isNaN(y)) {
+			throw new Error('`path` is not a valid serialized path string');
+	}
 
-							costs.set(object.x, object.y, 0xFF);
-					}
-
-					if (object.type == 'swamp' && costs.get(object.x, object.y) == 0) {
-							costs.set(object.x, object.y, opts.ignoreRoads ? 5 : 10);
-					}
-
-					if (!opts.ignoreRoads && object.type == 'road' && costs.get(object.x, object.y) < 0xFF) {
-							costs.set(object.x, object.y, 1);
-					}
+	for (var i = 4; i < path.length; i++) {
+			direction = parseInt(path.charAt(i));
+			if(!offsetsByDirection[direction]) {
+					throw new Error('`path` is not a valid serialized path string');
+			}
+			dx = offsetsByDirection[direction][0];
+			dy = offsetsByDirection[direction][1];
+			if (i > 4) {
+					x += dx;
+					y += dy;
+			}
+			result.push({
+					x, y,
+					dx, dy,
+					direction
 			});
 	}
 
-	return costs;
+
+	return result;
 }

@@ -1,3 +1,5 @@
+import _ from "lodash";
+
 // set from init
 let mod = null;
 
@@ -114,7 +116,7 @@ class Driver {
 export let driver = new Driver();
 
 // Converts return value of `parseRoomName` back into a normal room name
-function generateRoomName(xx, yy) {
+export function generateRoomName(xx, yy) {
 	return (
 		(xx <= kWorldSize >> 1 ? 'W' + ((kWorldSize >> 1) - xx) : 'E' + (xx - (kWorldSize >> 1) - 1)) +
 		(yy <= kWorldSize >> 1 ? 'N' + ((kWorldSize >> 1) - yy) : 'S' + (yy - (kWorldSize >> 1) - 1))
