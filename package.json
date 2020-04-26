@@ -1,9 +1,26 @@
 {
 	"dependencies": {},
 	"devDependencies": {
+		"@screeps/common": "^2.13.2",
+		"@screeps/driver": "^5.1.0",
+		"@screeps/engine": "^4.1.3",
+		"@screeps/pathfinding": "^0.4.16",
+		"@types/jest": "^25.2.1",
 		"@types/lodash": "^4.14.150",
 		"@types/node": "^13.13.2",
 		"@types/screeps": "^3.1.0",
-		"rollup": "^2.7.2"
+		"jest": "^25.4.0",
+		"rollup": "^2.7.2",
+		"ts-jest": "^25.4.0",
+		"typescript": "^3.8.3"
+	},
+	"formatFiles": {
+		"excludePattern": [
+			"**/node_modules",
+			"**/dist/**"
+		]
+	},
+	"scripts": {
+		"test": "jest"
 	}
 }

@@ -1,5 +1,5 @@
 export default {
-	input: 'src/main.js',
+	input: 'dist/js/main.js',
 	output: {
 		file: 'dist/main.js',
 		format: 'cjs'

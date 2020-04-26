@@ -1,7 +1,8 @@
-function MemInit(o: object, name: string, value: any): void {
+function MemInit(o: object, name: string, value: any): any {
 	if (o[name] === undefined) {
 		o[name] = value;
 	}
+	return o[name];
 };
 
 global.MemInit = MemInit;

@@ -1,6 +1,13 @@
 import './Memory';
 import { log } from './Logger';
 
+declare global {
+	interface StructureSpawn {
+		spawnCreep2(body: BodyPartConstant[], name: string, opts?: SpawnOptions): ScreepsReturnCode;
+		toString2(): string;
+	}
+}
+
 StructureSpawn.prototype.spawnCreep2 = function (body: BodyPartConstant[], name: string, opts?: SpawnOptions): ScreepsReturnCode {
 	MemInit(this.memory, 'last_spawn_start_time', -1);
 
