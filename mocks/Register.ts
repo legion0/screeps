@@ -9,6 +9,10 @@ class Register {
 	objectsByRoomKeys: {};
 	byRoom: { [ket: string]: any };
 	findCache: {[key:string]: any};
+	flags: Flag[];
+	spawns: StructureSpawn[];
+	constructionSites: ConstructionSite[];
+	map: any;
 
 	// 	var register = {
 	// 	_useNewPathFinder: true,

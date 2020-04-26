@@ -1,4 +1,4 @@
-let exports_ = {
+let exports_1 = {
 	OK: 0,
 	ERR_NOT_OWNER: -1,
 	ERR_NO_PATH: -2,
@@ -844,16 +844,16 @@ let exports_ = {
 	STRONGHOLD_DECAY_TICKS: 75000
 };
 
-Object.assign(exports_, {
+let exports_2 = {
 	POWER_INFO: {
-		[exports_.PWR_GENERATE_OPS]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_GENERATE_OPS]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 50,
 			effect: [1, 2, 4, 6, 8]
 		},
-		[exports_.PWR_OPERATE_SPAWN]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_OPERATE_SPAWN]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 300,
 			duration: 1000,
@@ -861,8 +861,8 @@ Object.assign(exports_, {
 			ops: 100,
 			effect: [0.9, 0.7, 0.5, 0.35, 0.2]
 		},
-		[exports_.PWR_OPERATE_TOWER]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_OPERATE_TOWER]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 10,
 			duration: 100,
@@ -870,8 +870,8 @@ Object.assign(exports_, {
 			ops: 10,
 			effect: [1.1, 1.2, 1.3, 1.4, 1.5]
 		},
-		[exports_.PWR_OPERATE_STORAGE]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_OPERATE_STORAGE]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 800,
 			duration: 1000,
@@ -879,8 +879,8 @@ Object.assign(exports_, {
 			ops: 100,
 			effect: [500000, 1000000, 2000000, 4000000, 7000000]
 		},
-		[exports_.PWR_OPERATE_LAB]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_OPERATE_LAB]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 50,
 			duration: 1000,
@@ -888,24 +888,24 @@ Object.assign(exports_, {
 			ops: 10,
 			effect: [2, 4, 6, 8, 10]
 		},
-		[exports_.PWR_OPERATE_EXTENSION]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_OPERATE_EXTENSION]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 50,
 			range: 3,
 			ops: 2,
 			effect: [0.2, 0.4, 0.6, 0.8, 1.0]
 		},
-		[exports_.PWR_OPERATE_OBSERVER]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_OPERATE_OBSERVER]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 400,
 			duration: [200, 400, 600, 800, 1000],
 			range: 3,
 			ops: 10,
 		},
-		[exports_.PWR_OPERATE_TERMINAL]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_OPERATE_TERMINAL]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 500,
 			duration: 1000,
@@ -913,16 +913,16 @@ Object.assign(exports_, {
 			ops: 100,
 			effect: [0.9, 0.8, 0.7, 0.6, 0.5]
 		},
-		[exports_.PWR_DISRUPT_SPAWN]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_DISRUPT_SPAWN]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 5,
 			range: 20,
 			ops: 10,
 			duration: [1, 2, 3, 4, 5]
 		},
-		[exports_.PWR_DISRUPT_TOWER]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_DISRUPT_TOWER]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 0,
 			duration: 5,
@@ -930,24 +930,24 @@ Object.assign(exports_, {
 			ops: 10,
 			effect: [0.9, 0.8, 0.7, 0.6, 0.5],
 		},
-		[exports_.PWR_DISRUPT_SOURCE]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_DISRUPT_SOURCE]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 100,
 			range: 3,
 			ops: 100,
 			duration: [100, 200, 300, 400, 500]
 		},
-		[exports_.PWR_SHIELD]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_SHIELD]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			effect: [5000, 10000, 15000, 20000, 25000],
 			duration: 50,
 			cooldown: 20,
 			energy: 100,
 		},
-		[exports_.PWR_REGEN_SOURCE]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_REGEN_SOURCE]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [10, 11, 12, 14, 22],
 			cooldown: 100,
 			duration: 300,
@@ -955,8 +955,8 @@ Object.assign(exports_, {
 			effect: [50, 100, 150, 200, 250],
 			period: 15
 		},
-		[exports_.PWR_REGEN_MINERAL]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_REGEN_MINERAL]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [10, 11, 12, 14, 22],
 			cooldown: 100,
 			duration: 100,
@@ -964,8 +964,8 @@ Object.assign(exports_, {
 			effect: [2, 4, 6, 8, 10],
 			period: 10
 		},
-		[exports_.PWR_DISRUPT_TERMINAL]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_DISRUPT_TERMINAL]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [20, 21, 22, 23, 24],
 			cooldown: 8,
 			duration: 10,
@@ -973,16 +973,16 @@ Object.assign(exports_, {
 			ops: [50, 40, 30, 20, 10]
 
 		},
-		[exports_.PWR_FORTIFY]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_FORTIFY]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 5,
 			range: 3,
 			ops: 5,
 			duration: [1, 2, 3, 4, 5]
 		},
-		[exports_.PWR_OPERATE_POWER]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_OPERATE_POWER]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [10, 11, 12, 14, 22],
 			cooldown: 800,
 			range: 3,
@@ -990,8 +990,8 @@ Object.assign(exports_, {
 			ops: 200,
 			effect: [1, 2, 3, 4, 5]
 		},
-		[exports_.PWR_OPERATE_CONTROLLER]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_OPERATE_CONTROLLER]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [20, 21, 22, 23, 24],
 			cooldown: 800,
 			range: 3,
@@ -999,8 +999,8 @@ Object.assign(exports_, {
 			ops: 200,
 			effect: [10, 20, 30, 40, 50]
 		},
-		[exports_.PWR_OPERATE_FACTORY]: {
-			className: exports_.POWER_CLASS.OPERATOR,
+		[exports_1.PWR_OPERATE_FACTORY]: {
+			className: exports_1.POWER_CLASS.OPERATOR,
 			level: [0, 2, 7, 14, 22],
 			cooldown: 800,
 			range: 3,
@@ -1010,575 +1010,578 @@ Object.assign(exports_, {
 	},
 
 	BODYPARTS_ALL: [
-		exports_.MOVE,
-		exports_.WORK,
-		exports_.CARRY,
-		exports_.ATTACK,
-		exports_.RANGED_ATTACK,
-		exports_.TOUGH,
-		exports_.HEAL,
-		exports_.CLAIM
+		exports_1.MOVE,
+		exports_1.WORK,
+		exports_1.CARRY,
+		exports_1.ATTACK,
+		exports_1.RANGED_ATTACK,
+		exports_1.TOUGH,
+		exports_1.HEAL,
+		exports_1.CLAIM
 	],
 	RESOURCES_ALL: [
-		exports_.RESOURCE_ENERGY,
-		exports_.RESOURCE_POWER,
+		exports_1.RESOURCE_ENERGY,
+		exports_1.RESOURCE_POWER,
 
-		exports_.RESOURCE_HYDROGEN,
-		exports_.RESOURCE_OXYGEN,
-		exports_.RESOURCE_UTRIUM,
-		exports_.RESOURCE_KEANIUM,
-		exports_.RESOURCE_LEMERGIUM,
-		exports_.RESOURCE_ZYNTHIUM,
-		exports_.RESOURCE_CATALYST,
-		exports_.RESOURCE_GHODIUM,
+		exports_1.RESOURCE_HYDROGEN,
+		exports_1.RESOURCE_OXYGEN,
+		exports_1.RESOURCE_UTRIUM,
+		exports_1.RESOURCE_KEANIUM,
+		exports_1.RESOURCE_LEMERGIUM,
+		exports_1.RESOURCE_ZYNTHIUM,
+		exports_1.RESOURCE_CATALYST,
+		exports_1.RESOURCE_GHODIUM,
 
-		exports_.RESOURCE_HYDROXIDE,
-		exports_.RESOURCE_ZYNTHIUM_KEANITE,
-		exports_.RESOURCE_UTRIUM_LEMERGITE,
+		exports_1.RESOURCE_HYDROXIDE,
+		exports_1.RESOURCE_ZYNTHIUM_KEANITE,
+		exports_1.RESOURCE_UTRIUM_LEMERGITE,
 
-		exports_.RESOURCE_UTRIUM_HYDRIDE,
-		exports_.RESOURCE_UTRIUM_OXIDE,
-		exports_.RESOURCE_KEANIUM_HYDRIDE,
-		exports_.RESOURCE_KEANIUM_OXIDE,
-		exports_.RESOURCE_LEMERGIUM_HYDRIDE,
-		exports_.RESOURCE_LEMERGIUM_OXIDE,
-		exports_.RESOURCE_ZYNTHIUM_HYDRIDE,
-		exports_.RESOURCE_ZYNTHIUM_OXIDE,
-		exports_.RESOURCE_GHODIUM_HYDRIDE,
-		exports_.RESOURCE_GHODIUM_OXIDE,
+		exports_1.RESOURCE_UTRIUM_HYDRIDE,
+		exports_1.RESOURCE_UTRIUM_OXIDE,
+		exports_1.RESOURCE_KEANIUM_HYDRIDE,
+		exports_1.RESOURCE_KEANIUM_OXIDE,
+		exports_1.RESOURCE_LEMERGIUM_HYDRIDE,
+		exports_1.RESOURCE_LEMERGIUM_OXIDE,
+		exports_1.RESOURCE_ZYNTHIUM_HYDRIDE,
+		exports_1.RESOURCE_ZYNTHIUM_OXIDE,
+		exports_1.RESOURCE_GHODIUM_HYDRIDE,
+		exports_1.RESOURCE_GHODIUM_OXIDE,
 
-		exports_.RESOURCE_UTRIUM_ACID,
-		exports_.RESOURCE_UTRIUM_ALKALIDE,
-		exports_.RESOURCE_KEANIUM_ACID,
-		exports_.RESOURCE_KEANIUM_ALKALIDE,
-		exports_.RESOURCE_LEMERGIUM_ACID,
-		exports_.RESOURCE_LEMERGIUM_ALKALIDE,
-		exports_.RESOURCE_ZYNTHIUM_ACID,
-		exports_.RESOURCE_ZYNTHIUM_ALKALIDE,
-		exports_.RESOURCE_GHODIUM_ACID,
-		exports_.RESOURCE_GHODIUM_ALKALIDE,
+		exports_1.RESOURCE_UTRIUM_ACID,
+		exports_1.RESOURCE_UTRIUM_ALKALIDE,
+		exports_1.RESOURCE_KEANIUM_ACID,
+		exports_1.RESOURCE_KEANIUM_ALKALIDE,
+		exports_1.RESOURCE_LEMERGIUM_ACID,
+		exports_1.RESOURCE_LEMERGIUM_ALKALIDE,
+		exports_1.RESOURCE_ZYNTHIUM_ACID,
+		exports_1.RESOURCE_ZYNTHIUM_ALKALIDE,
+		exports_1.RESOURCE_GHODIUM_ACID,
+		exports_1.RESOURCE_GHODIUM_ALKALIDE,
 
-		exports_.RESOURCE_CATALYZED_UTRIUM_ACID,
-		exports_.RESOURCE_CATALYZED_UTRIUM_ALKALIDE,
-		exports_.RESOURCE_CATALYZED_KEANIUM_ACID,
-		exports_.RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
-		exports_.RESOURCE_CATALYZED_LEMERGIUM_ACID,
-		exports_.RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE,
-		exports_.RESOURCE_CATALYZED_ZYNTHIUM_ACID,
-		exports_.RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
-		exports_.RESOURCE_CATALYZED_GHODIUM_ACID,
-		exports_.RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
+		exports_1.RESOURCE_CATALYZED_UTRIUM_ACID,
+		exports_1.RESOURCE_CATALYZED_UTRIUM_ALKALIDE,
+		exports_1.RESOURCE_CATALYZED_KEANIUM_ACID,
+		exports_1.RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
+		exports_1.RESOURCE_CATALYZED_LEMERGIUM_ACID,
+		exports_1.RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE,
+		exports_1.RESOURCE_CATALYZED_ZYNTHIUM_ACID,
+		exports_1.RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE,
+		exports_1.RESOURCE_CATALYZED_GHODIUM_ACID,
+		exports_1.RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
 
-		exports_.RESOURCE_OPS,
+		exports_1.RESOURCE_OPS,
 
-		exports_.RESOURCE_SILICON,
-		exports_.RESOURCE_METAL,
-		exports_.RESOURCE_BIOMASS,
-		exports_.RESOURCE_MIST,
+		exports_1.RESOURCE_SILICON,
+		exports_1.RESOURCE_METAL,
+		exports_1.RESOURCE_BIOMASS,
+		exports_1.RESOURCE_MIST,
 
-		exports_.RESOURCE_UTRIUM_BAR,
-		exports_.RESOURCE_LEMERGIUM_BAR,
-		exports_.RESOURCE_ZYNTHIUM_BAR,
-		exports_.RESOURCE_KEANIUM_BAR,
-		exports_.RESOURCE_GHODIUM_MELT,
-		exports_.RESOURCE_OXIDANT,
-		exports_.RESOURCE_REDUCTANT,
-		exports_.RESOURCE_PURIFIER,
-		exports_.RESOURCE_BATTERY,
-		exports_.RESOURCE_COMPOSITE,
-		exports_.RESOURCE_CRYSTAL,
-		exports_.RESOURCE_LIQUID,
+		exports_1.RESOURCE_UTRIUM_BAR,
+		exports_1.RESOURCE_LEMERGIUM_BAR,
+		exports_1.RESOURCE_ZYNTHIUM_BAR,
+		exports_1.RESOURCE_KEANIUM_BAR,
+		exports_1.RESOURCE_GHODIUM_MELT,
+		exports_1.RESOURCE_OXIDANT,
+		exports_1.RESOURCE_REDUCTANT,
+		exports_1.RESOURCE_PURIFIER,
+		exports_1.RESOURCE_BATTERY,
+		exports_1.RESOURCE_COMPOSITE,
+		exports_1.RESOURCE_CRYSTAL,
+		exports_1.RESOURCE_LIQUID,
 
-		exports_.RESOURCE_WIRE,
-		exports_.RESOURCE_SWITCH,
-		exports_.RESOURCE_TRANSISTOR,
-		exports_.RESOURCE_MICROCHIP,
-		exports_.RESOURCE_CIRCUIT,
-		exports_.RESOURCE_DEVICE,
+		exports_1.RESOURCE_WIRE,
+		exports_1.RESOURCE_SWITCH,
+		exports_1.RESOURCE_TRANSISTOR,
+		exports_1.RESOURCE_MICROCHIP,
+		exports_1.RESOURCE_CIRCUIT,
+		exports_1.RESOURCE_DEVICE,
 
-		exports_.RESOURCE_CELL,
-		exports_.RESOURCE_PHLEGM,
-		exports_.RESOURCE_TISSUE,
-		exports_.RESOURCE_MUSCLE,
-		exports_.RESOURCE_ORGANOID,
-		exports_.RESOURCE_ORGANISM,
+		exports_1.RESOURCE_CELL,
+		exports_1.RESOURCE_PHLEGM,
+		exports_1.RESOURCE_TISSUE,
+		exports_1.RESOURCE_MUSCLE,
+		exports_1.RESOURCE_ORGANOID,
+		exports_1.RESOURCE_ORGANISM,
 
-		exports_.RESOURCE_ALLOY,
-		exports_.RESOURCE_TUBE,
-		exports_.RESOURCE_FIXTURES,
-		exports_.RESOURCE_FRAME,
-		exports_.RESOURCE_HYDRAULICS,
-		exports_.RESOURCE_MACHINE,
+		exports_1.RESOURCE_ALLOY,
+		exports_1.RESOURCE_TUBE,
+		exports_1.RESOURCE_FIXTURES,
+		exports_1.RESOURCE_FRAME,
+		exports_1.RESOURCE_HYDRAULICS,
+		exports_1.RESOURCE_MACHINE,
 
-		exports_.RESOURCE_CONDENSATE,
-		exports_.RESOURCE_CONCENTRATE,
-		exports_.RESOURCE_EXTRACT,
-		exports_.RESOURCE_SPIRIT,
-		exports_.RESOURCE_EMANATION,
-		exports_.RESOURCE_ESSENCE
+		exports_1.RESOURCE_CONDENSATE,
+		exports_1.RESOURCE_CONCENTRATE,
+		exports_1.RESOURCE_EXTRACT,
+		exports_1.RESOURCE_SPIRIT,
+		exports_1.RESOURCE_EMANATION,
+		exports_1.RESOURCE_ESSENCE
 	],
 	COLORS_ALL: [
-		exports_.COLOR_RED,
-		exports_.COLOR_PURPLE,
-		exports_.COLOR_BLUE,
-		exports_.COLOR_CYAN,
-		exports_.COLOR_GREEN,
-		exports_.COLOR_YELLOW,
-		exports_.COLOR_ORANGE,
-		exports_.COLOR_BROWN,
-		exports_.COLOR_GREY,
-		exports_.COLOR_WHITE
+		exports_1.COLOR_RED,
+		exports_1.COLOR_PURPLE,
+		exports_1.COLOR_BLUE,
+		exports_1.COLOR_CYAN,
+		exports_1.COLOR_GREEN,
+		exports_1.COLOR_YELLOW,
+		exports_1.COLOR_ORANGE,
+		exports_1.COLOR_BROWN,
+		exports_1.COLOR_GREY,
+		exports_1.COLOR_WHITE
 	],
 	INTERSHARD_RESOURCES: [
-		exports_.SUBSCRIPTION_TOKEN
+		exports_1.SUBSCRIPTION_TOKEN
 	],
 	COMMODITIES: {
-		[exports_.RESOURCE_UTRIUM_BAR]: {
+		[exports_1.RESOURCE_UTRIUM_BAR]: {
 			amount: 100,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_UTRIUM]: 500,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_UTRIUM]: 500,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_UTRIUM]: {
+		[exports_1.RESOURCE_UTRIUM]: {
 			amount: 500,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_UTRIUM_BAR]: 100,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_UTRIUM_BAR]: 100,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_LEMERGIUM_BAR]: {
+		[exports_1.RESOURCE_LEMERGIUM_BAR]: {
 			amount: 100,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_LEMERGIUM]: 500,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_LEMERGIUM]: 500,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_LEMERGIUM]: {
+		[exports_1.RESOURCE_LEMERGIUM]: {
 			amount: 500,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_LEMERGIUM_BAR]: 100,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_LEMERGIUM_BAR]: 100,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_ZYNTHIUM_BAR]: {
+		[exports_1.RESOURCE_ZYNTHIUM_BAR]: {
 			amount: 100,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_ZYNTHIUM]: 500,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_ZYNTHIUM]: 500,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_ZYNTHIUM]: {
+		[exports_1.RESOURCE_ZYNTHIUM]: {
 			amount: 500,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_ZYNTHIUM_BAR]: 100,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_ZYNTHIUM_BAR]: 100,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_KEANIUM_BAR]: {
+		[exports_1.RESOURCE_KEANIUM_BAR]: {
 			amount: 100,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_KEANIUM]: 500,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_KEANIUM]: 500,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_KEANIUM]: {
+		[exports_1.RESOURCE_KEANIUM]: {
 			amount: 500,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_KEANIUM_BAR]: 100,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_KEANIUM_BAR]: 100,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_GHODIUM_MELT]: {
+		[exports_1.RESOURCE_GHODIUM_MELT]: {
 			amount: 100,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_GHODIUM]: 500,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_GHODIUM]: 500,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_GHODIUM]: {
+		[exports_1.RESOURCE_GHODIUM]: {
 			amount: 500,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_GHODIUM_MELT]: 100,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_GHODIUM_MELT]: 100,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_OXIDANT]: {
+		[exports_1.RESOURCE_OXIDANT]: {
 			amount: 100,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_OXYGEN]: 500,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_OXYGEN]: 500,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_OXYGEN]: {
+		[exports_1.RESOURCE_OXYGEN]: {
 			amount: 500,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_OXIDANT]: 100,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_OXIDANT]: 100,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_REDUCTANT]: {
+		[exports_1.RESOURCE_REDUCTANT]: {
 			amount: 100,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_HYDROGEN]: 500,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_HYDROGEN]: 500,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_HYDROGEN]: {
+		[exports_1.RESOURCE_HYDROGEN]: {
 			amount: 500,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_REDUCTANT]: 100,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_REDUCTANT]: 100,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_PURIFIER]: {
+		[exports_1.RESOURCE_PURIFIER]: {
 			amount: 100,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_CATALYST]: 500,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_CATALYST]: 500,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_CATALYST]: {
+		[exports_1.RESOURCE_CATALYST]: {
 			amount: 500,
 			cooldown: 20,
 			components: {
-				[exports_.RESOURCE_PURIFIER]: 100,
-				[exports_.RESOURCE_ENERGY]: 200
+				[exports_1.RESOURCE_PURIFIER]: 100,
+				[exports_1.RESOURCE_ENERGY]: 200
 			}
 		},
-		[exports_.RESOURCE_BATTERY]: {
+		[exports_1.RESOURCE_BATTERY]: {
 			amount: 50,
 			cooldown: 10,
 			components: {
-				[exports_.RESOURCE_ENERGY]: 600
+				[exports_1.RESOURCE_ENERGY]: 600
 			}
 		},
-		[exports_.RESOURCE_ENERGY]: {
+		[exports_1.RESOURCE_ENERGY]: {
 			amount: 500,
 			cooldown: 10,
 			components: {
-				[exports_.RESOURCE_BATTERY]: 50
+				[exports_1.RESOURCE_BATTERY]: 50
 			}
 		},
-		[exports_.RESOURCE_COMPOSITE]: {
+		[exports_1.RESOURCE_COMPOSITE]: {
 			level: 1,
 			amount: 20,
 			cooldown: 50,
 			components: {
-				[exports_.RESOURCE_UTRIUM_BAR]: 20,
-				[exports_.RESOURCE_ZYNTHIUM_BAR]: 20,
-				[exports_.RESOURCE_ENERGY]: 20
+				[exports_1.RESOURCE_UTRIUM_BAR]: 20,
+				[exports_1.RESOURCE_ZYNTHIUM_BAR]: 20,
+				[exports_1.RESOURCE_ENERGY]: 20
 			}
 		},
-		[exports_.RESOURCE_CRYSTAL]: {
+		[exports_1.RESOURCE_CRYSTAL]: {
 			level: 2,
 			amount: 6,
 			cooldown: 21,
 			components: {
-				[exports_.RESOURCE_LEMERGIUM_BAR]: 6,
-				[exports_.RESOURCE_KEANIUM_BAR]: 6,
-				[exports_.RESOURCE_PURIFIER]: 6,
-				[exports_.RESOURCE_ENERGY]: 45
+				[exports_1.RESOURCE_LEMERGIUM_BAR]: 6,
+				[exports_1.RESOURCE_KEANIUM_BAR]: 6,
+				[exports_1.RESOURCE_PURIFIER]: 6,
+				[exports_1.RESOURCE_ENERGY]: 45
 			}
 		},
-		[exports_.RESOURCE_LIQUID]: {
+		[exports_1.RESOURCE_LIQUID]: {
 			level: 3,
 			amount: 12,
 			cooldown: 60,
 			components: {
-				[exports_.RESOURCE_OXIDANT]: 12,
-				[exports_.RESOURCE_REDUCTANT]: 12,
-				[exports_.RESOURCE_GHODIUM_MELT]: 12,
-				[exports_.RESOURCE_ENERGY]: 90
+				[exports_1.RESOURCE_OXIDANT]: 12,
+				[exports_1.RESOURCE_REDUCTANT]: 12,
+				[exports_1.RESOURCE_GHODIUM_MELT]: 12,
+				[exports_1.RESOURCE_ENERGY]: 90
 			}
 		},
 
-		[exports_.RESOURCE_WIRE]: {
+		[exports_1.RESOURCE_WIRE]: {
 			amount: 20,
 			cooldown: 8,
 			components: {
-				[exports_.RESOURCE_UTRIUM_BAR]: 20,
-				[exports_.RESOURCE_SILICON]: 100,
-				[exports_.RESOURCE_ENERGY]: 40
+				[exports_1.RESOURCE_UTRIUM_BAR]: 20,
+				[exports_1.RESOURCE_SILICON]: 100,
+				[exports_1.RESOURCE_ENERGY]: 40
 			}
 		},
-		[exports_.RESOURCE_SWITCH]: {
+		[exports_1.RESOURCE_SWITCH]: {
 			level: 1,
 			amount: 5,
 			cooldown: 70,
 			components: {
-				[exports_.RESOURCE_WIRE]: 40,
-				[exports_.RESOURCE_OXIDANT]: 95,
-				[exports_.RESOURCE_UTRIUM_BAR]: 35,
-				[exports_.RESOURCE_ENERGY]: 20
+				[exports_1.RESOURCE_WIRE]: 40,
+				[exports_1.RESOURCE_OXIDANT]: 95,
+				[exports_1.RESOURCE_UTRIUM_BAR]: 35,
+				[exports_1.RESOURCE_ENERGY]: 20
 			}
 		},
-		[exports_.RESOURCE_TRANSISTOR]: {
+		[exports_1.RESOURCE_TRANSISTOR]: {
 			level: 2,
 			amount: 1,
 			cooldown: 59,
 			components: {
-				[exports_.RESOURCE_SWITCH]: 4,
-				[exports_.RESOURCE_WIRE]: 15,
-				[exports_.RESOURCE_REDUCTANT]: 85,
-				[exports_.RESOURCE_ENERGY]: 8
+				[exports_1.RESOURCE_SWITCH]: 4,
+				[exports_1.RESOURCE_WIRE]: 15,
+				[exports_1.RESOURCE_REDUCTANT]: 85,
+				[exports_1.RESOURCE_ENERGY]: 8
 			}
 		},
-		[exports_.RESOURCE_MICROCHIP]: {
+		[exports_1.RESOURCE_MICROCHIP]: {
 			level: 3,
 			amount: 1,
 			cooldown: 250,
 			components: {
-				[exports_.RESOURCE_TRANSISTOR]: 2,
-				[exports_.RESOURCE_COMPOSITE]: 50,
-				[exports_.RESOURCE_WIRE]: 117,
-				[exports_.RESOURCE_PURIFIER]: 25,
-				[exports_.RESOURCE_ENERGY]: 16
+				[exports_1.RESOURCE_TRANSISTOR]: 2,
+				[exports_1.RESOURCE_COMPOSITE]: 50,
+				[exports_1.RESOURCE_WIRE]: 117,
+				[exports_1.RESOURCE_PURIFIER]: 25,
+				[exports_1.RESOURCE_ENERGY]: 16
 			}
 		},
-		[exports_.RESOURCE_CIRCUIT]: {
+		[exports_1.RESOURCE_CIRCUIT]: {
 			level: 4,
 			amount: 1,
 			cooldown: 800,
 			components: {
-				[exports_.RESOURCE_MICROCHIP]: 1,
-				[exports_.RESOURCE_TRANSISTOR]: 5,
-				[exports_.RESOURCE_SWITCH]: 4,
-				[exports_.RESOURCE_OXIDANT]: 115,
-				[exports_.RESOURCE_ENERGY]: 32
+				[exports_1.RESOURCE_MICROCHIP]: 1,
+				[exports_1.RESOURCE_TRANSISTOR]: 5,
+				[exports_1.RESOURCE_SWITCH]: 4,
+				[exports_1.RESOURCE_OXIDANT]: 115,
+				[exports_1.RESOURCE_ENERGY]: 32
 			}
 		},
-		[exports_.RESOURCE_DEVICE]: {
+		[exports_1.RESOURCE_DEVICE]: {
 			level: 5,
 			amount: 1,
 			cooldown: 600,
 			components: {
-				[exports_.RESOURCE_CIRCUIT]: 1,
-				[exports_.RESOURCE_MICROCHIP]: 3,
-				[exports_.RESOURCE_CRYSTAL]: 110,
-				[exports_.RESOURCE_GHODIUM_MELT]: 150,
-				[exports_.RESOURCE_ENERGY]: 64
+				[exports_1.RESOURCE_CIRCUIT]: 1,
+				[exports_1.RESOURCE_MICROCHIP]: 3,
+				[exports_1.RESOURCE_CRYSTAL]: 110,
+				[exports_1.RESOURCE_GHODIUM_MELT]: 150,
+				[exports_1.RESOURCE_ENERGY]: 64
 			}
 		},
 
-		[exports_.RESOURCE_CELL]: {
+		[exports_1.RESOURCE_CELL]: {
 			amount: 20,
 			cooldown: 8,
 			components: {
-				[exports_.RESOURCE_LEMERGIUM_BAR]: 20,
-				[exports_.RESOURCE_BIOMASS]: 100,
-				[exports_.RESOURCE_ENERGY]: 40
+				[exports_1.RESOURCE_LEMERGIUM_BAR]: 20,
+				[exports_1.RESOURCE_BIOMASS]: 100,
+				[exports_1.RESOURCE_ENERGY]: 40
 			}
 		},
-		[exports_.RESOURCE_PHLEGM]: {
+		[exports_1.RESOURCE_PHLEGM]: {
 			level: 1,
 			amount: 2,
 			cooldown: 35,
 			components: {
-				[exports_.RESOURCE_CELL]: 20,
-				[exports_.RESOURCE_OXIDANT]: 36,
-				[exports_.RESOURCE_LEMERGIUM_BAR]: 16,
-				[exports_.RESOURCE_ENERGY]: 8
+				[exports_1.RESOURCE_CELL]: 20,
+				[exports_1.RESOURCE_OXIDANT]: 36,
+				[exports_1.RESOURCE_LEMERGIUM_BAR]: 16,
+				[exports_1.RESOURCE_ENERGY]: 8
 			}
 		},
-		[exports_.RESOURCE_TISSUE]: {
+		[exports_1.RESOURCE_TISSUE]: {
 			level: 2,
 			amount: 2,
 			cooldown: 164,
 			components: {
-				[exports_.RESOURCE_PHLEGM]: 10,
-				[exports_.RESOURCE_CELL]: 10,
-				[exports_.RESOURCE_REDUCTANT]: 110,
-				[exports_.RESOURCE_ENERGY]: 16
+				[exports_1.RESOURCE_PHLEGM]: 10,
+				[exports_1.RESOURCE_CELL]: 10,
+				[exports_1.RESOURCE_REDUCTANT]: 110,
+				[exports_1.RESOURCE_ENERGY]: 16
 			}
 		},
-		[exports_.RESOURCE_MUSCLE]: {
+		[exports_1.RESOURCE_MUSCLE]: {
 			level: 3,
 			amount: 1,
 			cooldown: 250,
 			components: {
-				[exports_.RESOURCE_TISSUE]: 3,
-				[exports_.RESOURCE_PHLEGM]: 3,
-				[exports_.RESOURCE_ZYNTHIUM_BAR]: 50,
-				[exports_.RESOURCE_REDUCTANT]: 50,
-				[exports_.RESOURCE_ENERGY]: 16
+				[exports_1.RESOURCE_TISSUE]: 3,
+				[exports_1.RESOURCE_PHLEGM]: 3,
+				[exports_1.RESOURCE_ZYNTHIUM_BAR]: 50,
+				[exports_1.RESOURCE_REDUCTANT]: 50,
+				[exports_1.RESOURCE_ENERGY]: 16
 			}
 		},
-		[exports_.RESOURCE_ORGANOID]: {
+		[exports_1.RESOURCE_ORGANOID]: {
 			level: 4,
 			amount: 1,
 			cooldown: 800,
 			components: {
-				[exports_.RESOURCE_MUSCLE]: 1,
-				[exports_.RESOURCE_TISSUE]: 5,
-				[exports_.RESOURCE_PURIFIER]: 208,
-				[exports_.RESOURCE_OXIDANT]: 256,
-				[exports_.RESOURCE_ENERGY]: 32
+				[exports_1.RESOURCE_MUSCLE]: 1,
+				[exports_1.RESOURCE_TISSUE]: 5,
+				[exports_1.RESOURCE_PURIFIER]: 208,
+				[exports_1.RESOURCE_OXIDANT]: 256,
+				[exports_1.RESOURCE_ENERGY]: 32
 			}
 		},
-		[exports_.RESOURCE_ORGANISM]: {
+		[exports_1.RESOURCE_ORGANISM]: {
 			level: 5,
 			amount: 1,
 			cooldown: 600,
 			components: {
-				[exports_.RESOURCE_ORGANOID]: 1,
-				[exports_.RESOURCE_LIQUID]: 150,
-				[exports_.RESOURCE_TISSUE]: 6,
-				[exports_.RESOURCE_CELL]: 310,
-				[exports_.RESOURCE_ENERGY]: 64
+				[exports_1.RESOURCE_ORGANOID]: 1,
+				[exports_1.RESOURCE_LIQUID]: 150,
+				[exports_1.RESOURCE_TISSUE]: 6,
+				[exports_1.RESOURCE_CELL]: 310,
+				[exports_1.RESOURCE_ENERGY]: 64
 			}
 		},
 
-		[exports_.RESOURCE_ALLOY]: {
+		[exports_1.RESOURCE_ALLOY]: {
 			amount: 20,
 			cooldown: 8,
 			components: {
-				[exports_.RESOURCE_ZYNTHIUM_BAR]: 20,
-				[exports_.RESOURCE_METAL]: 100,
-				[exports_.RESOURCE_ENERGY]: 40
+				[exports_1.RESOURCE_ZYNTHIUM_BAR]: 20,
+				[exports_1.RESOURCE_METAL]: 100,
+				[exports_1.RESOURCE_ENERGY]: 40
 			}
 		},
-		[exports_.RESOURCE_TUBE]: {
+		[exports_1.RESOURCE_TUBE]: {
 			level: 1,
 			amount: 2,
 			cooldown: 45,
 			components: {
-				[exports_.RESOURCE_ALLOY]: 40,
-				[exports_.RESOURCE_ZYNTHIUM_BAR]: 16,
-				[exports_.RESOURCE_ENERGY]: 8
+				[exports_1.RESOURCE_ALLOY]: 40,
+				[exports_1.RESOURCE_ZYNTHIUM_BAR]: 16,
+				[exports_1.RESOURCE_ENERGY]: 8
 			}
 		},
-		[exports_.RESOURCE_FIXTURES]: {
+		[exports_1.RESOURCE_FIXTURES]: {
 			level: 2,
 			amount: 1,
 			cooldown: 115,
 			components: {
-				[exports_.RESOURCE_COMPOSITE]: 20,
-				[exports_.RESOURCE_ALLOY]: 41,
-				[exports_.RESOURCE_OXIDANT]: 161,
-				[exports_.RESOURCE_ENERGY]: 8
+				[exports_1.RESOURCE_COMPOSITE]: 20,
+				[exports_1.RESOURCE_ALLOY]: 41,
+				[exports_1.RESOURCE_OXIDANT]: 161,
+				[exports_1.RESOURCE_ENERGY]: 8
 			}
 		},
-		[exports_.RESOURCE_FRAME]: {
+		[exports_1.RESOURCE_FRAME]: {
 			level: 3,
 			amount: 1,
 			cooldown: 125,
 			components: {
-				[exports_.RESOURCE_FIXTURES]: 2,
-				[exports_.RESOURCE_TUBE]: 4,
-				[exports_.RESOURCE_REDUCTANT]: 330,
-				[exports_.RESOURCE_ZYNTHIUM_BAR]: 31,
-				[exports_.RESOURCE_ENERGY]: 16
+				[exports_1.RESOURCE_FIXTURES]: 2,
+				[exports_1.RESOURCE_TUBE]: 4,
+				[exports_1.RESOURCE_REDUCTANT]: 330,
+				[exports_1.RESOURCE_ZYNTHIUM_BAR]: 31,
+				[exports_1.RESOURCE_ENERGY]: 16
 			}
 		},
-		[exports_.RESOURCE_HYDRAULICS]: {
+		[exports_1.RESOURCE_HYDRAULICS]: {
 			level: 4,
 			amount: 1,
 			cooldown: 800,
 			components: {
-				[exports_.RESOURCE_LIQUID]: 150,
-				[exports_.RESOURCE_FIXTURES]: 3,
-				[exports_.RESOURCE_TUBE]: 15,
-				[exports_.RESOURCE_PURIFIER]: 208,
-				[exports_.RESOURCE_ENERGY]: 32
+				[exports_1.RESOURCE_LIQUID]: 150,
+				[exports_1.RESOURCE_FIXTURES]: 3,
+				[exports_1.RESOURCE_TUBE]: 15,
+				[exports_1.RESOURCE_PURIFIER]: 208,
+				[exports_1.RESOURCE_ENERGY]: 32
 			}
 		},
-		[exports_.RESOURCE_MACHINE]: {
+		[exports_1.RESOURCE_MACHINE]: {
 			level: 5,
 			amount: 1,
 			cooldown: 600,
 			components: {
-				[exports_.RESOURCE_HYDRAULICS]: 1,
-				[exports_.RESOURCE_FRAME]: 2,
-				[exports_.RESOURCE_FIXTURES]: 3,
-				[exports_.RESOURCE_TUBE]: 12,
-				[exports_.RESOURCE_ENERGY]: 64
+				[exports_1.RESOURCE_HYDRAULICS]: 1,
+				[exports_1.RESOURCE_FRAME]: 2,
+				[exports_1.RESOURCE_FIXTURES]: 3,
+				[exports_1.RESOURCE_TUBE]: 12,
+				[exports_1.RESOURCE_ENERGY]: 64
 			}
 		},
 
-		[exports_.RESOURCE_CONDENSATE]: {
+		[exports_1.RESOURCE_CONDENSATE]: {
 			amount: 20,
 			cooldown: 8,
 			components: {
-				[exports_.RESOURCE_KEANIUM_BAR]: 20,
-				[exports_.RESOURCE_MIST]: 100,
-				[exports_.RESOURCE_ENERGY]: 40
+				[exports_1.RESOURCE_KEANIUM_BAR]: 20,
+				[exports_1.RESOURCE_MIST]: 100,
+				[exports_1.RESOURCE_ENERGY]: 40
 			}
 		},
-		[exports_.RESOURCE_CONCENTRATE]: {
+		[exports_1.RESOURCE_CONCENTRATE]: {
 			level: 1,
 			amount: 3,
 			cooldown: 41,
 			components: {
-				[exports_.RESOURCE_CONDENSATE]: 30,
-				[exports_.RESOURCE_KEANIUM_BAR]: 15,
-				[exports_.RESOURCE_REDUCTANT]: 54,
-				[exports_.RESOURCE_ENERGY]: 12
+				[exports_1.RESOURCE_CONDENSATE]: 30,
+				[exports_1.RESOURCE_KEANIUM_BAR]: 15,
+				[exports_1.RESOURCE_REDUCTANT]: 54,
+				[exports_1.RESOURCE_ENERGY]: 12
 			}
 		},
-		[exports_.RESOURCE_EXTRACT]: {
+		[exports_1.RESOURCE_EXTRACT]: {
 			level: 2,
 			amount: 2,
 			cooldown: 128,
 			components: {
-				[exports_.RESOURCE_CONCENTRATE]: 10,
-				[exports_.RESOURCE_CONDENSATE]: 30,
-				[exports_.RESOURCE_OXIDANT]: 60,
-				[exports_.RESOURCE_ENERGY]: 16
+				[exports_1.RESOURCE_CONCENTRATE]: 10,
+				[exports_1.RESOURCE_CONDENSATE]: 30,
+				[exports_1.RESOURCE_OXIDANT]: 60,
+				[exports_1.RESOURCE_ENERGY]: 16
 			}
 		},
-		[exports_.RESOURCE_SPIRIT]: {
+		[exports_1.RESOURCE_SPIRIT]: {
 			level: 3,
 			amount: 1,
 			cooldown: 200,
 			components: {
-				[exports_.RESOURCE_EXTRACT]: 2,
-				[exports_.RESOURCE_CONCENTRATE]: 6,
-				[exports_.RESOURCE_REDUCTANT]: 90,
-				[exports_.RESOURCE_PURIFIER]: 20,
-				[exports_.RESOURCE_ENERGY]: 16
+				[exports_1.RESOURCE_EXTRACT]: 2,
+				[exports_1.RESOURCE_CONCENTRATE]: 6,
+				[exports_1.RESOURCE_REDUCTANT]: 90,
+				[exports_1.RESOURCE_PURIFIER]: 20,
+				[exports_1.RESOURCE_ENERGY]: 16
 			}
 		},
-		[exports_.RESOURCE_EMANATION]: {
+		[exports_1.RESOURCE_EMANATION]: {
 			level: 4,
 			amount: 1,
 			cooldown: 800,
 			components: {
-				[exports_.RESOURCE_SPIRIT]: 2,
-				[exports_.RESOURCE_EXTRACT]: 2,
-				[exports_.RESOURCE_CONCENTRATE]: 3,
-				[exports_.RESOURCE_KEANIUM_BAR]: 112,
-				[exports_.RESOURCE_ENERGY]: 32
+				[exports_1.RESOURCE_SPIRIT]: 2,
+				[exports_1.RESOURCE_EXTRACT]: 2,
+				[exports_1.RESOURCE_CONCENTRATE]: 3,
+				[exports_1.RESOURCE_KEANIUM_BAR]: 112,
+				[exports_1.RESOURCE_ENERGY]: 32
 			}
 		},
-		[exports_.RESOURCE_ESSENCE]: {
+		[exports_1.RESOURCE_ESSENCE]: {
 			level: 5,
 			amount: 1,
 			cooldown: 600,
 			components: {
-				[exports_.RESOURCE_EMANATION]: 1,
-				[exports_.RESOURCE_SPIRIT]: 3,
-				[exports_.RESOURCE_CRYSTAL]: 110,
-				[exports_.RESOURCE_GHODIUM_MELT]: 150,
-				[exports_.RESOURCE_ENERGY]: 64
+				[exports_1.RESOURCE_EMANATION]: 1,
+				[exports_1.RESOURCE_SPIRIT]: 3,
+				[exports_1.RESOURCE_CRYSTAL]: 110,
+				[exports_1.RESOURCE_GHODIUM_MELT]: 150,
+				[exports_1.RESOURCE_ENERGY]: 64
 			}
 		},
 	}
-});
+};
 
-export { exports_ as C };
+let constants = exports_1 as (typeof exports_1 & typeof exports_2);
+Object.assign(constants, exports_2);
+
+export { constants as C };

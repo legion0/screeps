@@ -109,8 +109,26 @@ export function init(newMod, rooms) {
 	mod.loadTerrain(terrainData);
 }
 
+class System {
+	sanitizeUserIntents(intent): any {
+		throw new Error('Not Implemented!');
+	}
+	sanitizeUserRoomIntents(room, intents): any {
+		throw new Error('Not Implemented!');
+	}
+}
+
 class Driver {
 	pathFinder = new PathFinder();
+	system = new System();
+
+	sendNotification(user, msg) {
+		throw new Error('Not Implemented!');
+	}
+
+	getWorldSize(): number {
+		throw new Error('Not Implemented!');
+	}
 }
 
 export let driver = new Driver();
