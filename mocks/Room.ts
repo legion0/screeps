@@ -550,7 +550,7 @@ export class Room {
 			return C.ERR_INVALID_TARGET;
 		}
 
-		if (_(runtimeData.userObjects).filter({ type: 'constructionSite' }).size() + createdConstructionSites >= C.MAX_CONSTRUCTION_SITES) {
+		if (_(runtimeData.userObjects).filter({ type: 'constructionSite' } as any).size() + createdConstructionSites >= C.MAX_CONSTRUCTION_SITES) {
 			return C.ERR_FULL;
 		}
 
@@ -1443,4 +1443,21 @@ function getPathfindingGrid2(id, opts) {
 	if (!privateStore[id].pfGrid[gridName]) privateStore[id].pfGrid[gridName] = makePathfindingGrid2(id, opts);
 
 	return privateStore[id].pfGrid[gridName];
+}
+
+export class RoomObject {
+	room: Room;
+	pos: RoomPosition;
+	effects: any;
+	constructor(x, y, room, effects) {
+		this.room = register.rooms[room];
+		this.pos = new RoomPosition(x,y,room);
+		if(effects) {
+				this.effects = _(effects).map(i => ({
+						power: i.power,
+						level: i.level,
+						ticksRemaining: i.endTime - runtimeData.time
+				})).filter(i => i.ticksRemaining > 0).value();
+		}
+	}
 }

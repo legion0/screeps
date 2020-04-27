@@ -1,4 +1,5 @@
-import _ from "lodash";
+// import _ from 'lodash';
+let _ = require('lodash');
 
 // set from init
 let mod = null;
@@ -84,6 +85,28 @@ class PathFinder {
 	}
 }
 
+export function initFromSample(newMod, sampleData) {
+	function unpackSampleBits(bits: Uint8Array) {
+		let terrain: number[] = [];
+		for (let xx = 0; xx < 50; ++xx) {
+			for (let yy = 0; yy < 50; ++yy) {
+				let ii = xx * 50 + yy;
+				terrain[ii] = 0x03 & bits[ii] >> ii % 4 * 2;
+			}
+		}
+		return terrain;
+	}
+
+	let rooms = [];
+	for (let room of sampleData) {
+		rooms.push({
+			room: generateRoomName(room.room.xx, room.room.yy),
+			terrain: unpackSampleBits(room.bits)
+		});
+	}
+	return init(newMod, rooms);
+}
+
 export function init(newMod, rooms) {
 	mod = newMod;
 	let terrainData = [];
@@ -111,10 +134,10 @@ export function init(newMod, rooms) {
 
 class System {
 	sanitizeUserIntents(intent): any {
-		throw new Error('Not Implemented!');
+		throw new Error("Method not implemented.");
 	}
 	sanitizeUserRoomIntents(room, intents): any {
-		throw new Error('Not Implemented!');
+		throw new Error("Method not implemented.");
 	}
 }
 
@@ -122,12 +145,20 @@ class Driver {
 	pathFinder = new PathFinder();
 	system = new System();
 
-	sendNotification(user, msg) {
-		throw new Error('Not Implemented!');
+	getWorldSize(): number {
+		throw new Error("Method not implemented.");
 	}
 
-	getWorldSize(): number {
-		throw new Error('Not Implemented!');
+	sendNotification(user: any, arg1: string) {
+		throw new Error("Method not implemented.");
+	}
+
+	evalCode(arg0: any, globals: any, arg2: boolean, timeout?: any, scriptCachedData?: any) {
+		throw new Error("Method not implemented.");
+	}
+
+	bufferFromBase64(binary: any): any {
+		throw new Error("Method not implemented.");
 	}
 }
 

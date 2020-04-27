@@ -1,5 +1,3 @@
-export {};
-
 import { isWalkableStructure } from "./util.Structure";
 
 declare global {

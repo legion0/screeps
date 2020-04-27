@@ -1,4 +1,5 @@
-import _ from "lodash";
+// import _ from "lodash";
+let _ = require('lodash');
 
 (global as any)._ = _;
 
@@ -8,13 +9,11 @@ import '../mocks/install_global';
 import './prototype.All';
 
 import { Highway } from "./Highway";
-import { init, generateRoomName } from '../mocks/Driver';
-import { roomNameToXY } from '../mocks/utils';
-import { Map } from '../mocks/Map';
+import { initFromSample } from '../mocks/Driver';
 
-init(
+initFromSample(
 	/*mod=*/require('@screeps/driver/native/build/Release/native.node'),
-	/*rooms=*/Map.decodeTerrainData(require('@screeps/driver/native/sample-terrain.js'))
+	/*rooms=*/require('@screeps/driver/native/sample-terrain.js')
 );
 
 // W0N0
@@ -33,7 +32,7 @@ init(
 
 test('deep', () => {
 	let from = new RoomPosition(1, 1, 'W0N0');
-	let to = new RoomPosition(5, 6, 'W0N0');
+	let to = new RoomPosition(5, 9, 'W0N0');
 	let highway = new Highway(from as any, to as any).build();
 
 	expect(highway).toBeInstanceOf(Highway);

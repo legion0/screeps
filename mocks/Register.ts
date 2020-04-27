@@ -3,26 +3,27 @@ import _ from "lodash";
 let deprecatedShown = [];
 
 class Register {
-	rooms: any[] = [];
-	objectsByRoom: { [key: string]: number };
-	_useNewPathFinder: boolean = true;
-	objectsByRoomKeys: {};
+	_useNewPathFinder = true;
+	_objects = {};
 	byRoom: { [ket: string]: any };
 	findCache: {[key:string]: any};
+	rooms: any[] = [];
+	roomEventLogCache = {};
+	objectsByRoom: { [key: string]: {} };
+	objectsByRoomKeys: {};
+
 	flags: Flag[];
 	spawns: StructureSpawn[];
 	constructionSites: ConstructionSite[];
 	map: any;
-
-	// 	var register = {
-	// 	_useNewPathFinder: true,
-	// 	_objects: {},
-	// 	byRoom: {},
-	// 	findCache: {},
-	// 	rooms: {},
-	// 	roomEventLogCache: {},
-	// };
-
+	powerCreeps: {[key:string]: PowerCreep};
+	creeps: {[key:string]: Creep};
+	structures: {[key:string]: Structure};
+	ownedStructures: {[key:string]: OwnedStructure};
+	sources: {[key:string]: Source};
+	minerals: {[key:string]: Mineral};
+	deposits: {[key:string]: Deposit};
+	energy: {[key:string]: any/*Energy*/};
 
 	deprecated(msg: string) {
 		if (!_.includes(deprecatedShown, msg)) {

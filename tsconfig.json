@@ -9,5 +9,6 @@
 		"./src/*.ts"
 	],
 	"exclude": ["./src/*.spec.ts"],
-	"emitDecoratorMetadata": true
+	"emitDecoratorMetadata": true,
+	"esModuleInterop": true
 }

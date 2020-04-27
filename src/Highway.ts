@@ -111,6 +111,7 @@ export class Highway {
 		// option 1: log information about room when room is discovered
 		// option 2: postpone unknown room path calculation until
 		// we are actually in that room building the highway.
+		console.log('room', room);
 		if (!room) {
 			return;
 		}
