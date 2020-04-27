@@ -24,6 +24,7 @@ class Register {
 	minerals: {[key:string]: Mineral};
 	deposits: {[key:string]: Deposit};
 	energy: {[key:string]: any/*Energy*/};
+	market: Market;
 
 	deprecated(msg: string) {
 		if (!_.includes(deprecatedShown, msg)) {

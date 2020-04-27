@@ -1,4 +1,18 @@
 export class Map {
+	runtimeData;
+	register;
+	globals;
+
+	constructor(runtimeData, register, globals) {
+		this.runtimeData = runtimeData;
+		this.register = register;
+		this.globals = globals;
+		throw new Error("Method not implemented.");
+	}
+
+
+
+
 	static prettyRoomMap(terrainArr: number[]): number[][] {
 		// TERRAIN_MASK_WALL: 1,
 		// TERRAIN_MASK_SWAMP: 2,
