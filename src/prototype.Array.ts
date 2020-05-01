@@ -5,6 +5,8 @@ declare global {
 		empty(): boolean;
 		size(): number;
 		findMinIndex<T>(this: T[], predicate: (value: T) => unknown): number;
+		// appends the elements of other to this and returns a reference to this.
+		// extend<T>(this: T[], other: Array<T>): T[];
 	}
 }
 
@@ -39,5 +41,12 @@ Array.prototype.findMinIndex = function <T>(this: T[], predicate: (value: T) => 
 	}
 	return minIdx;
 }
+
+// Array.prototype.extend = function<T>(this: T[], other: Array<T>): T[] {
+// 	for (let item of other) {
+// 		this.push(item);
+// 	}
+// 	return this;
+// }
 
 export { }
