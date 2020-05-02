@@ -42,3 +42,8 @@ export function errorCodeToString(errorCode: ScreepsReturnCode): string {
 export function isErrorCode(value: any): value is ScreepsReturnCode {
 	return _.isNumber(value);
 }
+
+export const ROOM_WIDTH = 50;
+export const ROOM_HEIGHT = 50;
+
+export const TERRAIN_PLAIN = 'plain';

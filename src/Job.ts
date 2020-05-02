@@ -7,16 +7,15 @@ declare global {
 	}
 }
 
-interface JobClass<T extends typeof Job> extends Registerable<T> {
-	new(id: Id<T>): T;
-	load(id: Id<T>): T;
+interface JobClass<T> extends Registerable {
+	new(id: Id<Job>, memory: JobMemory): T;
 }
 
 class JobClassRegister {
 	private _register: { [key: string]: JobClass<any> };
 
-	registerJobClass<T extends typeof Job>(jobClass: JobClass<T>) {
-		this._register[jobClass.className] = jobClass;
+	registerJobClass<T>(jobClass: JobClass<T>) {
+		this._register[jobClass.className] = jobClass as any;
 	}
 
 	getJobClass(jobClassName: string) {
@@ -32,14 +31,14 @@ interface JobMemory {
 	jobClassName: string;
 }
 
-abstract class Job {
+export abstract class Job {
 	private id: Id<Job>;
 
-	constructor(id: Id<Job>) {
+	protected constructor(id: Id<Job>) {
 		this.id = id;
 	}
 
-	abstract run(): void;
+	protected abstract run(): void;
 
 	static register: JobClassRegister = new JobClassRegister();
 
@@ -48,7 +47,6 @@ abstract class Job {
 		return true;
 	}
 
-	// also required to be implemented by child classes.
 	static load(id: Id<Job>) {
 		let memory = MemInit(Memory, 'jobs', {})[id] as JobMemory;
 		if (!memory) {
@@ -60,17 +58,15 @@ abstract class Job {
 			log.e(`Cannot find class for jobClassName [${memory.jobClassName}]`);
 			return null;
 		}
-		return jobClass.load(id) as Job;
+		return new jobClass(id, memory) as Job;
 	}
 
-	static create<T extends typeof Job>(jobClass: JobClass<T>, id: Id<T>, memory: any) {
+	protected static createBase<T>(jobClass: JobClass<T>, id: Id<T>) {
 		MemInit(Memory, 'jobs', {});
 		if (id in Memory.jobs) {
 			return ERR_NAME_EXISTS;
 		}
-		memory = memory ?? {};
-		memory.jobClassName = jobClass.className;
-		Memory.jobs[id] = memory;
+		Memory.jobs[id] = { jobClassName: jobClass.className };
 		return OK;
 	}
 

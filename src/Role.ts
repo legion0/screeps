@@ -6,6 +6,8 @@ export abstract class Role {
 	abstract run(): void;
 }
 
+type RoleClass = typeof Role & Registerable<Role>;
+
 class RoleRegister {
 	private _register: { [key: string]: RoleClass };
 

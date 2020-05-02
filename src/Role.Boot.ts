@@ -4,7 +4,7 @@ import { findObjectByPos, findObjectInRoom } from './prototype.RoomPosition';
 declare global {
 	interface CreepMemory {
 		// The target room to boot, set at creation time.
-		roomName: string;
+		jobId: string;
 		flagName: string;
 		sourceOid: Id<Source>;
 		containerOid: Id<StructureContainer>;
@@ -18,6 +18,10 @@ function isConcreteStructure<T extends StructureConstant>(s: any, type: T): s is
 
 class RoleBoot extends Role {
 	static className = 'RoleBoot';
+	
+	private getJob() {
+
+	}
 
 	run() { }
 
@@ -50,6 +54,12 @@ class RoleBoot extends Role {
 	}
 
 	findExtensions() {
+		let extensions = findObjectsInRoom(
+			this.creep.memory.roomName,
+			/*cacheReader=*/() => this.creep.memory.entensionsOid,
+				/*cacheWriter=*/(id) => this.creep.memory.spawnOid = id,
+				/*findCallback=*/(room) => room.find(FIND_MY_SPAWNS).first()
+		);
 		let extension = this.findSpawn().findClosestByRange(FIND_MY_STRUCTURES, { filter: s => s.structureType == STRUCTURE_EXTENSION && s.energy < s.energyCapacity });
 
 	}

@@ -1,4 +1,5 @@
-interface Registerable<T> {
-	readonly prototype: T;
+interface Registerable {
 	className: string;
 }
+
+interface MemoryFor<T> {}
