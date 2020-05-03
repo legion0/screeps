@@ -37,23 +37,24 @@ export function requestCreepSpawn(room: Room, name: string, callback: () => Spaw
 }
 
 events.listen(EventEnum.EVENT_TICK_END, () => {
-	_.values(Game.rooms).forEach(room => {
+	for (let room of Object.values(Game.rooms)) {
 		let queue = PriorityQueue.loadOrCreate(room.memory, 'spawnQueue', compareFunc, keyFunc);
-		let spawns = serverCache.get(`${room.name}.spawns`, 50, () => room.find(FIND_MY_SPAWNS)).filter(s => !s.spawning) as StructureSpawn[];
+		let spawns = (serverCache.get(`${room.name}.spawns`, 50, () => room.find(FIND_MY_SPAWNS)) as StructureSpawn[])
+			.filter(s => !s.spawning);
 		while (!queue.isEmpty() && spawns.length > 0) {
-			let request = queue.peek();
-			if (room.energyAvailable < request.cost) {
+			if (room.energyAvailable < queue.peek().cost) {
 				everyN(50, () => log.w(`Not enough energy for swawning next request in room [${room.name}]`));
 				break;
 			}
-			request = queue.pop();
+			let request = queue.pop();
 			let rv = spawns.pop().spawnCreep(request.body, request.name, request.opts);
 			if (rv != OK) {
 				log.e(`Failed to spawn new creep with error [${errorCodeToString(rv)}]`);
-				console.log(room.energyAvailable, JSON.stringify(request));
+				log.d(room.energyAvailable, JSON.stringify(request));
 			} else {
+				log.d(errorCodeToString(rv), room.energyAvailable, JSON.stringify(request));
 				// room.energyAvailable -= request.cost;
 			}
 		}
-	});
+	}
 });
