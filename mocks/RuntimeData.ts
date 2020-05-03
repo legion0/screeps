@@ -4,7 +4,7 @@ class RuntimeData {
 	user = { _id: 'mock_id', gcl: 0, power: 0, cpu: 0, subscriptionTokens: 0 };
 
 	// map from room name to terrain data
-	staticTerrainData: {[key:string]: TerrainType[]} = {};
+	staticTerrainData: { [key: string]: TerrainType[] } = {};
 
 	userObjects: {};
 

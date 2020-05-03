@@ -1451,13 +1451,13 @@ export class RoomObject {
 	effects: any;
 	constructor(x, y, room, effects) {
 		this.room = register.rooms[room];
-		this.pos = new RoomPosition(x,y,room);
-		if(effects) {
-				this.effects = _(effects).map(i => ({
-						power: i.power,
-						level: i.level,
-						ticksRemaining: i.endTime - runtimeData.time
-				})).filter(i => i.ticksRemaining > 0).value();
+		this.pos = new RoomPosition(x, y, room);
+		if (effects) {
+			this.effects = _(effects).map(i => ({
+				power: i.power,
+				level: i.level,
+				ticksRemaining: i.endTime - runtimeData.time
+			})).filter(i => i.ticksRemaining > 0).value();
 		}
 	}
 }

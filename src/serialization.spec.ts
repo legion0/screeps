@@ -28,16 +28,16 @@ test('null', () => {
 })
 
 test('array', () => {
-	expect(decode(encode([1,2,3]))).toEqual([1,2,3]);
+	expect(decode(encode([1, 2, 3]))).toEqual([1, 2, 3]);
 })
 
 test('object', () => {
-	expect(decode(encode({a: 'b'}))).toEqual({a: 'b'});
+	expect(decode(encode({ a: 'b' }))).toEqual({ a: 'b' });
 })
 
 test('complex1', () => {
 	let val = {
-		arrVal: [1,2,3, {key: 'val'}, 'x', null],
+		arrVal: [1, 2, 3, { key: 'val' }, 'x', null],
 		intVal: 5,
 		floatVal: 3.7,
 		nullVal: null,

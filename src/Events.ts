@@ -1,11 +1,12 @@
 export enum EventEnum {
 	EVENT_TICK_START,
 	EVENT_TICK_END,
+	NEW_ROOM_DISCOVERED,
+	HARD_RESET,
 };
 
-interface Callback extends Function
-{
-		(context?: any, data?: any, event?: EventEnum): boolean | void;
+interface Callback extends Function {
+	(context?: any, data?: any, event?: EventEnum): boolean | void;
 }
 
 interface Event {

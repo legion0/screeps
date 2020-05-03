@@ -1,17 +1,14 @@
 import { Job } from "./Job";
 import { everyN } from "./Tick";
 import { serverCache } from "./ServerCache";
+import { JobBootSource } from "./Job.BootSource";
 
 interface JobBootRoomMemory {
 	roomName: string;
-	sourceIds: Id<Source>[];
 }
 
 export class JobBootRoom extends Job {
-	static className = 'JobBootRoom';
-
 	private room: Room;
-	private memory: JobBootRoomMemory;
 
 	constructor(id: Id<Job>, memory: JobBootRoomMemory) {
 		super(id);
@@ -19,13 +16,13 @@ export class JobBootRoom extends Job {
 	}
 
 	private getSources() {
-		return serverCache.get(`${this.room.name}.sources`, 5000, () => this.room.find(FIND_SOURCES));
+		return serverCache.get(`${this.room.name}.sources`, 100, () => this.room.find(FIND_SOURCES)) as Source[];
 	}
 
 	protected run() {
 		everyN(5, () => {
 			this.getSources().forEach(source => {
-				// JobBootSource.create(source);
+				JobBootSource.create(source);
 			});
 		});
 	}
@@ -41,9 +38,7 @@ export class JobBootRoom extends Job {
 		return new JobBootRoom(id, memory);
 	}
 
-	static loadJob(id: Id<Job>, memory: any) {
-		return new JobBootRoom(id, memory);
-	}
+	static className = 'JobBootRoom';
 }
 
 Job.register.registerJobClass(JobBootRoom);

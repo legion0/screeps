@@ -6,7 +6,7 @@ class Register {
 	_useNewPathFinder = true;
 	_objects = {};
 	byRoom: { [ket: string]: any };
-	findCache: {[key:string]: any};
+	findCache: { [key: string]: any };
 	rooms: any[] = [];
 	roomEventLogCache = {};
 	objectsByRoom: { [key: string]: {} };
@@ -16,14 +16,14 @@ class Register {
 	spawns: StructureSpawn[];
 	constructionSites: ConstructionSite[];
 	map: any;
-	powerCreeps: {[key:string]: PowerCreep};
-	creeps: {[key:string]: Creep};
-	structures: {[key:string]: Structure};
-	ownedStructures: {[key:string]: OwnedStructure};
-	sources: {[key:string]: Source};
-	minerals: {[key:string]: Mineral};
-	deposits: {[key:string]: Deposit};
-	energy: {[key:string]: any/*Energy*/};
+	powerCreeps: { [key: string]: PowerCreep };
+	creeps: { [key: string]: Creep };
+	structures: { [key: string]: Structure };
+	ownedStructures: { [key: string]: OwnedStructure };
+	sources: { [key: string]: Source };
+	minerals: { [key: string]: Mineral };
+	deposits: { [key: string]: Deposit };
+	energy: { [key: string]: any/*Energy*/ };
 	market: Market;
 
 	deprecated(msg: string) {

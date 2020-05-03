@@ -1,3 +1,11 @@
+import { MemInit } from "./Memory";
+
+declare global {
+	interface Memory {
+		nextServerId: number;
+	}
+}
+
 interface CacheEntry {
 	lastFetch: number;
 	value: any;
@@ -20,3 +28,6 @@ class ServerCache {
 }
 
 export let serverCache = new ServerCache();
+
+MemInit(Memory, 'nextServerId', 0);
+export let serverId = Memory.nextServerId++;

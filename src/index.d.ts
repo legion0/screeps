@@ -2,4 +2,4 @@ interface Registerable {
 	className: string;
 }
 
-interface MemoryFor<T> {}
+interface MemoryFor<T> { }

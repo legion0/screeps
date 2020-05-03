@@ -534,7 +534,7 @@ export function checkStructureAgainstController(object, roomObjects, roomControl
 //                 set: opts.canSet ? function(value) {
 //                     this['_${name}'] = value;
 //                 } : undefined
-                
+
 //             }`);
 // 	}
 // 	Object.defineProperties(obj, propertiesInfo);

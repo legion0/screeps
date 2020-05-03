@@ -8,4 +8,4 @@ export class Market {
 		this.register = register;
 		throw new Error("Method not implemented.");
 	}
- }
+}

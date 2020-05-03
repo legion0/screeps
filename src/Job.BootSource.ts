@@ -1,9 +1,18 @@
 import { Job } from "./Job";
+import { getClearance } from "./prototype.RoomPosition";
+import { requestCreepSpawn, SpawnQueuePriority } from "./Room";
 import { everyN } from "./Tick";
-import { serverCache } from "./ServerCache";
+import { RoleBoot } from "./Role.Boot";
 
 interface JobBootSourceMemory {
 	sourceId: Id<Source>;
+}
+
+declare global {
+	interface CreepMemory {
+		job?: Id<Job>;
+		role?: string;
+	}
 }
 
 export class JobBootSource extends Job {
@@ -18,12 +27,22 @@ export class JobBootSource extends Job {
 
 	protected run() {
 		everyN(5, () => {
-			let numCreeps = Math.min(this.source.pos.getClearance(), 3);
+			let numCreeps = Math.min(getClearance(this.source.pos), 3);
 			for (let i = 0; i < numCreeps; i++) {
 				let name = `${this.id}.${i}`;
 				if (!(name in Game.creeps)) {
-					let spawn = this.source.room.find(FIND_MY_SPAWNS).first();
-					spawn.queueCreep();
+					requestCreepSpawn(this.source.room, name, () => ({
+						priority: SpawnQueuePriority.WORKER,
+						name: name,
+						body: [MOVE, CARRY, WORK],
+						cost: BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK],
+						opts: {
+							memory: {
+								job: this.id,
+								role: RoleBoot.className,
+							}
+						}
+					}));
 				}
 			}
 		});
@@ -39,6 +58,15 @@ export class JobBootSource extends Job {
 		memory.sourceId = source.id;
 		return new JobBootSource(id, memory);
 	}
+
+	getTarget(): StructureSpawn {
+		return this.source.room.find(FIND_MY_SPAWNS).filter(s => s.energy < s.energyCapacity)[0];
+	}
+
+	getSource(): Source {
+		return this.source;
+	}
+
 }
 
 Job.register.registerJobClass(JobBootSource);

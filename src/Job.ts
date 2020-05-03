@@ -1,5 +1,6 @@
 import { MemInit } from "./Memory";
 import { log } from "./Logger";
+import { events, EventEnum } from "./Events";
 
 declare global {
 	interface Memory {
@@ -8,11 +9,11 @@ declare global {
 }
 
 interface JobClass<T> extends Registerable {
-	new(id: Id<Job>, memory: JobMemory): T;
+	new(id: Id<Job>, memory: MemoryFor<T>): T;
 }
 
 class JobClassRegister {
-	private _register: { [key: string]: JobClass<any> };
+	private _register: { [key: string]: JobClass<any> } = {};
 
 	registerJobClass<T>(jobClass: JobClass<T>) {
 		this._register[jobClass.className] = jobClass as any;
@@ -32,7 +33,7 @@ interface JobMemory {
 }
 
 export abstract class Job {
-	private id: Id<Job>;
+	protected readonly id: Id<Job>;
 
 	protected constructor(id: Id<Job>) {
 		this.id = id;
@@ -81,3 +82,7 @@ export abstract class Job {
 		}
 	}
 }
+
+events.listen(EventEnum.HARD_RESET, () => {
+	delete Memory.jobs;
+});
