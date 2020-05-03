@@ -17,3 +17,7 @@ export function isConcreteStructure<T extends StructureConstant>(s: any, structu
 export function isConstructionSiteForStructure<T extends BuildableStructureConstant>(s: any, structureType: T): s is ConstructionSite<T> {
 	return s.structureType == structureType;
 }
+
+export function isDamaged(target: Structure) {
+	return target.hits < target.hitsMax;
+}

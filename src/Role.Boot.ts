@@ -1,8 +1,77 @@
-import { errorCodeToString } from './constants';
-import { log } from './Logger';
-import { Role } from './Role';
-import { JobBootSource } from './Job.BootSource';
+import * as Action from './Action';
 import { Job } from './Job';
+import { JobBootSource } from './Job.BootSource';
+import { Role } from './Role';
+import { hasFreeCapacity, hasUsedCapacity } from './Store';
+import { isDamaged } from './Structure';
+
+type TargetType = StructureSpawn | StructureContainer | ConstructionSite | RoomPosition;
+
+const sequence = [{
+	// persistent harvesting
+	test(creep: Creep, source: Source, target: TargetType) {
+		return Action.isLast(creep, Action.ActionType.HARVEST) && hasUsedCapacity(source) && hasFreeCapacity(creep);
+	},
+	run(creep: Creep, source: Source, target: TargetType) {
+		Action.harvest(creep, source);
+	}
+}, {
+	// fill spawn asap
+	test(creep: Creep, source: Source, target: TargetType) {
+		return target instanceof StructureSpawn && hasFreeCapacity(target) && hasUsedCapacity(creep);
+	},
+	run(creep: Creep, source: Source, target: TargetType) {
+		Action.transferEnergy(creep, target as StructureSpawn);
+	}
+}, {
+	// init build
+	test(creep: Creep, source: Source, target: TargetType) {
+		return target instanceof ConstructionSite && hasUsedCapacity(creep);
+	},
+	run(creep: Creep, source: Source, target: TargetType) {
+		Action.build(creep, target as ConstructionSite);
+	}
+}, {
+	// persistent build
+	test(creep: Creep, source: Source, target: TargetType) {
+		return Action.isLast(creep, Action.ActionType.BUILD) && target instanceof ConstructionSite && hasUsedCapacity(creep);
+	},
+	run(creep: Creep, source: Source, target: TargetType) {
+		Action.build(creep, target as ConstructionSite);
+	}
+}, {
+	// init repair
+	test(creep: Creep, source: Source, target: TargetType) {
+		return target instanceof StructureContainer && isDamaged(target) && hasUsedCapacity(creep);
+	},
+	run(creep: Creep, source: Source, target: TargetType) {
+		Action.repair(creep, target as StructureContainer);
+	}
+}, {
+	// persistent repair
+	test(creep: Creep, source: Source, target: TargetType) {
+		return Action.isLast(creep, Action.ActionType.REPAIR) && target instanceof StructureContainer && isDamaged(target) && hasUsedCapacity(creep);
+	},
+	run(creep: Creep, source: Source, target: TargetType) {
+		Action.repair(creep, target as StructureContainer);
+	}
+}, {
+	// transfer to container
+	test(creep: Creep, source: Source, target: TargetType) {
+		return target instanceof StructureContainer && hasFreeCapacity(target) && hasUsedCapacity(creep);
+	},
+	run(creep: Creep, source: Source, target: TargetType) {
+		Action.transferEnergy(creep, target as StructureContainer);
+	}
+}, {
+	// harvest
+	test(creep: Creep, source: Source, target: TargetType) {
+		return hasFreeCapacity(creep) && hasUsedCapacity(source);
+	},
+	run(creep: Creep, source: Source, target: TargetType) {
+		Action.harvest(creep, source);
+	}
+},];
 
 export class RoleBoot extends Role {
 	static className = 'RoleBoot';
@@ -18,80 +87,14 @@ export class RoleBoot extends Role {
 		let source = this.job.getSource();
 		let target = this.job.getTarget();
 
-		let seekSpawn = (target: StructureSpawn) => {
-			if (this.creep.pos.isNearTo(target)) {
-				let rv = this.creep.transfer(target, RESOURCE_ENERGY, Math.min(this.creep.store.energy, target.energyCapacity - target.energy));
-				if (rv != OK) {
-					log.e(`Failed to transfer resource from creep [${this.creep.name}] to target StructureSpawn [${target.pos}] with error [${errorCodeToString(rv)}]`);
-				}
-			} else if (!this.creep.fatigue) {
-				let rv = this.creep.moveTo(target);
-				if (rv != OK) {
-					log.e(`Failed to move creep [${this.creep.name}] to targetStructureSpawn [${target.pos}] with error [${errorCodeToString(rv)}]`);
-				}
+		for (let action of sequence) {
+			if (action.test(this.creep, source, target)) {
+				action.run(this.creep, source, target);
+				return;
 			}
-		};
-
-		let seekContainer = (target: StructureContainer) => {
-			if (this.creep.pos.isNearTo(target) && target.hits < target.hitsMax) {
-				let rv = this.creep.repair(target);
-				if (rv != OK) {
-					log.e(`Failed to repair from creep [${this.creep.name}] to target StructureContainer [${target.pos}] with error [${errorCodeToString(rv)}]`);
-				}
-			} else if (this.creep.pos.isNearTo(target) && target.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
-				let rv = this.creep.transfer(target, RESOURCE_ENERGY, Math.min(this.creep.store.energy, target.store.getFreeCapacity(RESOURCE_ENERGY)));
-				if (rv != OK) {
-					log.e(`Failed to transfer resource from creep [${this.creep.name}] to target StructureContainer [${target.pos}] with error [${errorCodeToString(rv)}]`);
-				}
-			} else if (!this.creep.fatigue) {
-				let rv = this.creep.moveTo(target);
-				if (rv != OK) {
-					log.e(`Failed to move creep [${this.creep.name}] to target StructureContainer [${target.pos}] with error [${errorCodeToString(rv)}]`);
-				}
-			}
-		};
-
-		let seekConstructionSite = (target: ConstructionSite<STRUCTURE_CONTAINER>) => {
-			if (this.creep.pos.isNearTo(target)) {
-				let rv = this.creep.build(target);
-				if (rv != OK) {
-					log.e(`Failed to build for creep [${this.creep.name}] at STRUCTURE_CONTAINER [${target.pos}] with error [${errorCodeToString(rv)}]`);
-				}
-			} else if (!this.creep.fatigue) {
-				let rv = this.creep.moveTo(target);
-				if (rv != OK) {
-					log.e(`Failed to move creep [${this.creep.name}] to target STRUCTURE_CONTAINER [${target.pos}] with error [${errorCodeToString(rv)}]`);
-				}
-			}
-		};
-
-		let seekSource = (source: Source) => {
-			if (this.creep.pos.isNearTo(source)) {
-				let rv = this.creep.harvest(source);
-				if (rv != OK) {
-					log.e(`Failed to harvest source [${source.pos}] from creep [${this.creep.name}] with error [${errorCodeToString(rv)}]`);
-				}
-			} else if (!this.creep.fatigue) {
-				let rv = this.creep.moveTo(source);
-				if (rv != OK) {
-					log.e(`Failed to move creep [${this.creep.name}] to source [${source.pos}] with error [${errorCodeToString(rv)}]`);
-				}
-			}
-		};
-
-		if (this.creep.store.energy == this.creep.carryCapacity) {
-			if (target instanceof StructureSpawn) {
-				seekSpawn(target);
-			} else if (target instanceof StructureContainer) {
-				seekContainer(target);
-			} else if (target instanceof ConstructionSite) {
-				seekConstructionSite(target);
-			} else {
-				this.creep.say('idle');
-			}
-		} else {
-			seekSource(source);
 		}
+
+		this.creep.say('idle');
 	}
 }
 
