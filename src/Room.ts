@@ -39,7 +39,7 @@ export function requestCreepSpawn(room: Room, name: string, callback: () => Spaw
 events.listen(EventEnum.EVENT_TICK_END, () => {
 	for (let room of Object.values(Game.rooms)) {
 		let queue = PriorityQueue.loadOrCreate(room.memory, 'spawnQueue', compareFunc, keyFunc);
-		let spawns = (serverCache.get(`${room.name}.spawns`, 50, () => room.find(FIND_MY_SPAWNS)) as StructureSpawn[])
+		let spawns = serverCache.getObjects(`${room.name}.spawns`, 50, () => room.find(FIND_MY_SPAWNS))
 			.filter(s => !s.spawning);
 		while (!queue.isEmpty() && spawns.length > 0) {
 			if (room.energyAvailable < queue.peek().cost) {
@@ -48,14 +48,9 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 			}
 			let request = queue.pop();
 			let rv = spawns.pop().spawnCreep(request.body, request.name, request.opts);
-			// TODO figure out why sometimes we are getting an ERR_NOT_ENOUGH_RESOURCES error code here.
 			if (rv != OK) {
 				log.e(`Failed to spawn new creep with error [${errorCodeToString(rv)}]`);
-				log.d(room.energyAvailable, JSON.stringify(request));
-				console.log(room.energyAvailable, JSON.stringify(request));
 			} else {
-				log.d(errorCodeToString(rv), room.energyAvailable, JSON.stringify(request));
-				console.log(errorCodeToString(rv), room.energyAvailable, JSON.stringify(request));
 				// room.energyAvailable -= request.cost;
 			}
 		}

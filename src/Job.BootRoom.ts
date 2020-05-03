@@ -16,7 +16,7 @@ export class JobBootRoom extends Job {
 	}
 
 	private getSources() {
-		return serverCache.get(`${this.room.name}.sources`, 100, () => this.room.find(FIND_SOURCES)) as Source[];
+		return serverCache.getObjects(`${this.room.name}.sources`, 100, () => this.room.find(FIND_SOURCES));
 	}
 
 	protected run() {

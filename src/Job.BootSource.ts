@@ -1,8 +1,12 @@
 import { Job } from "./Job";
-import { getClearance } from "./prototype.RoomPosition";
+import { getClearance, posNear, lookNear } from "./RoomPosition";
 import { requestCreepSpawn, SpawnQueuePriority } from "./Room";
 import { everyN } from "./Tick";
 import { RoleBoot } from "./Role.Boot";
+import { serverCache } from "./ServerCache";
+import { isConcreteStructure, isWalkableStructure, isConstructionSiteForStructure } from "./Structure";
+import { TERRAIN_PLAIN, errorCodeToString } from "./constants";
+import { log } from "./Logger";
 
 interface JobBootSourceMemory {
 	sourceId: Id<Source>;
@@ -34,8 +38,8 @@ export class JobBootSource extends Job {
 					requestCreepSpawn(this.source.room, name, () => ({
 						priority: SpawnQueuePriority.WORKER,
 						name: name,
-						body: [MOVE, CARRY, WORK],
-						cost: BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK],
+						body: [MOVE, MOVE, CARRY, WORK],
+						cost: BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK],
 						opts: {
 							memory: {
 								job: this.id,
@@ -59,14 +63,47 @@ export class JobBootSource extends Job {
 		return new JobBootSource(id, memory);
 	}
 
-	getTarget(): StructureSpawn {
-		return this.source.room.find(FIND_MY_SPAWNS).filter(s => s.energy < s.energyCapacity)[0];
+	getTarget() {
+		let spawn = serverCache.getObjects(`${this.source.room.name}.spawns`, 50, () => this.source.room.find(FIND_MY_SPAWNS))
+			.find(s => s.energy < s.energyCapacity);
+		if (spawn) {
+			return spawn;
+		}
+
+		let container = serverCache.getObject(
+			`${this.source.id}.container`,
+			10,
+			() => findContainerBy(this.source.pos));
+		if (container) {
+			return container;
+		}
+
+		let containerPos = posNear(this.source.pos, /*includeSelf=*/false).find(containerConstructionSitePositionValidator);
+		if (containerPos) {
+			let rv = containerPos.createConstructionSite(STRUCTURE_CONTAINER);
+			if (rv != OK) {
+				log.e(`Failed to create STRUCTURE_CONTAINER at [${containerPos}] with error [${errorCodeToString(rv)}]`);
+			}
+	
+			return containerPos;
+		}
+		return null;
 	}
 
 	getSource(): Source {
 		return this.source;
 	}
+}
 
+function findContainerBy(pos: RoomPosition) {
+	return (lookNear(pos, LOOK_STRUCTURES, s => isConcreteStructure(s, STRUCTURE_CONTAINER))[0] as StructureContainer) ??
+		(lookNear(pos, LOOK_CONSTRUCTION_SITES, s => isConstructionSiteForStructure(s, STRUCTURE_CONTAINER))[0] as ConstructionSite<STRUCTURE_CONTAINER>);
+}
+
+function containerConstructionSitePositionValidator(pos: RoomPosition) {
+	return pos.lookFor(LOOK_CONSTRUCTION_SITES).length == 0 &&
+		pos.lookFor(LOOK_TERRAIN)[0] == TERRAIN_PLAIN &&
+		pos.lookFor(LOOK_STRUCTURES).length == 0;
 }
 
 Job.register.registerJobClass(JobBootSource);

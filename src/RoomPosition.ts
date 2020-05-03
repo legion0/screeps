@@ -69,11 +69,9 @@ export function posNear(center: RoomPosition, includeSelf: boolean): RoomPositio
 	return results;
 }
 
-// // lookFor<T extends keyof AllLookAtTypes>(type: T): Array<AllLookAtTypes[T]>;
-// RoomPosition.prototype.lookNear = function <T extends keyof AllLookAtTypes>(type: AllLookAtTypes[T], filter: (element: AllLookAtTypes[T], index?: number) => boolean) {
-// 	let positions = this.posNear(/*includeSelf=*/true) as RoomPosition[]; positions.push(this);
-// 	return positions.flatMap(pos => pos.lookFor(type).filter(filter));
-// }
+export function lookNear<T extends keyof AllLookAtTypes>(pos: RoomPosition, type: T, filter?: (element: AllLookAtTypes[T], index?: number) => boolean): AllLookAtTypes[T][] {
+	return _.flatten(posNear(pos, /*includeSelf=*/true).map((pos: RoomPosition) => pos.lookFor(type).filter(filter ?? _.identity)));
+}
 
 
 export function getClearance(pos: RoomPosition) {
@@ -84,26 +82,26 @@ export function getClearance(pos: RoomPosition) {
 	})());
 };
 
-// export function findObjectByPos<T extends RoomObject & { id: Id<T> }>(
-// 	pos: RoomPosition,
-// 	cacheReader: () => Id<T>,
-// 	cacheWriter: (id: Id<T>) => void,
-// 	findCallback: () => T,
-// 	interval: number = 5) {
-// 	if (!(pos.roomName in Game.rooms)) {
-// 		return pos;
-// 	}
-// 	let object = null;
-// 	let id = cacheReader();
-// 	if (id) {
-// 		object = Game.getObjectById(id);
-// 	}
-// 	if (!object && Game.time % interval == 0) {
-// 		object = findCallback();
-// 		cacheWriter(object.id);
-// 	}
-// 	return object;
-// }
+export function findObjectByPos<T extends RoomObject & { id: Id<T> }>(
+	pos: RoomPosition,
+	cacheReader: () => Id<T>,
+	cacheWriter: (id: Id<T>) => void,
+	findCallback: () => T,
+	interval: number = 5) {
+	if (!(pos.roomName in Game.rooms)) {
+		return pos;
+	}
+	let object = null;
+	let id = cacheReader();
+	if (id) {
+		object = Game.getObjectById(id);
+	}
+	if (!object && Game.time % interval == 0) {
+		object = findCallback();
+		cacheWriter(object.id);
+	}
+	return object;
+}
 
 // export function findObjectInRoom<T extends RoomObject & { id: Id<T> }>(
 // 	roomName: string,

@@ -14,7 +14,20 @@ interface CacheEntry {
 class ServerCache {
 	entries: { [key: string]: CacheEntry } = {};
 
-	get(key: string, interval: number, callback: Function) {
+	getObjects<T extends ObjectWithId<T>>(key: string, interval: number, callback: () => T[]) {
+		return this.getRaw(key, interval, () => {
+			return callback().map(o => o.id);
+		}).map((oid: Id<T>) => Game.getObjectById(oid)) as T[];
+	}
+
+	getObject<T extends ObjectWithId<T>>(key: string, interval: number, callback: () => T) {
+		let id = this.getRaw(key, interval, () => {
+			return callback()?.id;
+		}) as Id<T>;
+		return id ? Game.getObjectById(id) : null;
+	}
+
+	private getRaw(key: string, interval: number, callback: Function) {
 		let entry = this.entries[key];
 		if (entry && Game.time - entry.lastFetch < interval) {
 			return entry.value;

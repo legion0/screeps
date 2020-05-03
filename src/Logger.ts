@@ -29,6 +29,39 @@ interface LoggerMemory {
 	print_level: LogLevel;
 }
 
+const getSourcePositionRegEx = /\s*at\s(([^\s]+)\s)?\(?(\s\()?([^:]+):(\d+):(\d+)/;
+
+interface SourcePosition {
+	function: string;
+	file: string;
+	line: string;
+	col: string;
+}
+
+function getSourcePosition(skipFrames?: number): SourcePosition {
+	let error: Error;
+	try {
+		throw Error('');
+	} catch (err) {
+		error = err;
+	}
+	let callerLine = error.stack.split("\n")[(skipFrames ?? 0) + 2];
+	let match = getSourcePositionRegEx.exec(callerLine);
+	if (!match) {
+		throw new Error(`Failed to parse call stack line [${callerLine}] at getSourcePosition`);
+	}
+	return {
+		function: match[2],
+		file: match[4],
+		line: match[5],
+		col: match[6],
+	};
+}
+
+function formatSourcePosition(sourcePosition: SourcePosition) {
+	return `[${sourcePosition.function} ${sourcePosition.file}:${sourcePosition.line}:${sourcePosition.col}]`;
+}
+
 class Logger {
 	private memory: LoggerMemory;
 	static _instance: Logger;
@@ -69,23 +102,7 @@ class Logger {
 		}
 	}
 
-	_getCallerSpec(skip_frames: number) {
-		let error: Error;
-		try {
-			throw Error('');
-		} catch (err) {
-			error = err;
-		}
-		let caller_line = error.stack.split("\n")[skip_frames + 2];
-		let index = caller_line.indexOf("at ");
-		if (index < 0) {
-			index = -3;
-		}
-		let clean = caller_line.slice(index + 3, caller_line.length);
-		return '[' + clean + ']';
-	}
-
-	_log(log_level: LogLevel, log_args: any[], skip_frames: number) {
+	_log(log_level: LogLevel, log_args: any[], skipFrames: number) {
 		let print_level = this.memory.print_level;
 		if (log_level > print_level) {
 			return;
@@ -112,7 +129,7 @@ class Logger {
 			}
 			args.push(arg_repr);
 		}
-		args.push(this._getCallerSpec(skip_frames + 1));
+		args.push(formatSourcePosition(getSourcePosition(skipFrames + 1)));
 		console.log.apply(null, args);
 	}
 
@@ -123,7 +140,5 @@ class Logger {
 		return Logger._instance;
 	}
 }
-
-module.exports = Logger.getInstance();
 
 export let log = Logger.getInstance();
