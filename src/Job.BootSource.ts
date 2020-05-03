@@ -75,9 +75,6 @@ export class JobBootSource extends Job {
 			10,
 			() => findContainerBy(this.source.pos));
 		if (container) {
-			if (container instanceof StructureContainer && container.store.getFreeCapacity(RESOURCE_ENERGY) == 0) {
-				return null;
-			}
 			return container;
 		}
 

@@ -33,7 +33,12 @@ export class RoleBoot extends Role {
 		};
 
 		let seekContainer = (target: StructureContainer) => {
-			if (this.creep.pos.isNearTo(target)) {
+			if (this.creep.pos.isNearTo(target) && target.hits < target.hitsMax) {
+				let rv = this.creep.repair(target);
+				if (rv != OK) {
+					log.e(`Failed to repair from creep [${this.creep.name}] to target StructureContainer [${target.pos}] with error [${errorCodeToString(rv)}]`);
+				}
+			} else if (this.creep.pos.isNearTo(target) && target.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
 				let rv = this.creep.transfer(target, RESOURCE_ENERGY, Math.min(this.creep.store.energy, target.store.getFreeCapacity(RESOURCE_ENERGY)));
 				if (rv != OK) {
 					log.e(`Failed to transfer resource from creep [${this.creep.name}] to target StructureContainer [${target.pos}] with error [${errorCodeToString(rv)}]`);
