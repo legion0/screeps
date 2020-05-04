@@ -8,19 +8,19 @@ const sequence = [
 	// harvest energy
 	new Action.Harvest<SequenceContext>().setPersist().setCallback(context => context.job.getSource()),
 	// fill up spawn asap
-	new Action.TransferEnergy<SequenceContext>().setCallback(context => context.job.getSpawn()),
+	new Action.TransferEnergy<SequenceContext>().setCallback(context => context.job.spawn.get()),
 	// build container
-	new Action.Build<SequenceContext>().setPersist().setCallback(context => context.job.getConstructionSite()),
+	new Action.Build<SequenceContext>().setPersist().setCallback(context => context.job.constructionSite.get()),
 	// repair container
-	new Action.Repair<SequenceContext>().setPersist().setCallback(context => context.job.getContainer()),
+	new Action.Repair<SequenceContext>().setPersist().setCallback(context => context.job.container.get()),
 	// pickup stray energy
 	new Action.Pickup<SequenceContext>().setCallback(context => context.getResource()),
 	// init build container
-	new Action.Build<SequenceContext>().setCallback(context => context.job.getConstructionSite()),
+	new Action.Build<SequenceContext>().setCallback(context => context.job.constructionSite.get()),
 	// init repair container
-	new Action.Repair<SequenceContext>().setCallback(context => context.job.getContainer()),
+	new Action.Repair<SequenceContext>().setCallback(context => context.job.container.get()),
 	// transfer to container
-	new Action.TransferEnergy<SequenceContext>().setCallback(context => context.job.getContainer()),
+	new Action.TransferEnergy<SequenceContext>().setCallback(context => context.job.container.get()),
 	// init harvest
 	new Action.Harvest<SequenceContext>().setCallback(context => context.job.getSource()),
 ];

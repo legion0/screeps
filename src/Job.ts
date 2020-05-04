@@ -45,7 +45,6 @@ export abstract class Job {
 
 	remove() {
 		delete Memory.jobs[this.id];
-		return true;
 	}
 
 	static load(id: Id<Job>) {

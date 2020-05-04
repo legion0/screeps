@@ -1,12 +1,13 @@
+import { errorCodeToString } from "./constants";
+import { EventEnum, events } from "./Events";
+import { log } from "./Logger";
 import { PriorityQueue } from "./PriorityQueue";
-import { events, EventEnum } from "./Events";
 import { serverCache } from "./ServerCache";
 import { everyN } from "./Tick";
-import { log } from "./Logger";
-import { errorCodeToString } from "./constants";
 
 export enum SpawnQueuePriority {
 	WORKER,
+	UPGRADER,
 }
 
 interface SpawnQueueItem {
@@ -31,7 +32,7 @@ function keyFunc(item: SpawnQueueItem) {
 
 export function requestCreepSpawn(room: Room, name: string, callback: () => SpawnQueueItem) {
 	let queue = PriorityQueue.loadOrCreate(Memory.rooms[room.name], 'spawnQueue', compareFunc, keyFunc);
-	if (!queue.hasItem(name)) {
+	if (!queue.hasItem(name) && !Game.creeps[name]) {
 		queue.push(callback());
 	}
 }
@@ -39,8 +40,7 @@ export function requestCreepSpawn(room: Room, name: string, callback: () => Spaw
 events.listen(EventEnum.EVENT_TICK_END, () => {
 	for (let room of Object.values(Game.rooms)) {
 		let queue = PriorityQueue.loadOrCreate(room.memory, 'spawnQueue', compareFunc, keyFunc);
-		let spawns = serverCache.getObjects(`${room.name}.spawns`, 50, () => room.find(FIND_MY_SPAWNS))
-			.filter(s => !s.spawning);
+		let spawns = findMySpawns(room).filter(s => !s.spawning);
 		while (!queue.isEmpty() && spawns.length > 0) {
 			if (room.energyAvailable < queue.peek().cost) {
 				everyN(50, () => log.w(`Not enough energy for swawning next request in room [${room.name}]`));
@@ -56,3 +56,17 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 		}
 	}
 });
+
+export function findSources(room: Room): Source[] {
+	if (!room) {
+		return [];
+	}
+	return serverCache.getObjects(`${room.name}.sources`, 100, () => room.find(FIND_SOURCES));
+}
+
+export function findMySpawns(room: Room): StructureSpawn[] {
+	if (!room) {
+		return [];
+	}
+	return serverCache.getObjects(`${room.name}.spawns`, 100, () => room.find(FIND_MY_SPAWNS));
+}

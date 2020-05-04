@@ -5,6 +5,7 @@ import { serverId } from './ServerCache';
 import { Job } from './Job';
 import { Role } from './Role';
 import { log } from './Logger';
+import { JobUpgradeController } from './Job.UpgradeController';
 
 declare global {
 	interface Memory {
@@ -24,6 +25,7 @@ function main_loop() {
 		}
 		if (room.controller.my) {
 			JobBootRoom.create(room);
+			JobUpgradeController.create(room.name);
 		}
 	}
 	Job.runAll();

@@ -1,14 +1,14 @@
 import { Job } from "./Job";
-import { everyN } from "./Tick";
-import { serverCache } from "./ServerCache";
 import { JobBootSource } from "./Job.BootSource";
+import { findSources } from "./Room";
+import { everyN } from "./Tick";
 
 interface JobBootRoomMemory {
 	roomName: string;
 }
 
 export class JobBootRoom extends Job {
-	private room: Room;
+	private room?: Room;
 
 	constructor(id: Id<Job>, memory: JobBootRoomMemory) {
 		super(id);
@@ -16,7 +16,7 @@ export class JobBootRoom extends Job {
 	}
 
 	private getSources() {
-		return serverCache.getObjects(`${this.room.name}.sources`, 100, () => this.room.find(FIND_SOURCES));
+		return findSources(this.room);
 	}
 
 	protected run() {

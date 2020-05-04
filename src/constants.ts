@@ -47,5 +47,6 @@ export const ROOM_WIDTH = 50;
 export const ROOM_HEIGHT = 50;
 export const REPAIR_RANGE = 3;
 export const BUILD_RANGE = 3;
+export const UPGRADE_RANGE = 3;
 
 export const TERRAIN_PLAIN = 'plain';

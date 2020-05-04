@@ -1,4 +1,4 @@
-import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE } from "./constants";
+import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE } from "./constants";
 import { log } from "./Logger";
 import { hasFreeCapacity, hasUsedCapacity } from "./Store";
 import { isDamaged } from "./Structure";
@@ -16,6 +16,8 @@ export enum ActionType {
 	BUILD,
 	HARVEST,
 	PICKUP,
+	UPGRADE_CONTROLLER,
+	WITHDRAW,
 }
 
 export function moveTo(creep: Creep, target: RoomPosition | { pos: RoomPosition }) {
@@ -25,7 +27,7 @@ export function moveTo(creep: Creep, target: RoomPosition | { pos: RoomPosition 
 		let targetPos = target instanceof RoomPosition ? target : target.pos;
 		rv = creep.moveTo(targetPos);
 		if (rv != OK) {
-			log.e(`Failed to move creep [${creep.name}] to [${target}] with error [${errorCodeToString(rv)}]`);
+			log.e(`[${creep.name}] failed to moveTo [${target}] with error [${errorCodeToString(rv)}]`);
 		}
 	}
 	return rv;
@@ -83,7 +85,7 @@ export class Harvest<ContextType> extends Action<ContextType> {
 		if (creep.pos.isNearTo(target.pos)) {
 			let rv = creep.harvest(target);
 			if (rv != OK) {
-				log.e(`Failed to harvest source [${target.pos}] from creep [${creep.name}] with error [${errorCodeToString(rv)}]`);
+				log.e(`[${creep.name}] failed to harvest [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
 			rv = moveTo(creep, target);
@@ -108,7 +110,7 @@ export class TransferEnergy<ContextType> extends Action<ContextType> {
 			let freeCapacity = target.store.getFreeCapacity(RESOURCE_ENERGY);
 			rv = creep.transfer(target, RESOURCE_ENERGY, Math.min(creep.store.energy, freeCapacity));
 			if (rv != OK) {
-				log.e(`Failed to transfer resource from creep [${creep.name}] to target StructureSpawn [${target.pos}] with error [${errorCodeToString(rv)}]`);
+				log.e(`[${creep.name}] failed to transfer to [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
 			rv = moveTo(creep, target);
@@ -132,7 +134,7 @@ export class Build<ContextType> extends Action<ContextType> {
 		if (creep.pos.inRangeTo(target.pos, BUILD_RANGE)) {
 			rv = creep.build(target);
 			if (rv != OK) {
-				log.e(`Failed to build for creep [${creep.name}] at [${target.structureType}][${target.pos}] with error [${errorCodeToString(rv)}]`);
+				log.e(`[${creep.name}] failed to build [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
 			rv = moveTo(creep, target);
@@ -156,7 +158,7 @@ export class Repair<ContextType> extends Action<ContextType> {
 		if (creep.pos.inRangeTo(target.pos, REPAIR_RANGE)) {
 			rv = creep.repair(target);
 			if (rv != OK) {
-				log.e(`Failed to repair from creep [${creep.name}] to target StructureContainer [${target.pos}] with error [${errorCodeToString(rv)}]`);
+				log.e(`[${creep.name}] failed to repair [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
 			rv = moveTo(creep, target);
@@ -178,7 +180,55 @@ export class Pickup<ContextType> extends Action<ContextType> {
 		creep.memory.lastAction = ActionType.PICKUP;
 		let rv = creep.pickup(target);
 		if (rv != OK) {
-			log.e(`Failed to pickup resource [${target}] from creep [${creep.name}] with error [${errorCodeToString(rv)}]`);
+			log.e(`[${creep.name}] failed to pickup [${target}] with error [${errorCodeToString(rv)}]`);
+		}
+		return rv;
+	}
+}
+
+export class UpgradeController<ContextType> extends Action<ContextType> {
+	constructor() {
+		super(ActionType.UPGRADE_CONTROLLER);
+	}
+
+	test(creep: Creep, target: any) {
+		return target instanceof StructureController && this.checkPersist(creep) && hasUsedCapacity(creep);
+	}
+
+	do(creep: Creep, target: StructureController) {
+		creep.memory.lastAction = ActionType.UPGRADE_CONTROLLER;
+		let rv: ScreepsReturnCode = OK;
+		if (creep.pos.inRangeTo(target.pos, UPGRADE_RANGE)) {
+			rv = creep.upgradeController(target);
+			if (rv != OK) {
+				log.e(`[${creep.name}] failed to upgradeController [${target}] with error [${errorCodeToString(rv)}]`);
+			}
+		} else {
+			rv = moveTo(creep, target);
+		}
+		return rv;
+	}
+}
+
+export class Withdraw<ContextType> extends Action<ContextType> {
+	constructor() {
+		super(ActionType.WITHDRAW);
+	}
+
+	test(creep: Creep, target: any) {
+		return target instanceof StructureContainer && this.checkPersist(creep) && hasFreeCapacity(creep) && hasUsedCapacity(target);
+	}
+
+	do(creep: Creep, target: StructureContainer) {
+		creep.memory.lastAction = ActionType.WITHDRAW;
+		let rv: ScreepsReturnCode = OK;
+		if (creep.pos.isNearTo(target.pos)) {
+			rv = creep.withdraw(target, RESOURCE_ENERGY);
+			if (rv != OK) {
+				log.e(`[${creep.name}] failed to withdraw from [${target}] with error [${errorCodeToString(rv)}]`);
+			}
+		} else {
+			rv = moveTo(creep, target);
 		}
 		return rv;
 	}
