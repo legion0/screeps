@@ -13,7 +13,7 @@ declare global {
 	}
 }
 
-console.log(`Reloading on server [${serverId}]`);
+log.i(`Reloading on server [${serverId}]`);
 
 function main_loop() {
 	let discoveredRooms = MemInit(Memory, 'discoveredRooms', {});

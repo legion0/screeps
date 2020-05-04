@@ -40,11 +40,9 @@
 // 				roomCallback: this.roomCallback,
 // 			}
 // 		);
-// 		console.log(rv);
 // 		if (rv.incomplete) {
 // 			return ERR_NO_PATH;
 // 		}
-// 		console.log(rv.path.map(o => o.toString()));
 // 		this.memory.path = rv.path.map(pos => pos.toMemory());
 // 		return this;
 // 	}
@@ -111,7 +109,6 @@
 // 		// option 1: log information about room when room is discovered
 // 		// option 2: postpone unknown room path calculation until
 // 		// we are actually in that room building the highway.
-// 		console.log('room', room);
 // 		if (!room) {
 // 			return;
 // 		}

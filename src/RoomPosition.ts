@@ -2,8 +2,9 @@ import { TERRAIN_PLAIN, ROOM_WIDTH, ROOM_HEIGHT } from "./constants";
 
 // import { isWalkableStructure } from "./util.Structure";
 
+export interface RoomPositionMemory extends String { }
+
 declare global {
-	// 	interface RoomPositionMemory extends String { }
 
 	interface RoomPosition {
 		_clearance: number;
@@ -30,17 +31,20 @@ declare global {
 // 	return RoomPosition.prototype.lookFor(LOOK_STRUCTURES).every(structure => isWalkableStructure(structure));
 // }
 
-// // @static
-// RoomPosition.prototype.fromMemory = function (memory: RoomPositionMemory): RoomPosition {
-// 	let x = Number(_.trimStart(memory.slice(0, 2), '0'));
-// 	let y = Number(_.trimStart(memory.slice(2, 4), '0'));
-// 	let roomName = memory.slice(4, memory.length);
-// 	return new RoomPosition(x, y, roomName);
-// }
+export function fromMemory(memory: RoomPositionMemory): RoomPosition {
+	if (!memory) {
+		return null;
+	}
+	let parts = memory.split('_');
+	return new RoomPosition(parseInt(parts[1]), parseInt(parts[2]), parts[0]);
+}
 
-// RoomPosition.prototype.toMemory = function (): RoomPositionMemory {
-// 	return _.padStart(this.x, 2, '0') + _.padStart(this.y, 2, '0') + this.roomName;
-// }
+export function toMemory(pos: RoomPosition): RoomPositionMemory {
+	if (pos instanceof RoomPosition) {
+		return `${pos.roomName}_${pos.x}_${pos.y}`;
+	}
+	return null;
+}
 
 // RoomPosition.prototype.closest = function (positions: RoomPosition[]): RoomPosition {
 // 	return positions.reduce((best, current) => current.getRangeTo(this) < best.getRangeTo(this) ? current : best, positions.first());
@@ -69,8 +73,12 @@ export function posNear(center: RoomPosition, includeSelf: boolean): RoomPositio
 	return results;
 }
 
-export function lookNear<T extends keyof AllLookAtTypes>(pos: RoomPosition, type: T, filter?: (element: AllLookAtTypes[T], index?: number) => boolean): AllLookAtTypes[T][] {
-	return _.flatten(posNear(pos, /*includeSelf=*/true).map((pos: RoomPosition) => pos.lookFor(type).filter(filter ?? _.identity)));
+export function lookNear<T extends keyof AllLookAtTypes>(
+	pos: RoomPosition,
+	type: T,
+	filter: (element: AllLookAtTypes[T], index?: number) => boolean = _.identity)
+	: AllLookAtTypes[T][] {
+	return _.flatten(posNear(pos, /*includeSelf=*/true).map((pos: RoomPosition) => pos.lookFor(type).filter(filter)));
 }
 
 

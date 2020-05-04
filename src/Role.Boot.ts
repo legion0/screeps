@@ -2,76 +2,47 @@ import * as Action from './Action';
 import { Job } from './Job';
 import { JobBootSource } from './Job.BootSource';
 import { Role } from './Role';
-import { hasFreeCapacity, hasUsedCapacity } from './Store';
-import { isDamaged } from './Structure';
+import { lookNear } from './RoomPosition';
 
-type TargetType = StructureSpawn | StructureContainer | ConstructionSite | RoomPosition;
-
-const sequence = [{
-	// persistent harvesting
-	test(creep: Creep, source: Source, target: TargetType) {
-		return Action.isLast(creep, Action.ActionType.HARVEST) && hasUsedCapacity(source) && hasFreeCapacity(creep);
-	},
-	run(creep: Creep, source: Source, target: TargetType) {
-		Action.harvest(creep, source);
-	}
-}, {
-	// fill spawn asap
-	test(creep: Creep, source: Source, target: TargetType) {
-		return target instanceof StructureSpawn && hasFreeCapacity(target) && hasUsedCapacity(creep);
-	},
-	run(creep: Creep, source: Source, target: TargetType) {
-		Action.transferEnergy(creep, target as StructureSpawn);
-	}
-}, {
-	// init build
-	test(creep: Creep, source: Source, target: TargetType) {
-		return target instanceof ConstructionSite && hasUsedCapacity(creep);
-	},
-	run(creep: Creep, source: Source, target: TargetType) {
-		Action.build(creep, target as ConstructionSite);
-	}
-}, {
-	// persistent build
-	test(creep: Creep, source: Source, target: TargetType) {
-		return Action.isLast(creep, Action.ActionType.BUILD) && target instanceof ConstructionSite && hasUsedCapacity(creep);
-	},
-	run(creep: Creep, source: Source, target: TargetType) {
-		Action.build(creep, target as ConstructionSite);
-	}
-}, {
-	// init repair
-	test(creep: Creep, source: Source, target: TargetType) {
-		return target instanceof StructureContainer && isDamaged(target) && hasUsedCapacity(creep);
-	},
-	run(creep: Creep, source: Source, target: TargetType) {
-		Action.repair(creep, target as StructureContainer);
-	}
-}, {
-	// persistent repair
-	test(creep: Creep, source: Source, target: TargetType) {
-		return Action.isLast(creep, Action.ActionType.REPAIR) && target instanceof StructureContainer && isDamaged(target) && hasUsedCapacity(creep);
-	},
-	run(creep: Creep, source: Source, target: TargetType) {
-		Action.repair(creep, target as StructureContainer);
-	}
-}, {
+const sequence = [
+	// harvest energy
+	new Action.Harvest<SequenceContext>().setPersist().setCallback(context => context.job.getSource()),
+	// fill up spawn asap
+	new Action.TransferEnergy<SequenceContext>().setCallback(context => context.job.getSpawn()),
+	// build container
+	new Action.Build<SequenceContext>().setPersist().setCallback(context => context.job.getConstructionSite()),
+	// repair container
+	new Action.Repair<SequenceContext>().setPersist().setCallback(context => context.job.getContainer()),
+	// pickup stray energy
+	new Action.Pickup<SequenceContext>().setCallback(context => context.getResource()),
+	// init build container
+	new Action.Build<SequenceContext>().setCallback(context => context.job.getConstructionSite()),
+	// init repair container
+	new Action.Repair<SequenceContext>().setCallback(context => context.job.getContainer()),
 	// transfer to container
-	test(creep: Creep, source: Source, target: TargetType) {
-		return target instanceof StructureContainer && hasFreeCapacity(target) && hasUsedCapacity(creep);
-	},
-	run(creep: Creep, source: Source, target: TargetType) {
-		Action.transferEnergy(creep, target as StructureContainer);
+	new Action.TransferEnergy<SequenceContext>().setCallback(context => context.job.getContainer()),
+	// init harvest
+	new Action.Harvest<SequenceContext>().setCallback(context => context.job.getSource()),
+];
+
+class SequenceContext {
+	private creep: Creep;
+	job: JobBootSource;
+	private source?: Source;
+	private target?: StructureSpawn | StructureContainer | ConstructionSite | RoomPosition;
+	private spawn?: StructureSpawn;
+	private resource?: Resource;
+
+	constructor(creep: Creep, job: JobBootSource) {
+		this.creep = creep;
+		this.job = job;
 	}
-}, {
-	// harvest
-	test(creep: Creep, source: Source, target: TargetType) {
-		return hasFreeCapacity(creep) && hasUsedCapacity(source);
-	},
-	run(creep: Creep, source: Source, target: TargetType) {
-		Action.harvest(creep, source);
+
+	getResource() {
+		return this.resource != undefined ? this.resource : this.resource = lookNear(this.creep.pos, LOOK_ENERGY)[0] ?? null;
 	}
-},];
+
+}
 
 export class RoleBoot extends Role {
 	static className = 'RoleBoot';
@@ -84,17 +55,7 @@ export class RoleBoot extends Role {
 	}
 
 	run() {
-		let source = this.job.getSource();
-		let target = this.job.getTarget();
-
-		for (let action of sequence) {
-			if (action.test(this.creep, source, target)) {
-				action.run(this.creep, source, target);
-				return;
-			}
-		}
-
-		this.creep.say('idle');
+		Action.runSequence(sequence, this.creep, new SequenceContext(this.creep, this.job));
 	}
 }
 

@@ -1,6 +1,7 @@
+import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE } from "./constants";
 import { log } from "./Logger";
-import { errorCodeToString, REPAIR_RANGE, BUILD_RANGE } from "./constants";
-import { lstat } from "fs";
+import { hasFreeCapacity, hasUsedCapacity } from "./Store";
+import { isDamaged } from "./Structure";
 
 declare global {
 	interface CreepMemory {
@@ -14,6 +15,7 @@ export enum ActionType {
 	REPAIR,
 	BUILD,
 	HARVEST,
+	PICKUP,
 }
 
 export function moveTo(creep: Creep, target: RoomPosition | { pos: RoomPosition }) {
@@ -29,63 +31,166 @@ export function moveTo(creep: Creep, target: RoomPosition | { pos: RoomPosition 
 	return rv;
 }
 
-export function transferEnergy(creep: Creep, target: Structure & { store: GenericStoreBase }) {
-	creep.memory.lastAction = ActionType.TRANSFER;
-	let rv: ScreepsReturnCode = OK;
-	if (creep.pos.isNearTo(target)) {
-		let freeCapacity = target.store.getFreeCapacity(RESOURCE_ENERGY);
-		rv = creep.transfer(target, RESOURCE_ENERGY, Math.min(creep.store.energy, freeCapacity));
-		if (rv != OK) {
-			log.e(`Failed to transfer resource from creep [${creep.name}] to target StructureSpawn [${target.pos}] with error [${errorCodeToString(rv)}]`);
-		}
-	} else {
-		rv = moveTo(creep, target);
+abstract class Action<ContextType> {
+	protected persist: boolean;
+	private actionType: ActionType;
+	private callback?: (context: ContextType) => any;
+
+	constructor(actionType: ActionType) {
+		this.persist = false;
+		this.actionType = actionType;
 	}
-	return rv;
+
+	// sets the bit which fails `test` unless the action taken on the last tick is the same as this one.
+	setPersist() {
+		this.persist = true;
+		return this;
+	}
+
+	protected checkPersist(creep: Creep) {
+		return !this.persist || creep.memory.lastAction == this.actionType;
+	}
+
+	abstract test(creep: Creep, target: any): boolean;
+
+	abstract do(creep: Creep, target: any): ScreepsReturnCode;
+
+	getTarget(context: ContextType) {
+		return this.callback ? this.callback(context) : context;
+	}
+
+	// set a callback to execute on context when running sequence.
+	// If multiple targets are involved this lets you pick the correct one for
+	// the relevant action.
+	setCallback(callback: (context: ContextType) => any) {
+		this.callback = callback;
+		return this;
+	}
 }
 
-export function repair(creep: Creep, target: Structure) {
-	creep.memory.lastAction = ActionType.REPAIR;
-	let rv: ScreepsReturnCode = OK;
-	if (creep.pos.inRangeTo(target.pos, REPAIR_RANGE)) {
-		rv = creep.repair(target);
-		if (rv != OK) {
-			log.e(`Failed to repair from creep [${creep.name}] to target StructureContainer [${target.pos}] with error [${errorCodeToString(rv)}]`);
-		}
-	} else {
-		rv = moveTo(creep, target);
+export class Harvest<ContextType> extends Action<ContextType> {
+	constructor() {
+		super(ActionType.HARVEST);
 	}
-	return rv;
+
+	test(creep: Creep, target: any) {
+		return target instanceof Source && this.checkPersist(creep) && hasFreeCapacity(creep) && hasUsedCapacity(target);
+	}
+
+	do(creep: Creep, target: Source) {
+		creep.memory.lastAction = ActionType.HARVEST;
+		let rv: ScreepsReturnCode = OK;
+		if (creep.pos.isNearTo(target.pos)) {
+			let rv = creep.harvest(target);
+			if (rv != OK) {
+				log.e(`Failed to harvest source [${target.pos}] from creep [${creep.name}] with error [${errorCodeToString(rv)}]`);
+			}
+		} else {
+			rv = moveTo(creep, target);
+		}
+		return rv;
+	}
 }
 
-export function build(creep: Creep, target: ConstructionSite) {
-	creep.memory.lastAction = ActionType.BUILD;
-	let rv: ScreepsReturnCode = OK;
-	if (creep.pos.inRangeTo(target.pos, BUILD_RANGE)) {
-		rv = creep.build(target);
-		if (rv != OK) {
-			log.e(`Failed to build for creep [${creep.name}] at [${target.structureType}][${target.pos}] with error [${errorCodeToString(rv)}]`);
-		}
-	} else {
-		rv = moveTo(creep, target);
+export class TransferEnergy<ContextType> extends Action<ContextType> {
+	constructor() {
+		super(ActionType.TRANSFER);
 	}
-	return rv;
+
+	test(creep: Creep, target: any) {
+		return (target instanceof StructureSpawn || target instanceof StructureContainer) && this.checkPersist(creep) && hasFreeCapacity(target) && hasUsedCapacity(creep);
+	}
+
+	do(creep: Creep, target: ObjectWithStore & (AnyCreep | Structure)) {
+		creep.memory.lastAction = ActionType.TRANSFER;
+		let rv: ScreepsReturnCode = OK;
+		if (creep.pos.isNearTo(target)) {
+			let freeCapacity = target.store.getFreeCapacity(RESOURCE_ENERGY);
+			rv = creep.transfer(target, RESOURCE_ENERGY, Math.min(creep.store.energy, freeCapacity));
+			if (rv != OK) {
+				log.e(`Failed to transfer resource from creep [${creep.name}] to target StructureSpawn [${target.pos}] with error [${errorCodeToString(rv)}]`);
+			}
+		} else {
+			rv = moveTo(creep, target);
+		}
+		return rv;
+	}
 }
 
-export function harvest(creep: Creep, target: Source) {
-	creep.memory.lastAction = ActionType.HARVEST;
-	let rv: ScreepsReturnCode = OK;
-	if (creep.pos.isNearTo(target.pos)) {
-		let rv = creep.harvest(target);
-		if (rv != OK) {
-			log.e(`Failed to harvest source [${target.pos}] from creep [${creep.name}] with error [${errorCodeToString(rv)}]`);
-		}
-	} else {
-		rv = moveTo(creep, target);
+export class Build<ContextType> extends Action<ContextType> {
+	constructor() {
+		super(ActionType.BUILD);
 	}
-	return rv;
+
+	test(creep: Creep, target: any) {
+		return target instanceof ConstructionSite && this.checkPersist(creep) && hasUsedCapacity(creep);
+	}
+
+	do(creep: Creep, target: ConstructionSite) {
+		creep.memory.lastAction = ActionType.BUILD;
+		let rv: ScreepsReturnCode = OK;
+		if (creep.pos.inRangeTo(target.pos, BUILD_RANGE)) {
+			rv = creep.build(target);
+			if (rv != OK) {
+				log.e(`Failed to build for creep [${creep.name}] at [${target.structureType}][${target.pos}] with error [${errorCodeToString(rv)}]`);
+			}
+		} else {
+			rv = moveTo(creep, target);
+		}
+		return rv;
+	}
 }
 
-export function isLast(creep: Creep, actionType: ActionType) {
-	return creep.memory.lastAction == actionType;
+export class Repair<ContextType> extends Action<ContextType> {
+	constructor() {
+		super(ActionType.REPAIR);
+	}
+
+	test(creep: Creep, target: any) {
+		return target instanceof Structure && this.checkPersist(creep) && isDamaged(target) && hasUsedCapacity(creep);
+	}
+
+	do(creep: Creep, target: Structure) {
+		creep.memory.lastAction = ActionType.REPAIR;
+		let rv: ScreepsReturnCode = OK;
+		if (creep.pos.inRangeTo(target.pos, REPAIR_RANGE)) {
+			rv = creep.repair(target);
+			if (rv != OK) {
+				log.e(`Failed to repair from creep [${creep.name}] to target StructureContainer [${target.pos}] with error [${errorCodeToString(rv)}]`);
+			}
+		} else {
+			rv = moveTo(creep, target);
+		}
+		return rv;
+	}
+}
+
+export class Pickup<ContextType> extends Action<ContextType> {
+	constructor() {
+		super(ActionType.PICKUP);
+	}
+
+	test(creep: Creep, target: any) {
+		return target instanceof Resource && this.checkPersist(creep) && hasFreeCapacity(creep);
+	}
+
+	do(creep: Creep, target: Resource) {
+		creep.memory.lastAction = ActionType.PICKUP;
+		let rv = creep.pickup(target);
+		if (rv != OK) {
+			log.e(`Failed to pickup resource [${target}] from creep [${creep.name}] with error [${errorCodeToString(rv)}]`);
+		}
+		return rv;
+	}
+}
+
+export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any) {
+	for (let action of sequence) {
+		let target = action.getTarget(context);
+		if (action.test(creep, target)) {
+			action.do(creep, target);
+			return;
+		}
+	}
+	creep.say('idle');
 }
