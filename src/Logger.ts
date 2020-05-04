@@ -1,4 +1,4 @@
-import { MemInit } from "./Memory";
+import { MemInit } from "./util";
 
 enum LogLevel {
 	QUIET,

@@ -1,6 +1,6 @@
-import { MemInit } from "./Memory";
+import { EventEnum, events } from "./Events";
 import { log } from "./Logger";
-import { events, EventEnum } from "./Events";
+import { MemInit } from "./util";
 
 declare global {
 	interface Memory {

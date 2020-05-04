@@ -1,11 +1,11 @@
-import { events, EventEnum } from './Events';
-import { MemInit } from './Memory';
-import { JobBootRoom } from './Job.BootRoom';
-import { serverId } from './ServerCache';
+import { EventEnum, events } from './Events';
 import { Job } from './Job';
-import { Role } from './Role';
-import { log } from './Logger';
+import { JobBootRoom } from './Job.BootRoom';
 import { JobUpgradeController } from './Job.UpgradeController';
+import { log } from './Logger';
+import { Role } from './Role';
+import { serverId } from './ServerCache';
+import { MemInit } from "./util";
 
 declare global {
 	interface Memory {

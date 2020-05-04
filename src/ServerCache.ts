@@ -1,4 +1,4 @@
-import { MemInit } from "./Memory";
+import { MemInit } from "./util";
 
 declare global {
 	interface Memory {
@@ -37,7 +37,7 @@ class ServerCache {
 		return object;
 	}
 
-	private getRaw(key: string, interval: number, callback: Function) {
+	getRaw(key: string, interval: number, callback: Function) {
 		let entry = this.entries[key];
 		if (entry && Game.time - entry.lastFetch < interval) {
 			return entry.value;
@@ -47,6 +47,10 @@ class ServerCache {
 			lastFetch: Game.time,
 			value: callback(),
 		}).value;
+	}
+
+	clear(key: string) {
+		delete this.entries[key];
 	}
 }
 

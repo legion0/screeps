@@ -1,15 +1,24 @@
+import { findMinBy } from "./Array";
 import { CachedProperty } from "./Cache";
 import { Job } from "./Job";
+import { MemCachedObject } from "./Memory";
 import { RoleUpgrader } from "./Role.Upgrader";
-import { requestCreepSpawn, SpawnQueuePriority, findSources } from "./Room";
-import { everyN } from "./Tick";
+import { findSources, requestCreepSpawn, SpawnQueuePriority } from "./Room";
+import { serverCache } from "./ServerCache";
 import { isConcreteStructure } from "./Structure";
-import { findMinBy } from "./Array";
+import { everyN } from "./Tick";
 
 interface JobUpgradeControllerMemory {
 	roomName: string;
 	containerId?: Id<StructureContainer>;
 	sourceId?: Id<Source>;
+}
+
+function findContainer(pos: RoomPosition): StructureContainer {
+	if (!pos) {
+		return null;
+	}
+	return serverCache.getObject(`${pos}.findClosestByPath.container`, 100, () => pos.findClosestByPath(FIND_STRUCTURES, { filter: s => isConcreteStructure(s, STRUCTURE_CONTAINER) }));
 }
 
 export class JobUpgradeController extends Job {
@@ -18,8 +27,8 @@ export class JobUpgradeController extends Job {
 	controller?: StructureController;
 
 	container = new CachedProperty<JobUpgradeController, StructureContainer>(this).setReaders([
-		that => Game.time % 50 != 0 && Game.getObjectById(that.memory.containerId),
-		that => that.controller?.pos?.findClosestByPath(FIND_STRUCTURES, { filter: s => isConcreteStructure(s, STRUCTURE_CONTAINER) }) as StructureContainer,
+		that => MemCachedObject(that.memory.containerId, /*timeout=*/50),
+		that => findContainer(that.controller?.pos),
 	]).setWriters([
 		(value, that) => that.memory.containerId = value?.id
 	]);
