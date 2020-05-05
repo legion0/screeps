@@ -6,21 +6,21 @@ import { lookNear } from './RoomPosition';
 
 const sequence = [
 	// harvest energy
-	new Action.Harvest<SequenceContext>().setPersist().setCallback(context => context.job.getSource()),
+	new Action.Harvest<SequenceContext>().setPersist().setCallback(context => context.job.source),
 	// fill up spawn asap
-	new Action.TransferEnergy<SequenceContext>().setCallback(context => context.job.spawn.get()),
+	new Action.TransferEnergy<SequenceContext>().setCallback(context => context.job.spawn),
 	// build container
-	new Action.Build<SequenceContext>().setPersist().setCallback(context => context.job.constructionSite.get()),
+	new Action.Build<SequenceContext>().setPersist().setCallback(context => context.job.constructionSite),
 	// repair container
-	new Action.Repair<SequenceContext>().setPersist().setCallback(context => context.job.container.get()),
+	new Action.Repair<SequenceContext>().setPersist().setCallback(context => context.job.container),
 	// pickup stray energy
 	new Action.Pickup<SequenceContext>().setCallback(context => context.getResource()),
 	// init build container
-	new Action.Build<SequenceContext>().setCallback(context => context.job.constructionSite.get()),
+	new Action.Build<SequenceContext>().setCallback(context => context.job.constructionSite),
 	// init repair container
-	new Action.Repair<SequenceContext>().setCallback(context => context.job.container.get()),
+	new Action.Repair<SequenceContext>().setCallback(context => context.job.container),
 	// transfer to container
-	new Action.TransferEnergy<SequenceContext>().setCallback(context => context.job.container.get()),
+	new Action.TransferEnergy<SequenceContext>().setCallback(context => context.job.container),
 	// init harvest
 	new Action.Harvest<SequenceContext>().setCallback(context => context.job.getSource()),
 ];

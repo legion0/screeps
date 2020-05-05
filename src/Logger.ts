@@ -1,4 +1,4 @@
-import { MemInit } from "./util";
+import { MemInit } from "./Memory";
 
 enum LogLevel {
 	QUIET,
@@ -38,13 +38,24 @@ interface SourcePosition {
 	col: string;
 }
 
-function getSourcePosition(skipFrames?: number): SourcePosition {
+export function getFullStack() {
 	let error: Error;
 	try {
 		throw Error('');
 	} catch (err) {
 		error = err;
 	}
+	return error.stack;
+}
+
+export function getSourcePosition(skipFrames?: number): SourcePosition {
+	let error: Error;
+	try {
+		throw Error('');
+	} catch (err) {
+		error = err;
+	}
+	// console.log(error.stack);
 	let callerLine = error.stack.split("\n")[(skipFrames ?? 0) + 2];
 	let match = getSourcePositionRegEx.exec(callerLine);
 	if (!match) {

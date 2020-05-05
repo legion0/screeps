@@ -8,18 +8,6 @@ declare global {
 
 	interface RoomPosition {
 		_clearance: number;
-		// 		key(): string;
-		// 		isWalkable(): boolean;
-		// 		fromMemory(roomPositionMemory: RoomPositionMemory): RoomPosition;
-		// 		toMemory(): RoomPositionMemory;
-		// 		closest(positions: RoomPosition[]): RoomPosition;
-		// 		// Returns the surrounding room positions without crossing room borders.
-		// 		// If the position is near the edge of the map less then 8 positions will be returned.
-		// 		posNear(includeSelf: boolean): RoomPosition[];
-		// 		// returns the number of adjecent positions with terrain == plain
-		// 		getClearance(): number;
-
-		// 		lookNear<T extends keyof AllLookAtTypes>(type: T, filter: (element: AllLookAtTypes[T], index?: number) => boolean): AllLookAtTypes[T][];
 	}
 }
 
@@ -33,7 +21,7 @@ declare global {
 
 export function fromMemory(memory: RoomPositionMemory): RoomPosition {
 	if (!memory) {
-		return null;
+		return undefined;
 	}
 	let parts = memory.split('_');
 	return new RoomPosition(parseInt(parts[1]), parseInt(parts[2]), parts[0]);

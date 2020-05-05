@@ -1,6 +1,4 @@
-type TypedArray = Uint8Array | Uint32Array | Float64Array;
-
-export function encode(val: any) {
+export function encode(val: any): ArrayBuffer {
 	let buffers: ArrayBuffer[] = [];
 	encodeR(val, buffers);
 	let byteLength = buffers.reduce((total, buffer) => total + buffer.byteLength, 0);
@@ -219,4 +217,16 @@ function decodeR(buffer: DataView, offset: { i: number; }) {
 			return SPEC[type].decode(buffer, offset);
 		}
 	}
+}
+
+export function packAsString(buffer: ArrayBuffer): string {
+	return String.fromCharCode.apply(null, new Uint16Array(buffer));
+}
+
+export function unpackString(str: string): ArrayBuffer {
+	let buffer = new Uint16Array(str.length);
+	for(var i = 0; i < str.length; i++) {
+		buffer[i] = str.charCodeAt(i);
+	}
+	return buffer.buffer;
 }

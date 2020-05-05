@@ -1,4 +1,4 @@
-import { encode, decode } from './serialization'
+import { encode, decode, packAsString, unpackString } from './serialization'
 
 test('float', () => {
 	expect(decode(encode(1.7))).toBeCloseTo(1.7, 5);
@@ -51,4 +51,22 @@ test('complex1', () => {
 	};
 	expect(decode(encode(val))).toEqual(val);
 	expect(JSON.stringify(decode(encode(val)))).toEqual(JSON.stringify(val));
+})
+
+test('packAsString', () => {
+	let val = {
+		arrVal: [1, 2, 3, { key: 'val' }, 'x', null],
+		intVal: 5,
+		floatVal: 3.7,
+		nullVal: null,
+		undefinedVal: undefined,
+		stringVal: 'abc',
+		booleanVal: true,
+		objVal: {
+			k1: 1,
+			k2: 2,
+		},
+	};
+	let packed = packAsString(encode(val));
+	expect(decode(unpackString(packed))).toEqual(val);
 })

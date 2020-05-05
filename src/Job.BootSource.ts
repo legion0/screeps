@@ -1,19 +1,12 @@
-import { CachedProperty } from "./Cache";
+import { MutatingCacheService, ObjectCacheService, objectServerCache } from "./Cache";
 import { errorCodeToString, TERRAIN_PLAIN } from "./constants";
 import { Job } from "./Job";
 import { log } from "./Logger";
 import { RoleBoot } from "./Role.Boot";
-import { findMySpawns, requestCreepSpawn, SpawnQueuePriority } from "./Room";
+import { requestCreepSpawn, SpawnQueuePriority, findMySpawns } from "./Room";
 import { fromMemory, getClearance, lookNear, posNear, RoomPositionMemory, toMemory } from "./RoomPosition";
 import { isConcreteStructure, isConstructionSiteForStructure } from "./Structure";
 import { everyN } from "./Tick";
-
-interface JobBootSourceMemory {
-	sourceId: Id<Source>;
-	containerPos?: RoomPositionMemory;
-	containerId?: Id<StructureContainer>;
-	constructionSiteId?: Id<ConstructionSite<STRUCTURE_CONTAINER>>;
-}
 
 declare global {
 	interface CreepMemory {
@@ -25,38 +18,22 @@ declare global {
 export class JobBootSource extends Job {
 	static className = 'JobBootSource';
 
-	private memory: JobBootSourceMemory;
-	private source: Source;
+	source: Source;
+	spawn: StructureSpawn;
+	container?: StructureContainer;
+	constructionSite?: ConstructionSite<STRUCTURE_CONTAINER>;
 
-	container = new CachedProperty<JobBootSource, StructureContainer>(this).setReaders([
-		that => Game.getObjectById(that.memory.containerId),
-		that => lookNear(that.source.pos, LOOK_STRUCTURES, s => isConcreteStructure(s, STRUCTURE_CONTAINER))[0] as StructureContainer
-	]).setWriters([
-		(value, that) => that.memory.containerId = value?.id
-	]);
+	private memory: ObjectCacheService<any>;
 
-	constructionSite = new CachedProperty<JobBootSource, ConstructionSite<STRUCTURE_CONTAINER>>(this).setReaders([
-		that => Game.getObjectById(that.memory.constructionSiteId),
-		that => lookNear(that.source.pos, LOOK_CONSTRUCTION_SITES, s => isConstructionSiteForStructure(s, STRUCTURE_CONTAINER))[0] as ConstructionSite<STRUCTURE_CONTAINER>
-	]).setWriters([
-		(value, that) => that.memory.constructionSiteId = value?.id
-	]);
-
-	containerPos = new CachedProperty<JobBootSource, RoomPosition>(this).setReaders([
-		that => fromMemory(that.memory.containerPos),
-		that => posNear(that.source.pos, /*includeSelf=*/false).find(containerConstructionSitePositionValidator)
-	]).setWriters([
-		(value, that) => that.memory.containerPos = toMemory(value)
-	]);
-
-	spawn = new CachedProperty<JobBootSource, StructureSpawn>(this).setReaders([
-		that => findMySpawns(that.source.room).find((s: StructureSpawn) => s.energy < s.energyCapacity)
-	]);
-
-	constructor(id: Id<Job>, memory: JobBootSourceMemory) {
+	constructor(id: Id<Job>, memory: any) {
 		super(id);
-		this.memory = memory;
 		this.source = Game.getObjectById(memory.sourceId);
+		this.memory = new ObjectCacheService<any>(memory);
+
+
+		this.spawn = objectServerCache.getWithCallback(`${this.id}.spawn`, 50, findSpawn, this.source.room) as StructureSpawn;
+		this.container = objectServerCache.getWithCallback(`${this.id}.container`, 50, findContainer, this.source.pos) as StructureContainer;
+		this.constructionSite = objectServerCache.getWithCallback(`${this.id}.constructionSite`, 50, findConstructionSite, this.source.pos) as ConstructionSite<STRUCTURE_CONTAINER>;
 
 		this.maybePlaceContainer();
 
@@ -91,7 +68,7 @@ export class JobBootSource extends Job {
 		if (rv != OK) {
 			return rv;
 		}
-		let memory = Memory.jobs[id] as JobBootSourceMemory;
+		let memory = Memory.jobs[id];
 		memory.sourceId = source.id;
 		return new JobBootSource(id, memory);
 	}
@@ -101,11 +78,12 @@ export class JobBootSource extends Job {
 	}
 
 	private maybePlaceContainer() {
-		if (this.container.get() || this.constructionSite.get()) {
+		if (this.container || this.constructionSite) {
 			return;
 		}
 
-		let containerPos = this.containerPos.get();
+		let posCache = new MutatingCacheService<RoomPosition, RoomPositionMemory>(this.memory, fromMemory, toMemory);
+		let containerPos = posCache.getWithCallback(`containerPos`, 50, findContainerPos, this.source.pos);
 		let rv = containerPos?.createConstructionSite(STRUCTURE_CONTAINER);
 		if (rv != OK) {
 			log.e(`Failed to create STRUCTURE_CONTAINER at [${containerPos}] with error [${errorCodeToString(rv)}]`);
@@ -113,10 +91,26 @@ export class JobBootSource extends Job {
 	}
 }
 
-function containerConstructionSitePositionValidator(pos: RoomPosition) {
+Job.register.registerJobClass(JobBootSource);
+
+function findContainer(pos: RoomPosition) {
+	return (lookNear(pos, LOOK_STRUCTURES, s => isConcreteStructure(s, STRUCTURE_CONTAINER))[0] ?? null) as StructureContainer;
+}
+
+function findConstructionSite(pos: RoomPosition) {
+	return (lookNear(pos, LOOK_CONSTRUCTION_SITES, s => isConstructionSiteForStructure(s, STRUCTURE_CONTAINER))[0] ?? null) as ConstructionSite<STRUCTURE_CONTAINER>;
+}
+
+function findContainerPos(sourcePos: RoomPosition) {
+	return posNear(sourcePos, /*includeSelf=*/false).find(isPosGoodForContainer);
+}
+
+function findSpawn(room: Room): StructureSpawn {
+	return findMySpawns(room)[0] ?? null;
+}
+
+function isPosGoodForContainer(pos: RoomPosition) {
 	return pos.lookFor(LOOK_CONSTRUCTION_SITES).length == 0 &&
 		pos.lookFor(LOOK_TERRAIN)[0] == TERRAIN_PLAIN &&
 		pos.lookFor(LOOK_STRUCTURES).length == 0;
 }
-
-Job.register.registerJobClass(JobBootSource);

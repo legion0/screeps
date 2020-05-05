@@ -1,8 +1,8 @@
+import { objectsServerCache } from "./Cache";
 import { errorCodeToString } from "./constants";
 import { EventEnum, events } from "./Events";
 import { log } from "./Logger";
 import { PriorityQueue } from "./PriorityQueue";
-import { serverCache } from "./ServerCache";
 import { everyN } from "./Tick";
 
 export enum SpawnQueuePriority {
@@ -61,12 +61,12 @@ export function findSources(room: Room): Source[] {
 	if (!room) {
 		return [];
 	}
-	return serverCache.getObjects(`${room.name}.sources`, 100, () => room.find(FIND_SOURCES));
+	return objectsServerCache.getWithCallback(`${room.name}.sources`, 100, () => room.find(FIND_SOURCES)) as Source[];
 }
 
 export function findMySpawns(room: Room): StructureSpawn[] {
 	if (!room) {
 		return [];
 	}
-	return serverCache.getObjects(`${room.name}.spawns`, 100, () => room.find(FIND_MY_SPAWNS));
+	return objectsServerCache.getWithCallback(`${room.name}.spawns`, 100, () => room.find(FIND_MY_SPAWNS)) as StructureSpawn[];
 }

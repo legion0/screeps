@@ -1,20 +1,20 @@
 import * as Action from './Action';
 import { Job } from './Job';
+import { JobUpgradeController } from './Job.UpgradeController';
 import { Role } from './Role';
 import { lookNear } from './RoomPosition';
-import { JobUpgradeController } from './Job.UpgradeController';
 
 const sequence = [
 	// continue harvest energy
-	new Action.Harvest<SequenceContext>().setPersist().setCallback(context => context.job.source.get()),
+	new Action.Harvest<SequenceContext>().setPersist().setCallback(context => context.job.source),
 	// continue upgrade controller
 	new Action.UpgradeController<SequenceContext>().setPersist().setCallback(context => context.job.controller),
 	// withdraw from container
-	new Action.Withdraw<SequenceContext>().setCallback(context => context.job.container.get()),
+	new Action.Withdraw<SequenceContext>().setCallback(context => context.job.container),
 	// pickup stray energy
 	new Action.Pickup<SequenceContext>().setCallback(context => context.getResource()),
 	// init harvest
-	new Action.Harvest<SequenceContext>().setCallback(context => context.job.source.get()),
+	new Action.Harvest<SequenceContext>().setCallback(context => context.job.source),
 	// init upgrade controller
 	new Action.UpgradeController<SequenceContext>().setCallback(context => context.job.controller),
 
