@@ -1,4 +1,4 @@
-import { MutatingCacheService, ObjectCacheService, objectServerCache } from "./Cache";
+import { MutatingCacheService, ObjectCacheService, objectServerCache, getWithCallback } from "./Cache";
 import { errorCodeToString, TERRAIN_PLAIN } from "./constants";
 import { log } from "./Logger";
 import { RoleBoot } from "./Role.Boot";
@@ -23,16 +23,16 @@ export class TaskBootSource extends Task {
 	readonly container?: StructureContainer;
 	readonly constructionSite?: ConstructionSite<STRUCTURE_CONTAINER>;
 
-	private readonly memory: ObjectCacheService<any>;
+	private readonly cache = new ObjectCacheService<any>(this);
 
 	constructor(sourceId: Id<TaskBootSource>) {
 		super(TaskBootSource, sourceId);
 		this.source = Game.getObjectById(sourceId as unknown as Id<Source>);
 
 		if (this.source) {
-			this.spawn = objectServerCache.getWithCallback(`${this.id}.spawn`, 50, findSpawn, this.source.room) as StructureSpawn;
-			this.container = objectServerCache.getWithCallback(`${this.id}.container`, 50, findContainer, this.source.pos) as StructureContainer;
-			this.constructionSite = objectServerCache.getWithCallback(`${this.id}.constructionSite`, 50, findConstructionSite, this.source.pos) as ConstructionSite<STRUCTURE_CONTAINER>;
+			this.spawn = getWithCallback(objectServerCache, `${this.id}.spawn`, 50, findSpawn, this.source.room) as StructureSpawn;
+			this.container = getWithCallback(objectServerCache, `${this.id}.container`, 50, findContainer, this.source.pos) as StructureContainer;
+			this.constructionSite = getWithCallback(objectServerCache, `${this.id}.constructionSite`, 50, findConstructionSite, this.source.pos) as ConstructionSite<STRUCTURE_CONTAINER>;
 			this.maybePlaceContainer();
 		} else {
 			if (!this.source) {
@@ -74,8 +74,8 @@ export class TaskBootSource extends Task {
 			return;
 		}
 
-		let posCache = new MutatingCacheService<RoomPosition, RoomPositionMemory>(this.memory, fromMemory, toMemory);
-		let containerPos = posCache.getWithCallback(`containerPos`, 50, findContainerPos, this.source.pos);
+		let posCache = new MutatingCacheService<RoomPosition, RoomPositionMemory>(this.cache, fromMemory, toMemory);
+		let containerPos = getWithCallback(posCache, `containerPos`, 50, findContainerPos, this.source.pos);
 		let rv = containerPos?.createConstructionSite(STRUCTURE_CONTAINER);
 		if (rv != OK) {
 			log.e(`Failed to create STRUCTURE_CONTAINER at [${containerPos}] with error [${errorCodeToString(rv)}]`);

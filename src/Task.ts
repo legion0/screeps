@@ -40,6 +40,7 @@ export abstract class Task {
 	static register: TaskClassRegister = new TaskClassRegister();
 
 	remove() {
+		log.i(`removing task [${this.id}]`);
 		delete Memory.tasks[this.id];
 	}
 
@@ -68,11 +69,14 @@ export abstract class Task {
 		return new taskClass(subId as Id<Task>) as Task;
 	}
 
-	protected static createBase(subClass: TaskClass<any>, id: Id<Task>, initMemory = undefined) {
-		if (id in Memory.tasks) {
+	protected static createBase(subClass: TaskClass<any>, id: Id<Task>, initMemory = null) {
+		let fullId = `${subClass.className}.${id}`;
+		if (fullId in Memory.tasks) {
 			return ERR_NAME_EXISTS;
 		}
-		Memory.tasks[id] = initMemory;
+		log.i(`Creating task [${fullId}]`);
+		Memory.tasks[fullId] = initMemory;
+	
 		return OK;
 	}
 }

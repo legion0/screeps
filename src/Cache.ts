@@ -6,15 +6,6 @@ abstract class CacheService<T> {
 	// returns the value from the cache or undefined if value is not in the cache or expired.
 	abstract get(id: string): T;
 	abstract set(id: string, value: T, ttl: number): void;
-
-	getWithCallback<ContextType>(id: string, ttl: number, callback: (context?: ContextType) => T, context?: ContextType) {
-		let value = this.get(id);
-		if (value === undefined) {
-			value = callback(context);
-			this.set(id, value ?? null, ttl);
-		}
-		return value;
-	}
 }
 
 export class ObjectCacheService<T> extends CacheService<T> {
@@ -167,3 +158,12 @@ export let rawServerCache = new ChainingCacheService(tickCacheService, rawCache)
 export let objectServerCache: CacheService<ObjectWithId<any>> = new ChainingCacheService(tickCacheService, new MutatingCacheService(rawCache, fromMemory, toMemory));
 
 export let objectsServerCache: CacheService<ObjectWithId<any>[]> = new ChainingCacheService(tickCacheService, new MutatingCacheService(rawCache, fromMemoryMany, toMemoryMany));
+
+export function getWithCallback<T, ContextType>(cache: CacheService<T>, id: string, ttl: number, callback: (context?: ContextType) => T, context?: ContextType) {
+	let value = cache.get(id);
+	if (value === undefined) {
+		value = callback(context);
+		cache.set(id, value ?? null, ttl);
+	}
+	return value;
+}

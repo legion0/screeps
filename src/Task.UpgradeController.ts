@@ -1,5 +1,5 @@
 import { findMinBy } from "./Array";
-import { objectServerCache } from "./Cache";
+import { getWithCallback, objectServerCache } from "./Cache";
 import { RoleUpgrader } from "./Role.Upgrader";
 import { findSources, requestCreepSpawn, SpawnQueuePriority } from "./Room";
 import { isConcreteStructure } from "./Structure";
@@ -24,12 +24,12 @@ export class TaskUpgradeController extends Task {
 		super(TaskUpgradeController, roomName);
 		this.room = Game.rooms[roomName];
 		this.controller = Game.rooms[roomName]?.controller;
-		this.container = objectServerCache.getWithCallback(`${this.id}.container`, 50, findContainer, this.controller?.pos) as StructureContainer;
-		this.source = objectServerCache.getWithCallback(`${this.id}.source`, 50, findSource, this.controller?.pos) as Source;
+		this.container = getWithCallback(objectServerCache, `${this.id}.container`, 50, findContainer, this.controller?.pos) as StructureContainer;
+		this.source = getWithCallback(objectServerCache, `${this.id}.source`, 50, findSource, this.controller?.pos) as Source;
 	}
 
 	protected run() {
-		everyN(5, () => {
+		everyN(50, () => {
 			let name = this.id;
 			requestCreepSpawn(this.controller?.room, name, () => ({
 				priority: SpawnQueuePriority.UPGRADER,

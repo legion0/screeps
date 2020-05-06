@@ -1,5 +1,5 @@
 import { EventEnum, events } from './Events';
-import { log } from './Logger';
+import { log, getFullStack } from './Logger';
 import { MemInit } from "./Memory";
 import { detectRespawn } from './reset';
 import { Role } from './Role';
@@ -48,6 +48,7 @@ module.exports.loop = function () {
 			delete Memory.discoveredRooms;
 			Memory.rooms = {};
 			Memory.creeps = {};
+			return;
 		}
 		events.fire(EventEnum.EVENT_TICK_START);
 		main_loop();
