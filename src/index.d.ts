@@ -1,5 +1,5 @@
-interface Registerable {
-	className: string;
+interface Registerable<T> {
+	className: Id<T>;
 }
 
 interface MemoryFor<T> { }

@@ -1,44 +1,43 @@
 import { MutatingCacheService, ObjectCacheService, objectServerCache } from "./Cache";
 import { errorCodeToString, TERRAIN_PLAIN } from "./constants";
-import { Job } from "./Job";
 import { log } from "./Logger";
 import { RoleBoot } from "./Role.Boot";
-import { requestCreepSpawn, SpawnQueuePriority, findMySpawns } from "./Room";
+import { findMySpawns, requestCreepSpawn, SpawnQueuePriority } from "./Room";
 import { fromMemory, getClearance, lookNear, posNear, RoomPositionMemory, toMemory } from "./RoomPosition";
 import { isConcreteStructure, isConstructionSiteForStructure } from "./Structure";
+import { Task } from "./Task";
 import { everyN } from "./Tick";
 
 declare global {
 	interface CreepMemory {
-		job?: Id<Job>;
+		task?: Id<Task>;
 		role?: string;
 	}
 }
 
-export class JobBootSource extends Job {
-	static className = 'JobBootSource';
+export class TaskBootSource extends Task {
+	static readonly className = 'BootSource' as Id<typeof Task>;
 
-	source: Source;
-	spawn: StructureSpawn;
-	container?: StructureContainer;
-	constructionSite?: ConstructionSite<STRUCTURE_CONTAINER>;
+	readonly source: Source;
+	readonly spawn?: StructureSpawn;
+	readonly container?: StructureContainer;
+	readonly constructionSite?: ConstructionSite<STRUCTURE_CONTAINER>;
 
-	private memory: ObjectCacheService<any>;
+	private readonly memory: ObjectCacheService<any>;
 
-	constructor(id: Id<Job>, memory: any) {
-		super(id);
-		this.source = Game.getObjectById(memory.sourceId);
-		this.memory = new ObjectCacheService<any>(memory);
+	constructor(sourceId: Id<TaskBootSource>) {
+		super(TaskBootSource, sourceId);
+		this.source = Game.getObjectById(sourceId as unknown as Id<Source>);
 
-
-		this.spawn = objectServerCache.getWithCallback(`${this.id}.spawn`, 50, findSpawn, this.source.room) as StructureSpawn;
-		this.container = objectServerCache.getWithCallback(`${this.id}.container`, 50, findContainer, this.source.pos) as StructureContainer;
-		this.constructionSite = objectServerCache.getWithCallback(`${this.id}.constructionSite`, 50, findConstructionSite, this.source.pos) as ConstructionSite<STRUCTURE_CONTAINER>;
-
-		this.maybePlaceContainer();
-
-		if (!this.source) {
-			this.remove();
+		if (this.source) {
+			this.spawn = objectServerCache.getWithCallback(`${this.id}.spawn`, 50, findSpawn, this.source.room) as StructureSpawn;
+			this.container = objectServerCache.getWithCallback(`${this.id}.container`, 50, findContainer, this.source.pos) as StructureContainer;
+			this.constructionSite = objectServerCache.getWithCallback(`${this.id}.constructionSite`, 50, findConstructionSite, this.source.pos) as ConstructionSite<STRUCTURE_CONTAINER>;
+			this.maybePlaceContainer();
+		} else {
+			if (!this.source) {
+				this.remove();
+			}
 		}
 	}
 
@@ -53,7 +52,7 @@ export class JobBootSource extends Job {
 					cost: BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK],
 					opts: {
 						memory: {
-							job: this.id,
+							task: this.id,
 							role: RoleBoot.className,
 						}
 					}
@@ -63,18 +62,11 @@ export class JobBootSource extends Job {
 	}
 
 	static create(source: Source) {
-		let id = `BootSource.${source.id}` as Id<Job>;
-		let rv = Job.createBase(JobBootSource, id);
+		let rv = Task.createBase(TaskBootSource, source.id as unknown as Id<Task>);
 		if (rv != OK) {
 			return rv;
 		}
-		let memory = Memory.jobs[id];
-		memory.sourceId = source.id;
-		return new JobBootSource(id, memory);
-	}
-
-	getSource() {
-		return this.source;
+		return new TaskBootSource(source.id as unknown as Id<TaskBootSource>);
 	}
 
 	private maybePlaceContainer() {
@@ -91,7 +83,7 @@ export class JobBootSource extends Job {
 	}
 }
 
-Job.register.registerJobClass(JobBootSource);
+Task.register.registerTaskClass(TaskBootSource);
 
 function findContainer(pos: RoomPosition) {
 	return (lookNear(pos, LOOK_STRUCTURES, s => isConcreteStructure(s, STRUCTURE_CONTAINER))[0] ?? null) as StructureContainer;

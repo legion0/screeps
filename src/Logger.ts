@@ -1,5 +1,13 @@
 import { MemInit } from "./Memory";
 
+declare global {
+	interface Memory {
+		logger: {
+			print_level: LogLevel;
+		};
+	}
+}
+
 enum LogLevel {
 	QUIET,
 	FATAL,
@@ -22,12 +30,6 @@ const LogLevelColor: string[] = [
 	'gray',
 	'gray',
 ];
-
-type LogLevelNames = keyof typeof LogLevel;
-
-interface LoggerMemory {
-	print_level: LogLevel;
-}
 
 const getSourcePositionRegEx = /\s*at\s(([^\s]+)\s)?\(?(\s\()?([^:]+):(\d+):(\d+)/;
 
@@ -74,12 +76,12 @@ function formatSourcePosition(sourcePosition: SourcePosition) {
 }
 
 class Logger {
-	private memory: LoggerMemory;
+	private memory: typeof Memory.logger;
 	static _instance: Logger;
 
 	constructor() {
-		MemInit(Memory, '_Logger', { print_level: LogLevel.INFO });
-		this.memory = Memory['_Logger'];
+		MemInit(Memory, 'logger', { print_level: LogLevel.INFO });
+		this.memory = Memory['logger'];
 	}
 
 	f(...args: any[]) {

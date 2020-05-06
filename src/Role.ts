@@ -15,7 +15,7 @@ export abstract class Role {
 	}
 }
 
-type RoleClass = typeof Role & Registerable;
+type RoleClass = typeof Role & Registerable<typeof Role>;
 
 class RoleRegister {
 	private _register: { [key: string]: RoleClass } = {};

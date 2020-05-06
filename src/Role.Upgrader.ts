@@ -1,33 +1,33 @@
 import * as Action from './Action';
-import { Job } from './Job';
-import { JobUpgradeController } from './Job.UpgradeController';
+import { Task } from './Task';
+import { TaskUpgradeController } from './Task.UpgradeController';
 import { Role } from './Role';
 import { lookNear } from './RoomPosition';
 
 const sequence = [
 	// continue harvest energy
-	new Action.Harvest<SequenceContext>().setPersist().setCallback(context => context.job.source),
+	new Action.Harvest<SequenceContext>().setPersist().setCallback(context => context.task.source),
 	// continue upgrade controller
-	new Action.UpgradeController<SequenceContext>().setPersist().setCallback(context => context.job.controller),
+	new Action.UpgradeController<SequenceContext>().setPersist().setCallback(context => context.task.controller),
 	// withdraw from container
-	new Action.Withdraw<SequenceContext>().setCallback(context => context.job.container),
+	new Action.Withdraw<SequenceContext>().setCallback(context => context.task.container),
 	// pickup stray energy
 	new Action.Pickup<SequenceContext>().setCallback(context => context.getResource()),
 	// init harvest
-	new Action.Harvest<SequenceContext>().setCallback(context => context.job.source),
+	new Action.Harvest<SequenceContext>().setCallback(context => context.task.source),
 	// init upgrade controller
-	new Action.UpgradeController<SequenceContext>().setCallback(context => context.job.controller),
+	new Action.UpgradeController<SequenceContext>().setCallback(context => context.task.controller),
 
 ];
 
 class SequenceContext {
 	private creep: Creep;
-	job: JobUpgradeController;
+	task: TaskUpgradeController;
 	private resource?: Resource;
 
-	constructor(creep: Creep, job: JobUpgradeController) {
+	constructor(creep: Creep, task: TaskUpgradeController) {
 		this.creep = creep;
-		this.job = job;
+		this.task = task;
 	}
 
 	getResource() {
@@ -36,17 +36,17 @@ class SequenceContext {
 }
 
 export class RoleUpgrader extends Role {
-	static className = 'RoleUpgrader';
+	static readonly className = 'Upgrader' as Id<typeof Role>;
 
-	private job: JobUpgradeController;
+	private task: TaskUpgradeController;
 
 	constructor(creep: Creep) {
 		super(creep);
-		this.job = Job.load(this.creep.memory.job) as JobUpgradeController;
+		this.task = Task.load(this.creep.memory.task) as TaskUpgradeController;
 	}
 
 	run() {
-		Action.runSequence(sequence, this.creep, new SequenceContext(this.creep, this.job));
+		Action.runSequence(sequence, this.creep, new SequenceContext(this.creep, this.task));
 	}
 }
 

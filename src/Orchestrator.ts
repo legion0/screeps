@@ -6,7 +6,7 @@ export class Orchestrator {
 
 	run() {
 
-		// create harvest jobs
+		// create harvest tasks
 		// spawn worker creeps
 		// build defences
 	}

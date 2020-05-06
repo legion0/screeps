@@ -1,27 +1,29 @@
 import { findMinBy } from "./Array";
 import { objectServerCache } from "./Cache";
-import { Job } from "./Job";
 import { RoleUpgrader } from "./Role.Upgrader";
 import { findSources, requestCreepSpawn, SpawnQueuePriority } from "./Room";
 import { isConcreteStructure } from "./Structure";
+import { Task } from "./Task";
 import { everyN } from "./Tick";
 
-interface JobUpgradeControllerMemory {
+interface TaskUpgradeControllerMemory {
 	roomName: string;
 	containerId?: Id<StructureContainer>;
 	sourceId?: Id<Source>;
 }
 
-export class JobUpgradeController extends Job {
-	readonly roomName: string;
+export class TaskUpgradeController extends Task {
+	static className = 'TaskUpgradeController' as Id<typeof Task>;
+
+	readonly room: Room;
 	readonly controller?: StructureController;
 	readonly container?: StructureContainer;
 	readonly source?: Source;
 
-	constructor(id: Id<Job>, memory: JobUpgradeControllerMemory) {
-		super(id);
-		this.roomName = memory.roomName;
-		this.controller = Game.rooms[this.roomName]?.controller;
+	constructor(roomName: Id<TaskUpgradeController>) {
+		super(TaskUpgradeController, roomName);
+		this.room = Game.rooms[roomName];
+		this.controller = Game.rooms[roomName]?.controller;
 		this.container = objectServerCache.getWithCallback(`${this.id}.container`, 50, findContainer, this.controller?.pos) as StructureContainer;
 		this.source = objectServerCache.getWithCallback(`${this.id}.source`, 50, findSource, this.controller?.pos) as Source;
 	}
@@ -36,7 +38,7 @@ export class JobUpgradeController extends Job {
 				cost: BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK],
 				opts: {
 					memory: {
-						job: this.id,
+						task: this.id,
 						role: RoleUpgrader.className,
 					}
 				}
@@ -45,20 +47,15 @@ export class JobUpgradeController extends Job {
 	}
 
 	static create(roomName: string) {
-		let id = `UpgradeController.${roomName}` as Id<Job>;
-		let rv = Job.createBase(JobUpgradeController, id);
+		let rv = Task.createBase(TaskUpgradeController, roomName as Id<Task>);
 		if (rv != OK) {
 			return rv;
 		}
-		let memory = Memory.jobs[id] as JobUpgradeControllerMemory;
-		memory.roomName = roomName;
-		return new JobUpgradeController(id, memory);
+		return new TaskUpgradeController(roomName as Id<TaskUpgradeController>);
 	}
-
-	static className = 'JobUpgradeController';
 }
 
-Job.register.registerJobClass(JobUpgradeController);
+Task.register.registerTaskClass(TaskUpgradeController);
 
 function findContainer(controllerPos: RoomPosition): StructureContainer {
 	return controllerPos?.findClosestByPath(FIND_STRUCTURES, { filter: s => isConcreteStructure(s, STRUCTURE_CONTAINER) }) as StructureContainer;
