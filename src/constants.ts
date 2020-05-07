@@ -50,3 +50,4 @@ export const BUILD_RANGE = 3;
 export const UPGRADE_RANGE = 3;
 
 export const TERRAIN_PLAIN = 'plain';
+export const TERRAIN_SWAMP = 'swamp';

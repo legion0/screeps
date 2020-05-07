@@ -1,4 +1,5 @@
 import { TERRAIN_PLAIN, ROOM_WIDTH, ROOM_HEIGHT } from "./constants";
+import { tickCacheService, getWithCallback } from "./Cache";
 
 // import { isWalkableStructure } from "./util.Structure";
 
@@ -141,3 +142,11 @@ export function findObjectByPos<T extends RoomObject & { id: Id<T> }>(
 // 	}
 // 	return objects;
 // }
+
+export function posKey(pos: RoomPosition) {
+	return `${pos.roomName}_${pos.x}_${pos.y}`;
+}
+
+export function findNearbyEnergy(pos: RoomPosition) {
+	return getWithCallback(tickCacheService, `${posKey(pos)}.nearbyEnergy`, 1, (pos) => lookNear(pos, LOOK_ENERGY)[0], pos);
+}

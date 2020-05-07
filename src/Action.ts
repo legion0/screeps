@@ -44,7 +44,7 @@ abstract class Action<ContextType> {
 	}
 
 	// sets the bit which fails `test` unless the action taken on the last tick is the same as this one.
-	setPersist() {
+	continue() {
 		this.persist = true;
 		return this;
 	}
@@ -239,6 +239,7 @@ export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any
 		let target = action.getTarget(context);
 		if (action.test(creep, target)) {
 			action.do(creep, target);
+			// creep.say(ActionType[creep.memory.lastAction]);
 			return;
 		}
 	}

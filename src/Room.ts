@@ -3,6 +3,7 @@ import { errorCodeToString } from "./constants";
 import { EventEnum, events } from "./Events";
 import { log } from "./Logger";
 import { PriorityQueue } from "./PriorityQueue";
+import { isConcreteStructure } from "./Structure";
 import { everyN } from "./Tick";
 
 export enum SpawnQueuePriority {
@@ -57,16 +58,23 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 	}
 });
 
-export function findSources(room: Room): Source[] {
-	if (!room) {
-		return [];
-	}
-	return getWithCallback(objectsServerCache, `${room.name}.sources`, 100, () => room.find(FIND_SOURCES)) as Source[];
+function findSourcesImpl(room: Room): Source[] {
+	return room.find(FIND_SOURCES);
+}
+export function findSources(room: Room) {
+	return (room ? getWithCallback(objectsServerCache, `${room.name}.sources`, 100, findSourcesImpl, room) : []) as Source[];
 }
 
-export function findMySpawns(room: Room): StructureSpawn[] {
-	if (!room) {
-		return [];
-	}
-	return getWithCallback(objectsServerCache, `${room.name}.spawns`, 100, () => room.find(FIND_MY_SPAWNS)) as StructureSpawn[];
+function findMySpawnsImpl(room: Room): StructureSpawn[] {
+	return room.find(FIND_MY_SPAWNS);
+}
+export function findMySpawns(room: Room) {
+	return (room ? getWithCallback(objectsServerCache, `${room.name}.spawns`, 100, findMySpawnsImpl, room) : []) as StructureSpawn[];
+}
+
+export function findMyExtensions(room: Room): StructureExtension[] {
+	return (room ? getWithCallback(objectsServerCache, `${room.name}.extensions`, 50, findExtensionsImpl, room) : []) as StructureExtension[];
+}
+function findExtensionsImpl(room: Room) {
+	return room.find(FIND_MY_STRUCTURES).filter(s => isConcreteStructure(s, STRUCTURE_EXTENSION)) as StructureExtension[];
 }

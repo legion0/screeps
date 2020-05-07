@@ -1,16 +1,31 @@
+import * as A from './Action';
 import { findMinBy } from "./Array";
 import { getWithCallback, objectServerCache } from "./Cache";
-import { RoleUpgrader } from "./Role.Upgrader";
 import { findSources, requestCreepSpawn, SpawnQueuePriority } from "./Room";
+import { findNearbyEnergy } from './RoomPosition';
 import { isConcreteStructure } from "./Structure";
 import { Task } from "./Task";
 import { everyN } from "./Tick";
 
-interface TaskUpgradeControllerMemory {
-	roomName: string;
-	containerId?: Id<StructureContainer>;
-	sourceId?: Id<Source>;
+interface SequenceContext {
+	creep: Creep;
+	task: TaskUpgradeController;
 }
+
+const upgradeControllerActions = [
+	// continue harvesting energy
+	new A.Harvest<SequenceContext>().continue().setCallback(c => c.task.source),
+	// continue upgrading controller
+	new A.UpgradeController<SequenceContext>().continue().setCallback(c => c.task.controller),
+	// withdraw from container
+	new A.Withdraw<SequenceContext>().setCallback(c => c.task.container),
+	// pickup stray energy
+	new A.Pickup<SequenceContext>().setCallback(c => findNearbyEnergy(c.creep.pos)),
+	// init harvest
+	new A.Harvest<SequenceContext>().setCallback(c => c.task.source),
+	// init upgrade controller
+	new A.UpgradeController<SequenceContext>().setCallback(c => c.task.controller),
+];
 
 export class TaskUpgradeController extends Task {
 	static className = 'TaskUpgradeController' as Id<typeof Task>;
@@ -29,21 +44,18 @@ export class TaskUpgradeController extends Task {
 	}
 
 	protected run() {
-		everyN(50, () => {
-			let name = this.id;
-			requestCreepSpawn(this.controller?.room, name, () => ({
+		let name = this.id;
+		let creep = Game.creeps[name];
+		if (creep) {
+			A.runSequence(upgradeControllerActions, creep, { creep: creep, task: this });
+		} else {
+			everyN(20, () => requestCreepSpawn(this.controller?.room, name, () => ({
 				priority: SpawnQueuePriority.UPGRADER,
 				name: name,
 				body: [MOVE, MOVE, CARRY, WORK],
 				cost: BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK],
-				opts: {
-					memory: {
-						task: this.id,
-						role: RoleUpgrader.className,
-					}
-				}
-			}));
-		});
+			})));
+		}
 	}
 
 	static create(roomName: string) {
