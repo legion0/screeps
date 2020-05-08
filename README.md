@@ -16,7 +16,7 @@ https://wiki.screepspl.us/index.php/Private_Server_Common_Tasks
 
 ## TODO
 
-* Add compound harvesting action that supports withdraw / harvest
+* Add build queue to room so room builders only build construction sites in room queue (and not boot containers for example)
 * Make server cache write back to tick cache on load from object id
 * standard harvester and hauler
 * recycleCreep when its job is done, e.g. room builders
@@ -24,3 +24,9 @@ https://wiki.screepspl.us/index.php/Private_Server_Common_Tasks
 ## Aspirational TODO
 
 * use segments to sync across servers for server cache (for objects with ids or that implement serialization themselves)
+
+## Console Commands
+
+* `Memory.creepSayAction = true`
+* `delete Memory.creepSayAction`
+* `Memory.hardReset = true`

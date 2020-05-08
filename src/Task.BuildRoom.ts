@@ -1,12 +1,13 @@
 import * as A from './Action';
+import { findMaxBy } from './Array';
 import { getWithCallback, objectServerCache } from './Cache';
 import { log } from "./Logger";
 import { nextExtensionPos } from "./Planning";
-import { findMyConstructionSites, findSources, requestCreepSpawn, SpawnQueuePriority, findRoomSource, RoomSource } from "./Room";
-import { isConcreteStructure, isConstructionSiteForStructure } from './Structure';
+import { findMyConstructionSites, findRoomSource, requestCreepSpawn, RoomSource, SpawnQueuePriority } from "./Room";
+import { findNearbyEnergy } from './RoomPosition';
+import { isConcreteStructure } from './Structure';
 import { Task } from "./Task";
 import { everyN } from "./Tick";
-import { findMinBy } from './Array';
 
 interface SequenceContext {
 	creep: Creep;
@@ -14,9 +15,9 @@ interface SequenceContext {
 }
 
 const buildCreepActions = [
-	new A.Build<SequenceContext>().continue().setCallback(c => c.task.constructionSite),
-	new A.Withdraw<SequenceContext>().setCallback(c => c.task.roomSource),
 	new A.Build<SequenceContext>().setCallback(c => c.task.constructionSite),
+	new A.Pickup<SequenceContext>().setCallback(c => findNearbyEnergy(c.creep.pos)),
+	new A.Withdraw<SequenceContext>().setCallback(c => c.task.roomSource).setPersist(),
 ];
 
 export class TaskBuildRoom extends Task {
@@ -86,11 +87,11 @@ function findContainer(constructionSite: ConstructionSite): StructureContainer {
 }
 function findContainerImpl(constructionSite: ConstructionSite): StructureContainer {
 	let containers = constructionSite.room.find(FIND_STRUCTURES).filter(s => isConcreteStructure(s, STRUCTURE_CONTAINER)) as StructureContainer[];
-	return _.sortBy(containers, s => -s.store.energy)[0];
+	return findMaxBy(containers, s => s.store.energy);
 }
 
 function findNextConstructionSite(constructionSites: ConstructionSite[]): ConstructionSite {
-	return findMinBy(constructionSites, s => 1 - s.progress / s.progressTotal);
+	return findMaxBy(constructionSites, s => s.progress / s.progressTotal);
 }
 
 Task.register.registerTaskClass(TaskBuildRoom);

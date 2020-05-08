@@ -1,9 +1,6 @@
 import * as A from './Action';
-import { findMinBy } from "./Array";
-import { getWithCallback, objectServerCache } from "./Cache";
-import { findSources, requestCreepSpawn, SpawnQueuePriority } from "./Room";
+import { findRoomSource, requestCreepSpawn, RoomSource, SpawnQueuePriority } from "./Room";
 import { findNearbyEnergy } from './RoomPosition';
-import { isConcreteStructure } from "./Structure";
 import { Task } from "./Task";
 import { everyN } from "./Tick";
 
@@ -13,18 +10,9 @@ interface SequenceContext {
 }
 
 const upgradeControllerActions = [
-	// continue harvesting energy
-	new A.Harvest<SequenceContext>().continue().setCallback(c => c.task.source),
-	// continue upgrading controller
-	new A.UpgradeController<SequenceContext>().continue().setCallback(c => c.task.controller),
-	// withdraw from container
-	new A.Withdraw<SequenceContext>().setCallback(c => c.task.container),
-	// pickup stray energy
-	new A.Pickup<SequenceContext>().setCallback(c => findNearbyEnergy(c.creep.pos)),
-	// init harvest
-	new A.Harvest<SequenceContext>().setCallback(c => c.task.source),
-	// init upgrade controller
 	new A.UpgradeController<SequenceContext>().setCallback(c => c.task.controller),
+	new A.Pickup<SequenceContext>().setCallback(c => findNearbyEnergy(c.creep.pos)),
+	new A.Withdraw<SequenceContext>().setCallback(c => c.task.roomSource).setPersist(),
 ];
 
 export class TaskUpgradeController extends Task {
@@ -32,15 +20,13 @@ export class TaskUpgradeController extends Task {
 
 	readonly room: Room;
 	readonly controller?: StructureController;
-	readonly container?: StructureContainer;
-	readonly source?: Source;
+	readonly roomSource?: RoomSource;
 
 	constructor(roomName: Id<TaskUpgradeController>) {
 		super(TaskUpgradeController, roomName);
 		this.room = Game.rooms[roomName];
 		this.controller = Game.rooms[roomName]?.controller;
-		this.container = getWithCallback(objectServerCache, `${this.id}.container`, 50, findContainer, this.controller?.pos) as StructureContainer;
-		this.source = getWithCallback(objectServerCache, `${this.id}.source`, 50, findSource, this.controller?.pos) as Source;
+		this.roomSource = findRoomSource(this.room);
 	}
 
 	protected run() {
@@ -68,11 +54,3 @@ export class TaskUpgradeController extends Task {
 }
 
 Task.register.registerTaskClass(TaskUpgradeController);
-
-function findContainer(controllerPos: RoomPosition): StructureContainer {
-	return controllerPos?.findClosestByPath(FIND_STRUCTURES, { filter: s => isConcreteStructure(s, STRUCTURE_CONTAINER) }) as StructureContainer;
-}
-
-function findSource(controllerPos: RoomPosition): Source {
-	return findMinBy(findSources(Game.rooms[controllerPos.roomName]), s => s.pos.getRangeTo(controllerPos));
-}

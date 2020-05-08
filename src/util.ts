@@ -1,3 +1,3 @@
 export function sortById<T extends ObjectWithId<T>>(items: T[]): T[] {
-	return _.sortBy(items, s => s.id);
+	return items.sort((lhs: T, rhs: T) => lhs.id.localeCompare(rhs.id));
 }

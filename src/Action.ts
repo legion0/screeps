@@ -1,12 +1,15 @@
 import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE } from "./constants";
 import { log } from "./Logger";
+import { isRoomSource, isRoomSync, RoomSource, RoomSync } from "./Room";
 import { hasFreeCapacity, hasUsedCapacity } from "./Store";
 import { isDamaged } from "./Structure";
-import { isRoomSource, RoomSource, isRoomSync, RoomSync } from "./Room";
 
 declare global {
 	interface CreepMemory {
 		lastAction?: ActionType;
+	}
+	interface Memory {
+		creepSayAction: boolean;
 	}
 }
 
@@ -21,7 +24,6 @@ export enum ActionType {
 }
 
 export function moveTo(creep: Creep, target: RoomPosition | { pos: RoomPosition }) {
-	creep.memory.lastAction = ActionType.MOVE;
 	let rv: ScreepsReturnCode = OK;
 	if (!creep.fatigue) {
 		let targetPos = target instanceof RoomPosition ? target : target.pos;
@@ -34,23 +36,12 @@ export function moveTo(creep: Creep, target: RoomPosition | { pos: RoomPosition 
 }
 
 abstract class Action<ContextType> {
-	protected persist: boolean;
-	private actionType: ActionType;
+	persist: boolean = false;
+	readonly actionType: ActionType;
 	private callback?: (context: ContextType) => any;
 
 	constructor(actionType: ActionType) {
-		this.persist = false;
 		this.actionType = actionType;
-	}
-
-	// sets the bit which fails `test` unless the action taken on the last tick is the same as this one.
-	continue() {
-		this.persist = true;
-		return this;
-	}
-
-	protected checkPersist(creep: Creep) {
-		return !this.persist || creep.memory.lastAction == this.actionType;
 	}
 
 	abstract test(creep: Creep, target: any): boolean;
@@ -68,6 +59,11 @@ abstract class Action<ContextType> {
 		this.callback = callback;
 		return this;
 	}
+
+	setPersist() {
+		this.persist = true;
+		return this;
+	}
 }
 
 export class Deposit<ContextType> extends Action<ContextType> {
@@ -77,11 +73,10 @@ export class Deposit<ContextType> extends Action<ContextType> {
 
 	test(creep: Creep, target: any) {
 		return isRoomSync(target) &&
-			this.checkPersist(creep) && hasFreeCapacity(target) && hasUsedCapacity(creep);
+			hasFreeCapacity(target) && hasUsedCapacity(creep);
 	}
 
 	do(creep: Creep, target: RoomSync) {
-		creep.memory.lastAction = ActionType.DEPOSIT;
 		let rv: ScreepsReturnCode = OK;
 		if (creep.pos.isNearTo(target)) {
 			let freeCapacity = target instanceof StructureContainer ? target.store.getFreeCapacity(RESOURCE_ENERGY) : target.store.getFreeCapacity(RESOURCE_ENERGY);
@@ -102,11 +97,10 @@ export class Build<ContextType> extends Action<ContextType> {
 	}
 
 	test(creep: Creep, target: any) {
-		return target instanceof ConstructionSite && this.checkPersist(creep) && hasUsedCapacity(creep);
+		return target instanceof ConstructionSite && hasUsedCapacity(creep);
 	}
 
 	do(creep: Creep, target: ConstructionSite) {
-		creep.memory.lastAction = ActionType.BUILD;
 		let rv: ScreepsReturnCode = OK;
 		if (creep.pos.inRangeTo(target.pos, BUILD_RANGE)) {
 			rv = creep.build(target);
@@ -126,11 +120,10 @@ export class Repair<ContextType> extends Action<ContextType> {
 	}
 
 	test(creep: Creep, target: any) {
-		return target instanceof Structure && this.checkPersist(creep) && isDamaged(target) && hasUsedCapacity(creep);
+		return target instanceof Structure && isDamaged(target) && hasUsedCapacity(creep);
 	}
 
 	do(creep: Creep, target: Structure) {
-		creep.memory.lastAction = ActionType.REPAIR;
 		let rv: ScreepsReturnCode = OK;
 		if (creep.pos.inRangeTo(target.pos, REPAIR_RANGE)) {
 			rv = creep.repair(target);
@@ -150,11 +143,10 @@ export class Pickup<ContextType> extends Action<ContextType> {
 	}
 
 	test(creep: Creep, target: any) {
-		return target instanceof Resource && this.checkPersist(creep) && hasFreeCapacity(creep);
+		return target instanceof Resource && hasFreeCapacity(creep);
 	}
 
 	do(creep: Creep, target: Resource) {
-		creep.memory.lastAction = ActionType.PICKUP;
 		let rv = creep.pickup(target);
 		if (rv != OK) {
 			log.e(`[${creep.name}] failed to pickup [${target}] with error [${errorCodeToString(rv)}]`);
@@ -169,11 +161,10 @@ export class UpgradeController<ContextType> extends Action<ContextType> {
 	}
 
 	test(creep: Creep, target: any) {
-		return target instanceof StructureController && this.checkPersist(creep) && hasUsedCapacity(creep);
+		return target instanceof StructureController && hasUsedCapacity(creep);
 	}
 
 	do(creep: Creep, target: StructureController) {
-		creep.memory.lastAction = ActionType.UPGRADE_CONTROLLER;
 		let rv: ScreepsReturnCode = OK;
 		if (creep.pos.inRangeTo(target.pos, UPGRADE_RANGE)) {
 			rv = creep.upgradeController(target);
@@ -193,11 +184,10 @@ export class Withdraw<ContextType> extends Action<ContextType> {
 	}
 
 	test(creep: Creep, target: any) {
-		return isRoomSource(target) && this.checkPersist(creep) && hasFreeCapacity(creep) && hasUsedCapacity(target);
+		return isRoomSource(target) && hasFreeCapacity(creep) && hasUsedCapacity(target);
 	}
 
 	do(creep: Creep, target: RoomSource) {
-		creep.memory.lastAction = ActionType.WITHDRAW;
 		let rv: ScreepsReturnCode = OK;
 		if (creep.pos.isNearTo(target.pos)) {
 			rv = target instanceof Source ? creep.harvest(target) : creep.withdraw(target, RESOURCE_ENERGY);
@@ -215,13 +205,43 @@ export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any
 	if (creep.spawning) {
 		return;
 	}
-	for (let action of sequence) {
-		let target = action.getTarget(context);
-		if (action.test(creep, target)) {
-			action.do(creep, target);
-			// creep.say(ActionType[creep.memory.lastAction]);
-			return;
+	let chosenAction: Action<T> = null;
+	let chosenTarget: any = null;
+	// first try to find the persistent action we started last round and see if its still applicable
+	if (creep.memory.lastAction) {
+		const lastAction = creep.memory.lastAction;
+		delete creep.memory.lastAction;
+		for (let action of sequence) {
+			if (action.persist && action.actionType == lastAction) {
+				let target = action.getTarget(context);
+				if (action.test(creep, target)) {
+					chosenAction = action;
+					chosenTarget = target;
+					break;
+				}
+			}
 		}
 	}
-	creep.say('idle');
+	// next try regular actions
+	if (chosenAction == null) {
+		for (let action of sequence) {
+			let target = action.getTarget(context);
+			if (action.test(creep, target)) {
+				chosenAction = action;
+				chosenTarget = target;
+				break;
+			}
+		}
+	}
+	if (chosenAction) {
+		chosenAction.do(creep, chosenTarget);
+		if (chosenAction.persist) {
+			creep.memory.lastAction = chosenAction.actionType;
+		}
+		if (Memory.creepSayAction) {
+			creep.say(ActionType[chosenAction.actionType]);
+		}
+	} else {
+		creep.say('idle');
+	}
 }

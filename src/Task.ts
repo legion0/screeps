@@ -76,7 +76,7 @@ export abstract class Task {
 		}
 		log.i(`Creating task [${fullId}]`);
 		Memory.tasks[fullId] = initMemory;
-	
+
 		return OK;
 	}
 }
