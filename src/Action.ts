@@ -36,9 +36,9 @@ export function moveTo(creep: Creep, target: RoomPosition | { pos: RoomPosition 
 }
 
 abstract class Action<ContextType> {
-	persist: boolean = false;
 	readonly actionType: ActionType;
-	private callback?: (context: ContextType) => any;
+	/*readonly*/ persist: boolean = false;
+	/*readonly*/ callback: (context: ContextType) => any = _.identity;
 
 	constructor(actionType: ActionType) {
 		this.actionType = actionType;
@@ -48,14 +48,14 @@ abstract class Action<ContextType> {
 
 	abstract do(creep: Creep, target: any): ScreepsReturnCode;
 
-	getTarget(context: ContextType) {
-		return this.callback ? this.callback(context) : context;
+	getArgs(context: ContextType) {
+		return this.callback(context);
 	}
 
 	// set a callback to execute on context when running sequence.
 	// If multiple targets are involved this lets you pick the correct one for
 	// the relevant action.
-	setCallback(callback: (context: ContextType) => any) {
+	setArgs(callback: (context: ContextType) => any) {
 		this.callback = callback;
 		return this;
 	}
@@ -213,7 +213,7 @@ export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any
 		delete creep.memory.lastAction;
 		for (let action of sequence) {
 			if (action.persist && action.actionType == lastAction) {
-				let target = action.getTarget(context);
+				let target = action.getArgs(context);
 				if (action.test(creep, target)) {
 					chosenAction = action;
 					chosenTarget = target;
@@ -225,7 +225,7 @@ export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any
 	// next try regular actions
 	if (chosenAction == null) {
 		for (let action of sequence) {
-			let target = action.getTarget(context);
+			let target = action.getArgs(context);
 			if (action.test(creep, target)) {
 				chosenAction = action;
 				chosenTarget = target;
@@ -233,6 +233,7 @@ export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any
 			}
 		}
 	}
+	// run the action
 	if (chosenAction) {
 		chosenAction.do(creep, chosenTarget);
 		if (chosenAction.persist) {
