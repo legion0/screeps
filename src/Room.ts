@@ -8,6 +8,7 @@ import { everyN } from "./Tick";
 
 export enum SpawnQueuePriority {
 	WORKER,
+	BUILDER,
 	UPGRADER,
 }
 
@@ -32,10 +33,15 @@ function keyFunc(item: SpawnQueueItem) {
 }
 
 export function requestCreepSpawn(room: Room, name: string, callback: () => SpawnQueueItem) {
-	let queue = PriorityQueue.loadOrCreate(Memory.rooms[room.name], 'spawnQueue', compareFunc, keyFunc);
-	if (!queue.hasItem(name) && !Game.creeps[name]) {
-		queue.push(callback());
+	if (Game.creeps[name]) {
+		return ERR_NAME_EXISTS;
 	}
+	let queue = PriorityQueue.loadOrCreate(Memory.rooms[room.name], 'spawnQueue', compareFunc, keyFunc);
+	if (queue.hasItem(name)) {
+		return ERR_NAME_EXISTS;
+	}
+	queue.push(callback());
+	return OK;
 }
 
 events.listen(EventEnum.EVENT_TICK_END, () => {
@@ -58,23 +64,34 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 	}
 });
 
-function findSourcesImpl(room: Room): Source[] {
-	return room.find(FIND_SOURCES);
-}
 export function findSources(room: Room) {
 	return (room ? getWithCallback(objectsServerCache, `${room.name}.sources`, 100, findSourcesImpl, room) : []) as Source[];
 }
-
-function findMySpawnsImpl(room: Room): StructureSpawn[] {
-	return room.find(FIND_MY_SPAWNS);
+function findSourcesImpl(room: Room): Source[] {
+	return sortById(room.find(FIND_SOURCES));
 }
-export function findMySpawns(room: Room) {
+
+export function findMySpawns(room: Room): StructureSpawn[] {
 	return (room ? getWithCallback(objectsServerCache, `${room.name}.spawns`, 100, findMySpawnsImpl, room) : []) as StructureSpawn[];
+}
+function findMySpawnsImpl(room: Room): StructureSpawn[] {
+	return sortById(room.find(FIND_MY_SPAWNS));
 }
 
 export function findMyExtensions(room: Room): StructureExtension[] {
 	return (room ? getWithCallback(objectsServerCache, `${room.name}.extensions`, 50, findExtensionsImpl, room) : []) as StructureExtension[];
 }
-function findExtensionsImpl(room: Room) {
-	return room.find(FIND_MY_STRUCTURES).filter(s => isConcreteStructure(s, STRUCTURE_EXTENSION)) as StructureExtension[];
+function findExtensionsImpl(room: Room): StructureExtension[] {
+	return sortById(room.find(FIND_MY_STRUCTURES).filter(s => isConcreteStructure(s, STRUCTURE_EXTENSION))) as StructureExtension[];
+}
+
+export function findMyConstructionSites(room: Room): ConstructionSite[] {
+	return (room ? getWithCallback(objectsServerCache, `${room.name}.constructionSites`, 50, findMyConstructionSitesImpl, room) : []) as ConstructionSite[];
+}
+function findMyConstructionSitesImpl(room: Room): ConstructionSite[] {
+	return sortById(room.find(FIND_MY_CONSTRUCTION_SITES));
+}
+
+function sortById<T extends ObjectWithId<T>>(items: T[]): T[] {
+	return _.sortBy(items, s => s.id);
 }

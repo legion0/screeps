@@ -2,17 +2,16 @@
 
 import { getFullStack, log } from "./Logger";
 
-abstract class CacheService<T> {
+export interface CacheService<T> {
 	// returns the value from the cache or undefined if value is not in the cache or expired.
-	abstract get(id: string): T;
-	abstract set(id: string, value: T, ttl: number): void;
+	get(id: string): T;
+	set(id: string, value: T, ttl: number): void;
 }
 
-export class ObjectCacheService<T> extends CacheService<T> {
+export class ObjectCacheService<T> implements CacheService<T> {
 	private cache: { [key: string]: { insertTime: number, value: T, ttl: number } };
 
 	constructor(obj: { [key: string]: any }) {
-		super();
 		this.cache = obj;
 	}
 
@@ -51,7 +50,7 @@ export class ObjectCacheService<T> extends CacheService<T> {
 	}
 }
 
-export class TickCacheService<T> extends CacheService<T> {
+export class TickCacheService<T> implements CacheService<T> {
 	private time: number = 0;
 	private cache: { [key: number]: { [key: string]: T } } = {};
 
@@ -83,13 +82,12 @@ export class TickCacheService<T> extends CacheService<T> {
 
 export let tickCacheService = new TickCacheService<any>();
 
-export class MutatingCacheService<T, W> extends CacheService<T> {
+export class MutatingCacheService<T, W> implements CacheService<T> {
 	cache: CacheService<W>;
 	private reader: (arg0: W) => T;
 	private writer: (arg0: T) => W;
 
 	constructor(cache: CacheService<W>, reader: (arg0: W) => T, writer: (arg0: T) => W) {
-		super();
 		this.cache = cache;
 		this.reader = reader;
 		this.writer = writer;
@@ -109,11 +107,10 @@ export class MutatingCacheService<T, W> extends CacheService<T> {
 	}
 }
 
-export class ChainingCacheService<T> extends CacheService<T> {
+export class ChainingCacheService<T> implements CacheService<T> {
 	private caches: CacheService<T>[] = [];
 
 	constructor(...caches: CacheService<T>[]) {
-		super();
 		this.caches = caches;
 	}
 
@@ -162,8 +159,8 @@ export let objectsServerCache: CacheService<ObjectWithId<any>[]> = new ChainingC
 export function getWithCallback<T, ContextType>(cache: CacheService<T>, id: string, ttl: number, callback: (context?: ContextType) => T, context?: ContextType) {
 	let value = cache.get(id);
 	if (value === undefined) {
-		value = callback(context);
-		cache.set(id, value ?? null, ttl);
+		value = callback(context) ?? null;
+		cache.set(id, value, ttl);
 	}
 	return value;
 }

@@ -2,7 +2,7 @@ import * as A from './Action';
 import { getWithCallback, MutatingCacheService, ObjectCacheService, objectServerCache } from "./Cache";
 import { errorCodeToString, TERRAIN_PLAIN } from "./constants";
 import { log } from "./Logger";
-import { findMySpawns, requestCreepSpawn, SpawnQueuePriority } from "./Room";
+import { findMySpawns, requestCreepSpawn, SpawnQueuePriority, findMyExtensions } from "./Room";
 import { findNearbyEnergy, fromMemory, getClearance, lookNear, posNear, RoomPositionMemory, toMemory } from "./RoomPosition";
 import { isConcreteStructure, isConstructionSiteForStructure } from "./Structure";
 import { Task } from "./Task";
@@ -18,6 +18,14 @@ const bootCreepActions = [
 	new A.Harvest<SequenceContext>().continue().setCallback(c => c.task.source),
 	// fill up spawn asap
 	new A.TransferEnergy<SequenceContext>().setCallback(c => c.task.spawn),
+	// fill up extensions
+	new A.TransferEnergy<SequenceContext>().setCallback(c => findMyExtensions(c.task.source.room).filter(s => s.energy < s.energyCapacity)[0]),
+	// new A.TransferEnergy<SequenceContext>().setCallback(c => {
+	// 	let extensions = findMyExtensions(c.task.source.room);
+	// 	console.log();
+
+	// 	return .filter(s => s.energy < s.energyCapacity)[0];
+	// }),
 	// continue building container
 	new A.Build<SequenceContext>().continue().setCallback(c => c.task.constructionSite),
 	// continue repairing container
@@ -64,10 +72,10 @@ export class TaskBootSource extends Task {
 		let numCreeps = Math.min(getClearance(this.source.pos), 3);
 		for (let name of _.range(0, numCreeps).map(i => `${this.id}.${i}`)) {
 			let creep = Game.creeps[name];
-			if (creep) {
+			if (creep && !creep.spawning) {
 				A.runSequence(bootCreepActions, creep, { creep: creep, task: this });
 			} else {
-				everyN(5, () => {
+				everyN(20, () => {
 					requestCreepSpawn(this.source.room, name, () => ({
 						priority: SpawnQueuePriority.WORKER,
 						name: name,

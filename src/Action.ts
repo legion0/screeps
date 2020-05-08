@@ -27,7 +27,7 @@ export function moveTo(creep: Creep, target: RoomPosition | { pos: RoomPosition 
 		let targetPos = target instanceof RoomPosition ? target : target.pos;
 		rv = creep.moveTo(targetPos);
 		if (rv != OK) {
-			log.e(`[${creep.name}] failed to moveTo [${target}] with error [${errorCodeToString(rv)}]`);
+			log.e(`[${creep.name}] failed to moveTo [${target}] [${creep.pos}]->[${targetPos}] with error [${errorCodeToString(rv)}]`);
 		}
 	}
 	return rv;
@@ -100,7 +100,8 @@ export class TransferEnergy<ContextType> extends Action<ContextType> {
 	}
 
 	test(creep: Creep, target: any) {
-		return (target instanceof StructureSpawn || target instanceof StructureContainer) && this.checkPersist(creep) && hasFreeCapacity(target) && hasUsedCapacity(creep);
+		return (target instanceof StructureSpawn || target instanceof StructureContainer || target instanceof StructureExtension) &&
+			this.checkPersist(creep) && hasFreeCapacity(target) && hasUsedCapacity(creep);
 	}
 
 	do(creep: Creep, target: ObjectWithStore & (AnyCreep | Structure)) {
@@ -235,6 +236,9 @@ export class Withdraw<ContextType> extends Action<ContextType> {
 }
 
 export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any) {
+	if (creep.spawning) {
+		return;
+	}
 	for (let action of sequence) {
 		let target = action.getTarget(context);
 		if (action.test(creep, target)) {

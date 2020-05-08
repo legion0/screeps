@@ -1,5 +1,6 @@
 import { ROOM_HEIGHT, ROOM_WIDTH, TERRAIN_PLAIN, TERRAIN_SWAMP } from "./constants";
-import { findMyExtensions, findMySpawns } from "./Room";
+import { findMyExtensions, findMySpawns, findMyConstructionSites } from "./Room";
+import { isConstructionSiteForStructure } from "./Structure";
 
 function canBuildExtension(room: Room, x: number, y: number): boolean {
 	let terrain = room.lookForAt(LOOK_TERRAIN, x, y)[0];
@@ -10,9 +11,9 @@ export function* nextExtensionPos(room: Room) {
 
 	let maxExtensions = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.controller.level];
 	if (maxExtensions == 0) {
-		return null;
+		return;
 	}
-	let currentExtensions = findMyExtensions(room).length;
+	let currentExtensions = findMyExtensions(room).length + findMyConstructionSites(room).filter(s => isConstructionSiteForStructure(s, STRUCTURE_EXTENSION)).length;
 	if (currentExtensions >= maxExtensions) {
 		return;
 	}
