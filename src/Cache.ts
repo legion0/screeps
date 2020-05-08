@@ -156,8 +156,8 @@ export let objectServerCache: CacheService<ObjectWithId<any>> = new ChainingCach
 
 export let objectsServerCache: CacheService<ObjectWithId<any>[]> = new ChainingCacheService(tickCacheService, new MutatingCacheService(rawCache, fromMemoryMany, toMemoryMany));
 
-export function getWithCallback<T, ContextType>(cache: CacheService<T>, id: string, ttl: number, callback: (context?: ContextType) => T, context?: ContextType) {
-	let value = cache.get(id);
+export function getWithCallback<T, ContextType>(cache: CacheService<unknown>, id: string, ttl: number, callback: (context?: ContextType) => T, context?: ContextType) {
+	let value = cache.get(id) as T;
 	if (value === undefined) {
 		value = callback(context) ?? null;
 		cache.set(id, value, ttl);

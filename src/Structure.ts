@@ -21,3 +21,11 @@ export function isConstructionSiteForStructure<T extends BuildableStructureConst
 export function isDamaged(target: Structure) {
 	return target.hits < target.hitsMax;
 }
+
+export function filterStructureType<T extends StructureConstant>(structures: AnyStructure[], type: T): ConcreteStructure<T>[] {
+	return structures.filter(s => s.structureType == type) as ConcreteStructure<T>[];
+}
+
+export function isSpawnOrExtension(s: any): s is StructureSpawn | StructureExtension {
+	return s instanceof StructureSpawn || s instanceof StructureExtension;
+}

@@ -2,9 +2,9 @@ import * as A from './Action';
 import { getWithCallback, MutatingCacheService, ObjectCacheService, objectServerCache } from "./Cache";
 import { errorCodeToString, TERRAIN_PLAIN } from "./constants";
 import { log } from "./Logger";
-import { findMySpawns, requestCreepSpawn, SpawnQueuePriority, findMyExtensions } from "./Room";
+import { findMySpawns, findRoomSync, requestCreepSpawn, SpawnQueuePriority } from "./Room";
 import { findNearbyEnergy, fromMemory, getClearance, lookNear, posNear, RoomPositionMemory, toMemory } from "./RoomPosition";
-import { isConcreteStructure, isConstructionSiteForStructure } from "./Structure";
+import { isConcreteStructure, isConstructionSiteForStructure, isSpawnOrExtension } from "./Structure";
 import { Task } from "./Task";
 import { everyN } from "./Tick";
 
@@ -13,19 +13,29 @@ interface SequenceContext {
 	task: TaskBootSource;
 }
 
+// scratch pad on how to represent persistent creep actions in a more compact form:
+// deposit to spawn / extension (interrupt build or repain)
+// build or repair (until empty or spawn/extension needs resources)
+// deposit to container ( until empty )
+// withdraw (until full)
+// idea 1: make actions persistent, this requires remembering the target on top
+//  of the actio type to distinguish deposit to spawn vs deposit to container
+//  which have different priorities.
+//  this also requires either a termination condition to interrupt the action
+//  or making an action prior in the list interrupting by
+//  nature (e.g setInterrupting()).
+// idea 2: convert the more compact representation to the current
+//  representation somehow, might have power of representation issues.
+// idea 3: represent actions as A.do(ACTION).to(target).until(condition);
+//  with the default condition of not being able to do the action anomore
+//  hidden so only the exceptions need to be specified, e.g. until(spawn or ext
+//  needs resources).
+
 const bootCreepActions = [
 	// continue harvesting
-	new A.Harvest<SequenceContext>().continue().setCallback(c => c.task.source),
-	// fill up spawn asap
-	new A.TransferEnergy<SequenceContext>().setCallback(c => c.task.spawn),
-	// fill up extensions
-	new A.TransferEnergy<SequenceContext>().setCallback(c => findMyExtensions(c.task.source.room).filter(s => s.energy < s.energyCapacity)[0]),
-	// new A.TransferEnergy<SequenceContext>().setCallback(c => {
-	// 	let extensions = findMyExtensions(c.task.source.room);
-	// 	console.log();
-
-	// 	return .filter(s => s.energy < s.energyCapacity)[0];
-	// }),
+	new A.Withdraw<SequenceContext>().continue().setCallback(c => c.task.source),
+	// deposit to spawns and extensions
+	new A.Deposit<SequenceContext>().setCallback(c => c.task.spawnOrExt),
 	// continue building container
 	new A.Build<SequenceContext>().continue().setCallback(c => c.task.constructionSite),
 	// continue repairing container
@@ -37,16 +47,16 @@ const bootCreepActions = [
 	// init repair container
 	new A.Repair<SequenceContext>().setCallback(c => c.task.container),
 	// transfer to container
-	new A.TransferEnergy<SequenceContext>().setCallback(c => c.task.container),
+	new A.Deposit<SequenceContext>().setCallback(c => c.task.container),
 	// init harvest
-	new A.Harvest<SequenceContext>().setCallback(c => c.task.source),
+	new A.Withdraw<SequenceContext>().setCallback(c => c.task.source),
 ];
 
 export class TaskBootSource extends Task {
 	static readonly className = 'BootSource' as Id<typeof Task>;
 
 	readonly source: Source;
-	readonly spawn?: StructureSpawn;
+	readonly spawnOrExt?: StructureSpawn | StructureExtension;
 	readonly container?: StructureContainer;
 	readonly constructionSite?: ConstructionSite<STRUCTURE_CONTAINER>;
 
@@ -55,24 +65,19 @@ export class TaskBootSource extends Task {
 	constructor(sourceId: Id<TaskBootSource>) {
 		super(TaskBootSource, sourceId);
 		this.source = Game.getObjectById(sourceId as unknown as Id<Source>);
+		let roomSync = findRoomSync(this.source.room);
+		this.spawnOrExt = isSpawnOrExtension(roomSync) ? roomSync : null;
 
-		if (this.source) {
-			this.spawn = getWithCallback(objectServerCache, `${this.id}.spawn`, 50, findSpawn, this.source.room) as StructureSpawn;
-			this.container = getWithCallback(objectServerCache, `${this.id}.container`, 50, findContainer, this.source.pos) as StructureContainer;
-			this.constructionSite = getWithCallback(objectServerCache, `${this.id}.constructionSite`, 50, findConstructionSite, this.source.pos) as ConstructionSite<STRUCTURE_CONTAINER>;
-			this.maybePlaceContainer();
-		} else {
-			if (!this.source) {
-				this.remove();
-			}
-		}
+		this.container = getWithCallback(objectServerCache, `${this.id}.container`, 50, findContainer, this.source.pos) as StructureContainer;
+		this.constructionSite = getWithCallback(objectServerCache, `${this.id}.constructionSite`, 50, findConstructionSite, this.source.pos) as ConstructionSite<STRUCTURE_CONTAINER>;
+		this.maybePlaceContainer();
 	}
 
 	protected run() {
 		let numCreeps = Math.min(getClearance(this.source.pos), 3);
 		for (let name of _.range(0, numCreeps).map(i => `${this.id}.${i}`)) {
 			let creep = Game.creeps[name];
-			if (creep && !creep.spawning) {
+			if (creep) {
 				A.runSequence(bootCreepActions, creep, { creep: creep, task: this });
 			} else {
 				everyN(20, () => {

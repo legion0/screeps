@@ -2,7 +2,7 @@ import * as A from './Action';
 import { getWithCallback, objectServerCache } from './Cache';
 import { log } from "./Logger";
 import { nextExtensionPos } from "./Planning";
-import { findMyConstructionSites, findSources, requestCreepSpawn, SpawnQueuePriority } from "./Room";
+import { findMyConstructionSites, findSources, requestCreepSpawn, SpawnQueuePriority, findRoomSource, RoomSource } from "./Room";
 import { isConcreteStructure, isConstructionSiteForStructure } from './Structure';
 import { Task } from "./Task";
 import { everyN } from "./Tick";
@@ -14,23 +14,16 @@ interface SequenceContext {
 }
 
 const buildCreepActions = [
-	// continue harvesting
-	new A.Harvest<SequenceContext>().continue().setCallback(c => findSources(c.task.room)[0]),
-	// continue building
 	new A.Build<SequenceContext>().continue().setCallback(c => c.task.constructionSite),
-	// withdraw from container
-	new A.Withdraw<SequenceContext>().setCallback(c => c.task.container),
-	// init build
+	new A.Withdraw<SequenceContext>().setCallback(c => c.task.roomSource),
 	new A.Build<SequenceContext>().setCallback(c => c.task.constructionSite),
-	// init harvest
-	new A.Harvest<SequenceContext>().setCallback(c => findSources(c.task.room)[0]),
 ];
 
 export class TaskBuildRoom extends Task {
 	static readonly className = 'BuildRoom' as Id<typeof Task>;
 	readonly roomName: string;
-	readonly room?: Room;
-	readonly container?: StructureContainer;
+	readonly room: Room;
+	readonly roomSource?: RoomSource;
 	readonly constructionSite?: ConstructionSite;
 	readonly constructionSites: ConstructionSite[];
 
@@ -41,11 +34,7 @@ export class TaskBuildRoom extends Task {
 		this.constructionSites = findMyConstructionSites(this.room);
 		this.constructionSite = findNextConstructionSite(this.constructionSites);
 		if (this.constructionSite) {
-			this.container = getWithCallback(objectServerCache, `${this.id}.container`, 50, findContainer, this.constructionSite) as StructureContainer;
-		}
-
-		if (!this.room) {
-			this.remove();
+			this.roomSource = findRoomSource(this.room);
 		}
 	}
 
@@ -96,7 +85,8 @@ function findContainer(constructionSite: ConstructionSite): StructureContainer {
 	return getWithCallback(objectServerCache, `${constructionSite.id}.container`, 50, findContainerImpl, constructionSite) as StructureContainer;
 }
 function findContainerImpl(constructionSite: ConstructionSite): StructureContainer {
-	return constructionSite.pos.findClosestByPath(FIND_STRUCTURES, { filter: s => isConcreteStructure(s, STRUCTURE_CONTAINER) && s.store.energy }) as StructureContainer;
+	let containers = constructionSite.room.find(FIND_STRUCTURES).filter(s => isConcreteStructure(s, STRUCTURE_CONTAINER)) as StructureContainer[];
+	return _.sortBy(containers, s => -s.store.energy)[0];
 }
 
 function findNextConstructionSite(constructionSites: ConstructionSite[]): ConstructionSite {

@@ -16,6 +16,8 @@ https://wiki.screepspl.us/index.php/Private_Server_Common_Tasks
 
 ## TODO
 
+* Add compound harvesting action that supports withdraw / harvest
+* Make server cache write back to tick cache on load from object id
 * standard harvester and hauler
 * recycleCreep when its job is done, e.g. room builders
 

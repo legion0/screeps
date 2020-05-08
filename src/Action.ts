@@ -2,6 +2,7 @@ import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE } from "./c
 import { log } from "./Logger";
 import { hasFreeCapacity, hasUsedCapacity } from "./Store";
 import { isDamaged } from "./Structure";
+import { isRoomSource, RoomSource, isRoomSync, RoomSync } from "./Room";
 
 declare global {
 	interface CreepMemory {
@@ -11,10 +12,9 @@ declare global {
 
 export enum ActionType {
 	MOVE,
-	TRANSFER,
+	DEPOSIT,
 	REPAIR,
 	BUILD,
-	HARVEST,
 	PICKUP,
 	UPGRADE_CONTROLLER,
 	WITHDRAW,
@@ -70,45 +70,21 @@ abstract class Action<ContextType> {
 	}
 }
 
-export class Harvest<ContextType> extends Action<ContextType> {
+export class Deposit<ContextType> extends Action<ContextType> {
 	constructor() {
-		super(ActionType.HARVEST);
+		super(ActionType.DEPOSIT);
 	}
 
 	test(creep: Creep, target: any) {
-		return target instanceof Source && this.checkPersist(creep) && hasFreeCapacity(creep) && hasUsedCapacity(target);
-	}
-
-	do(creep: Creep, target: Source) {
-		creep.memory.lastAction = ActionType.HARVEST;
-		let rv: ScreepsReturnCode = OK;
-		if (creep.pos.isNearTo(target.pos)) {
-			let rv = creep.harvest(target);
-			if (rv != OK) {
-				log.e(`[${creep.name}] failed to harvest [${target}] with error [${errorCodeToString(rv)}]`);
-			}
-		} else {
-			rv = moveTo(creep, target);
-		}
-		return rv;
-	}
-}
-
-export class TransferEnergy<ContextType> extends Action<ContextType> {
-	constructor() {
-		super(ActionType.TRANSFER);
-	}
-
-	test(creep: Creep, target: any) {
-		return (target instanceof StructureSpawn || target instanceof StructureContainer || target instanceof StructureExtension) &&
+		return isRoomSync(target) &&
 			this.checkPersist(creep) && hasFreeCapacity(target) && hasUsedCapacity(creep);
 	}
 
-	do(creep: Creep, target: ObjectWithStore & (AnyCreep | Structure)) {
-		creep.memory.lastAction = ActionType.TRANSFER;
+	do(creep: Creep, target: RoomSync) {
+		creep.memory.lastAction = ActionType.DEPOSIT;
 		let rv: ScreepsReturnCode = OK;
 		if (creep.pos.isNearTo(target)) {
-			let freeCapacity = target.store.getFreeCapacity(RESOURCE_ENERGY);
+			let freeCapacity = target instanceof StructureContainer ? target.store.getFreeCapacity(RESOURCE_ENERGY) : target.store.getFreeCapacity(RESOURCE_ENERGY);
 			rv = creep.transfer(target, RESOURCE_ENERGY, Math.min(creep.store.energy, freeCapacity));
 			if (rv != OK) {
 				log.e(`[${creep.name}] failed to transfer to [${target}] with error [${errorCodeToString(rv)}]`);
@@ -217,14 +193,14 @@ export class Withdraw<ContextType> extends Action<ContextType> {
 	}
 
 	test(creep: Creep, target: any) {
-		return target instanceof StructureContainer && this.checkPersist(creep) && hasFreeCapacity(creep) && hasUsedCapacity(target);
+		return isRoomSource(target) && this.checkPersist(creep) && hasFreeCapacity(creep) && hasUsedCapacity(target);
 	}
 
-	do(creep: Creep, target: StructureContainer) {
+	do(creep: Creep, target: RoomSource) {
 		creep.memory.lastAction = ActionType.WITHDRAW;
 		let rv: ScreepsReturnCode = OK;
 		if (creep.pos.isNearTo(target.pos)) {
-			rv = creep.withdraw(target, RESOURCE_ENERGY);
+			rv = target instanceof Source ? creep.harvest(target) : creep.withdraw(target, RESOURCE_ENERGY);
 			if (rv != OK) {
 				log.e(`[${creep.name}] failed to withdraw from [${target}] with error [${errorCodeToString(rv)}]`);
 			}
