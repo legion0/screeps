@@ -10,11 +10,12 @@ import { findMinBy, findMaxBy } from "./Array";
 
 export enum SpawnQueuePriority {
 	WORKER,
+	HARVESTER,
 	BUILDER,
 	UPGRADER,
 }
 
-interface SpawnQueueItem {
+export interface SpawnQueueItem {
 	priority: number;
 	name: string;
 	body: BodyPartConstant[];
@@ -34,7 +35,7 @@ function keyFunc(item: SpawnQueueItem) {
 	return item.name;
 }
 
-export function requestCreepSpawn(room: Room, name: string, callback: () => SpawnQueueItem) {
+export function requestCreepSpawn(room: Room, name: string, callback: (room?: Room, name?: string) => SpawnQueueItem) {
 	if (Game.creeps[name]) {
 		return ERR_NAME_EXISTS;
 	}
@@ -42,7 +43,7 @@ export function requestCreepSpawn(room: Room, name: string, callback: () => Spaw
 	if (queue.hasItem(name)) {
 		return ERR_NAME_EXISTS;
 	}
-	queue.push(callback());
+	queue.push(callback(room, name));
 	return OK;
 }
 

@@ -22,7 +22,7 @@ class TaskClassRegister {
 	getTaskClass(taskClassName: Id<TaskClass<any>>) {
 		let taskClass = this._register[taskClassName];
 		if (!taskClass) {
-			throw `Task class [${taskClassName}] is not in the task class register!`;
+			throw new Error(`Task class [${taskClassName}] is not in the task class register!`);
 		}
 		return taskClass;
 	}

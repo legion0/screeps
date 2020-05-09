@@ -29,3 +29,7 @@ export function filterStructureType<T extends StructureConstant>(structures: Any
 export function isSpawnOrExtension(s: any): s is StructureSpawn | StructureExtension {
 	return s instanceof StructureSpawn || s instanceof StructureExtension;
 }
+
+export function isRoad(s: any): s is StructureRoad | ConstructionSite<STRUCTURE_ROAD> {
+	return s instanceof StructureRoad || (s instanceof ConstructionSite && s.structureType == STRUCTURE_ROAD);
+}

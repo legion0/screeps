@@ -86,7 +86,7 @@ class Logger {
 
 	f(...args: any[]) {
 		this._log(LogLevel.FATAL, args, 1);
-		throw Error('Fatal Error !!!');
+		throw new Error('Fatal Error !!!');
 	}
 	e(...args: any[]) {
 		this._log(LogLevel.ERROR, args, 1);

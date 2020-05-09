@@ -1,4 +1,4 @@
-export function MemInit<T>(o: T, name: keyof T, value: any): any {
+export function MemInit<T, K extends keyof T>(o: T, name: K, value: any): T[K] {
 	if (o[name] === undefined) {
 		o[name] = value;
 	}

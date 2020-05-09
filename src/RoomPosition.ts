@@ -1,5 +1,6 @@
 import { TERRAIN_PLAIN, ROOM_WIDTH, ROOM_HEIGHT } from "./constants";
 import { tickCacheService, getWithCallback } from "./Cache";
+import { isConcreteStructure, isRoad } from "./Structure";
 
 // import { isWalkableStructure } from "./util.Structure";
 
@@ -149,4 +150,9 @@ export function posKey(pos: RoomPosition) {
 
 export function findNearbyEnergy(pos: RoomPosition) {
 	return getWithCallback(tickCacheService, `${posKey(pos)}.nearbyEnergy`, 1, (pos) => lookNear(pos, LOOK_ENERGY)[0], pos);
+}
+
+export function lookForRoad(pos: RoomPosition): StructureRoad | ConstructionSite<STRUCTURE_ROAD> {
+	return (pos.lookFor(LOOK_STRUCTURES).filter(isRoad)[0] as StructureRoad) ||
+		(pos.lookFor(LOOK_CONSTRUCTION_SITES).filter(isRoad)[0] as ConstructionSite<STRUCTURE_ROAD>);
 }

@@ -16,10 +16,13 @@ https://wiki.screepspl.us/index.php/Private_Server_Common_Tasks
 
 ## TODO
 
-* Add build queue to room so room builders only build construction sites in room queue (and not boot containers for example)
-* Make server cache write back to tick cache on load from object id
+### P0
 * standard harvester and hauler
+* Add build queue to room so room builders only build construction sites in room queue (and not boot containers for example or roads that are maintained by those who walk them)
+
+### P1
 * recycleCreep when its job is done, e.g. room builders
+* Make server cache write back to tick cache on load from object id
 
 ## Aspirational TODO
 
@@ -28,5 +31,6 @@ https://wiki.screepspl.us/index.php/Private_Server_Common_Tasks
 ## Console Commands
 
 * `Memory.creepSayAction = true`
-* `delete Memory.creepSayAction`
+* `Memory.highwaydebugVisuals = true`
+* `Memory.showHighways = true`
 * `Memory.hardReset = true`

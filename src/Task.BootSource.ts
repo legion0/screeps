@@ -14,12 +14,12 @@ interface SequenceContext {
 }
 
 const bootCreepActions = [
-	new A.Deposit<SequenceContext>().setCallback(c => c.task.spawnOrExt),
-	new A.Build<SequenceContext>().setCallback(c => c.task.constructionSite),
-	new A.Repair<SequenceContext>().setCallback(c => c.task.container),
-	new A.Pickup<SequenceContext>().setCallback(c => findNearbyEnergy(c.creep.pos)),
-	new A.Deposit<SequenceContext>().setCallback(c => c.task.container),
-	new A.Withdraw<SequenceContext>().setCallback(c => c.task.source).setPersist(),
+	new A.Deposit<SequenceContext>().setArgs(c => c.task.spawnOrExt),
+	new A.Build<SequenceContext>().setArgs(c => c.task.constructionSite),
+	new A.Repair<SequenceContext>().setArgs(c => c.task.container),
+	new A.Pickup<SequenceContext>().setArgs(c => findNearbyEnergy(c.creep.pos)),
+	new A.Deposit<SequenceContext>().setArgs(c => c.task.container),
+	new A.Withdraw<SequenceContext>().setArgs(c => c.task.source).setPersist(),
 ];
 
 export class TaskBootSource extends Task {

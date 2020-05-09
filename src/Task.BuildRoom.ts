@@ -15,9 +15,9 @@ interface SequenceContext {
 }
 
 const buildCreepActions = [
-	new A.Build<SequenceContext>().setCallback(c => c.task.constructionSite),
-	new A.Pickup<SequenceContext>().setCallback(c => findNearbyEnergy(c.creep.pos)),
-	new A.Withdraw<SequenceContext>().setCallback(c => c.task.roomSource).setPersist(),
+	new A.Build<SequenceContext>().setArgs(c => c.task.constructionSite),
+	new A.Pickup<SequenceContext>().setArgs(c => findNearbyEnergy(c.creep.pos)),
+	new A.Withdraw<SequenceContext>().setArgs(c => c.task.roomSource).setPersist(),
 ];
 
 export class TaskBuildRoom extends Task {
