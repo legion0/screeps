@@ -58,7 +58,7 @@ export class Highway {
 		if (rv.incomplete) {
 			return ERR_NO_PATH;
 		}
-		let path = rv.path.filter(pos => pos.getRangeTo(this.from) >= 3);
+		let path = rv.path.filter(pos => pos.getRangeTo(this.from) > 3);
 		this.memory.path = path.map(toMemory);
 		return this;
 	}
@@ -152,10 +152,10 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 		Game.flags.highway_end.remove();
 	}
 	// cleanup old unused highways
-	everyN(100, () => {
+	everyN(500, () => {
 		for (let name in Memory.highways) {
 			let lastUsed = MemInit(Memory.highways[name], 'lastUsed', Game.time);
-			if (lastUsed + 100 < Game.time) {
+			if (lastUsed + 2000 < Game.time) {
 				log.v(`Removing old unused highway [${name}]`);
 				Memory.highways[name].path
 					.map(fromMemory)

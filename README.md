@@ -17,8 +17,8 @@ https://wiki.screepspl.us/index.php/Private_Server_Common_Tasks
 ## TODO
 
 ### P0
-* standard harvester and hauler
 * Add build queue to room so room builders only build construction sites in room queue (and not boot containers for example or roads that are maintained by those who walk them)
+* Figure out task replacment strategy, when/how does harvester_hauler replace boot task?
 
 ### P1
 * recycleCreep when its job is done, e.g. room builders

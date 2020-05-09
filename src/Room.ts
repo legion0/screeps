@@ -10,6 +10,7 @@ import { findMinBy, findMaxBy } from "./Array";
 
 export enum SpawnQueuePriority {
 	WORKER,
+	HAULER,
 	HARVESTER,
 	BUILDER,
 	UPGRADER,

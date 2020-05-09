@@ -44,6 +44,11 @@ export abstract class Task {
 		delete Memory.tasks[this.id];
 	}
 
+	static removeTask(subClass: TaskClass<any>, id: Id<Task>) {
+		let fullId = `${subClass.className}.${id}` as Id<Task>;
+		delete Memory.tasks[fullId];
+	}
+
 	static runAll() {
 		for (let id in Memory.tasks) {
 			let task = Task.load(id as Id<Task>);

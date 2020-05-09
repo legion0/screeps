@@ -4,6 +4,7 @@ import { TaskBootSource } from "./Task.BootSource";
 import { TaskBuildRoom } from './Task.BuildRoom';
 import './Task.BuildRoom';
 import { everyN } from "./Tick";
+import { TaskHarvestSource } from "./Task.HarvestSource";
 
 export class TaskBootRoom extends Task {
 	static readonly className = 'BootRoom' as Id<typeof Task>;
@@ -24,7 +25,12 @@ export class TaskBootRoom extends Task {
 		// boot sources
 		everyN(10, () => {
 			findSources(this.room).forEach(source => {
-				TaskBootSource.create(source);
+				if (source.room.controller.level < 2) {
+					TaskBootSource.create(source)
+				} else {
+					TaskHarvestSource.create(source);
+					TaskBootSource.remove(source);
+				}
 			});
 			// TaskBuildRoom.create(this.roomName);
 		});
