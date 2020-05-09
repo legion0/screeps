@@ -1,10 +1,10 @@
 import { findSources } from "./Room";
 import { Task } from "./Task";
 import { TaskBootSource } from "./Task.BootSource";
-import { TaskBuildRoom } from './Task.BuildRoom';
 import './Task.BuildRoom';
-import { everyN } from "./Tick";
+import { TaskBuildRoom } from './Task.BuildRoom';
 import { TaskHarvestSource } from "./Task.HarvestSource";
+import { everyN } from "./Tick";
 
 export class TaskBootRoom extends Task {
 	static readonly className = 'BootRoom' as Id<typeof Task>;
@@ -32,7 +32,7 @@ export class TaskBootRoom extends Task {
 					TaskBootSource.remove(source);
 				}
 			});
-			// TaskBuildRoom.create(this.roomName);
+			TaskBuildRoom.create(this.roomName);
 		});
 	}
 

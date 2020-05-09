@@ -1,6 +1,6 @@
-import { TERRAIN_PLAIN, ROOM_WIDTH, ROOM_HEIGHT } from "./constants";
-import { tickCacheService, getWithCallback } from "./Cache";
-import { isConcreteStructure, isRoad } from "./Structure";
+import { getWithCallback, tickCacheService } from "./Cache";
+import { ROOM_HEIGHT, ROOM_WIDTH, TERRAIN_PLAIN } from "./constants";
+import { isConcreteStructure, isConstructionSiteForStructure } from "./Structure";
 
 // import { isWalkableStructure } from "./util.Structure";
 
@@ -35,6 +35,15 @@ export function toMemory(pos: RoomPosition): RoomPositionMemory {
 	}
 	return null;
 }
+
+// export function toMemoryShort(pos: RoomPosition): string {
+// 	if (pos instanceof RoomPosition) {
+// 		let x = pos.x < 10 ? '0' + pos.x : '' + pos.x;
+// 		let y = pos.y < 10 ? '0' + pos.y : '' + pos.y;
+// 		return x + y;
+// 	}
+// 	return null;
+// }
 
 // RoomPosition.prototype.closest = function (positions: RoomPosition[]): RoomPosition {
 // 	return positions.reduce((best, current) => current.getRangeTo(this) < best.getRangeTo(this) ? current : best, positions.first());
@@ -148,11 +157,15 @@ export function posKey(pos: RoomPosition) {
 	return `${pos.roomName}_${pos.x}_${pos.y}`;
 }
 
+export function posKeyFromMemory(pos: RoomPositionMemory): string {
+	return pos as string;
+}
+
 export function findNearbyEnergy(pos: RoomPosition) {
 	return getWithCallback(tickCacheService, `${posKey(pos)}.nearbyEnergy`, 1, (pos) => lookNear(pos, LOOK_ENERGY)[0], pos);
 }
 
-export function lookForRoad(pos: RoomPosition): StructureRoad | ConstructionSite<STRUCTURE_ROAD> {
-	return (pos.lookFor(LOOK_STRUCTURES).filter(isRoad)[0] as StructureRoad) ||
-		(pos.lookFor(LOOK_CONSTRUCTION_SITES).filter(isRoad)[0] as ConstructionSite<STRUCTURE_ROAD>);
+export function lookForStructureAt<T extends BuildableStructureConstant>(structureType: T, pos: RoomPosition): ConcreteStructure<T> | ConstructionSite<T> {
+	return (pos.lookFor(LOOK_STRUCTURES).find(s => isConcreteStructure(s, structureType)) as ConcreteStructure<T>) ??
+		(pos.lookFor(LOOK_CONSTRUCTION_SITES).find(s => isConstructionSiteForStructure(s, structureType)) as ConstructionSite<T>);
 }

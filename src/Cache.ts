@@ -1,11 +1,13 @@
 // TODO: move trim operations to event tick end
 
 import { getFullStack, log } from "./Logger";
+import { threadId } from "worker_threads";
 
 export interface CacheService<T> {
 	// returns the value from the cache or undefined if value is not in the cache or expired.
 	get(id: string): T;
 	set(id: string, value: T, ttl: number): void;
+	clear(id: string): void;
 }
 
 export class ObjectCacheService<T> implements CacheService<T> {
@@ -18,6 +20,10 @@ export class ObjectCacheService<T> implements CacheService<T> {
 	get(id: string): T {
 		let entry = this.cache[id];
 		return entry && (Game.time - entry.insertTime < entry.ttl) ? entry.value : undefined;
+	}
+
+	clear(id: string): void {
+		delete this.cache[id];
 	}
 
 	set(id: string, value: T, ttl: number): void {
@@ -56,6 +62,10 @@ export class TickCacheService<T> implements CacheService<T> {
 
 	get(id: string): T {
 		return this.cache[Game.time]?.[id];
+	}
+
+	clear(id: string): void {
+		delete this.cache[Game.time][id];
 	}
 
 	set(id: string, value: T): void {
@@ -98,6 +108,10 @@ export class MutatingCacheService<T, W> implements CacheService<T> {
 		return value !== undefined ? this.reader(value) : undefined;
 	}
 
+	clear(id: string) {
+		return this.cache.clear(id);
+	}
+
 	set(id: string, value: T, ttl: number): void {
 		if (value === undefined) {
 			log.e(`Trying to cache undefined value for id [${id}]`, getFullStack());
@@ -116,11 +130,23 @@ export class ChainingCacheService<T> implements CacheService<T> {
 
 	get(id: string): T {
 		let value = undefined;
-		for (let cache of this.caches) {
-			value = cache.get(id);
+		let i = 0;
+		for (; i < this.caches.length; i++) {
+			value = this.caches[i].get(id);
 			if (value != undefined) {
-				return value;
+				break;
 			}
+		}
+		// TODO figure out a cleaner way to have server cache write back to tick cache, maybe abandon ChainingCacheService in favor of 3 custom implementations.
+		if (value !== undefined && i > 0) {
+			this.caches[0].set(id, value, 1);
+		}
+		return value;
+	}
+
+	clear(id: string): void {
+		for (let cache of this.caches) {
+			cache.clear(id);
 		}
 	}
 

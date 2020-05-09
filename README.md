@@ -22,15 +22,17 @@ https://wiki.screepspl.us/index.php/Private_Server_Common_Tasks
 
 ### P1
 * recycleCreep when its job is done, e.g. room builders
-* Make server cache write back to tick cache on load from object id
+* Clean up how server cache write back to tick cache in get
 
 ## Aspirational TODO
 
-* use segments to sync across servers for server cache (for objects with ids or that implement serialization themselves)
+* Use segments to sync across servers for server cache (for objects with ids or that implement serialization themselves)
+* Have creep spawn requests take in destination position and time and plan creep spawns to arrive at the destination position at the given time.
 
 ## Console Commands
 
 * `Memory.creepSayAction = true`
-* `Memory.highwaydebugVisuals = true`
+* `Memory.highwayDebugVisuals = true`
 * `Memory.showHighways = true`
+* `Memory.clearHighways = true`
 * `Memory.hardReset = true`

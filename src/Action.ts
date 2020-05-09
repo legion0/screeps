@@ -21,7 +21,7 @@ declare global {
 	}
 	interface Memory {
 		creepSayAction: boolean;
-		highwaydebugVisuals: boolean;
+		highwayDebugVisuals: boolean;
 	}
 }
 
@@ -45,77 +45,93 @@ function creepIsStuck(creep: Creep) {
 	return lastPos.since + 3 < Game.time;
 }
 
-function walkHighway(creep: Creep, to: RoomPosition) {
+function getFrom(creep: Creep, to: RoomPosition) {
+	if (creep.pos.getRangeTo(to) <= 4) {
+		creep.memory.highway.from = toMemory(to);
+		return null;
+	} else if (!creep.memory.highway.from) {
+		return null;
+	}
+	let from = fromMemory(creep.memory.highway.from);
+	if (from.isEqualTo(to)) {
+		delete creep.memory.highway.from;
+		if (creep.pos.getRangeTo(to) > 4) {
+			log.e(`Creep [${creep}] is at [${creep.pos}] and from [${from}] is equal to destination!`);
+		}
+		return null;
+	}
+	return from;
+}
+
+function buildHighway(creep: Creep, from: RoomPosition, to: RoomPosition) {
+	// log.d(`Creep [${creep}] at [${creep.pos}] is creating a highway from [${from}] to [${to}]`);
+	if (Memory.highwayDebugVisuals) {
+		creep.room.visual.line(from.x, from.y, to.x, to.y, { color: 'blue' });
+		creep.room.visual.line(from.x, from.y, creep.pos.x, creep.pos.y, { color: 'blue' });
+		creep.room.visual.line(creep.pos.x, creep.pos.y, to.x, to.y, { color: 'blue' });
+	}
+	let highway = new Highway(from, to).build();
+	if (highway instanceof Highway) {
+		highway.buildRoad();
+		return highway;
+	} else {
+		log.e(`[${creep.name}] failed to build highway [${from}]->[${to}] with error [${errorCodeToString(highway)}]`);
+	}
+	return null;
+}
+
+function getNextHighwayWaypoint(creep: Creep, to: RoomPosition): RoomPosition | ScreepsReturnCode {
 	MemInit(creep.memory, 'highway', { path: [] });
 
 	let fakeCurrent = creep.pos;
 
-	// highway usage ends at range 4 and we shift to regular walking, time to remeber where we were headed from for next highway walk
-	if (creep.pos.getRangeTo(to) <= 4) {
-		creep.memory.highway.from = toMemory(to);
-		return OK;
+	// let highway = buildHighway(creep, from, to);
+
+	let path = creep.memory.highway.path.map(fromMemory);
+	if (path.length && path[0].isEqualTo(creep.pos)) {
+		path.shift();
+		creep.memory.highway.path.shift();
+	}
+	if (path.length && creepIsStuck(creep)) {
+		log.w(`Creep [${creep}] stuck, moving to next highway position`);
+		fakeCurrent = path.shift();
+		creep.memory.highway.path.shift();
 	}
 
-	// if we have a source lets walk the highway from there to our destination
-	if (creep.memory.highway.from && creep.pos.getRangeTo(to) > 4) {
-		let from = fromMemory(creep.memory.highway.from);
-		if (from.isEqualTo(to)) {
-			return ERR_FULL;
-		}
-		let path = creep.memory.highway.path.map(fromMemory);
-		if (path.length && path[0].isEqualTo(creep.pos)) {
-			path.shift();
-			creep.memory.highway.path.shift();
-		}
-		// if (creep.name == 'UpgradeController.W8N3.0') {
-		// 	console.log(creep, creep.pos, to, undefined, path);
-		// }
-		// if (creep.name == 'UpgradeController.W8N3.1') {
-		// 	log.d(creep.memory.lastPos);
-		// }
-		if (path.length && creepIsStuck(creep)) {
-			log.w(`Creep [${creep}] stuck, moving to next highway position`);
-			fakeCurrent = path.shift();
-			creep.memory.highway.path.shift();
-		}
-		if (!path.length && from.getRangeTo(to) >= 10) {
-			// log.d(`Creep [${creep}] at [${creep.pos}] is creating a highway from [${from}] to [${to}]`);
-			if (Memory.highwaydebugVisuals) {
-				creep.room.visual.line(from.x, from.y, to.x, to.y, { color: 'blue' });
-				creep.room.visual.line(from.x, from.y, creep.pos.x, creep.pos.y, { color: 'blue' });
-				creep.room.visual.line(creep.pos.x, creep.pos.y, to.x, to.y, { color: 'blue' });
-			}
-			let highway = new Highway(from, to).build();
-			if (highway instanceof Highway) {
-				highway.buildRoad();
+	if (!path.length) {
+		let from = getFrom(creep, to);
+		if (from && from.getRangeTo(to) >= 10) {
+			let highway = buildHighway(creep, from, to);
+			if (highway) {
 				path = highway.nextSegment(fakeCurrent, to);
 				creep.memory.highway.path = path.map(toMemory);
-				// log.d('NEW PATH !!! ', creep, path);
-			} else {
-				log.e(`[${creep.name}] failed to build highway [${from}]->[${to}] with error [${errorCodeToString(highway)}]`);
 			}
+		} else {
+			return OK;
 		}
-		if (!path.length) {
-			return ERR_NO_PATH;
-		}
-		if (Memory.highwaydebugVisuals) {
-			creep.room.visual.poly(path, { stroke: 'red' });
-		}
-		return path[0];
 	}
-	return OK;
+
+	if (!path.length) {
+		return creep.pos.getRangeTo(to) < 4 ? ERR_NO_PATH : OK;
+	}
+
+	if (Memory.highwayDebugVisuals) {
+		creep.room.visual.poly(path, { stroke: 'red' });
+		creep.room.visual.circle(path[0].x, path[0].y, { fill: 'red' });
+	}
+	return path[0];
 }
 
 export function moveTo(creep: Creep, to: RoomPosition, highway: boolean) {
 	let rv: ScreepsReturnCode = OK;
 	if (highway) {
-		let highwayNextPos = walkHighway(creep, to);
-		if (highwayNextPos instanceof RoomPosition) {
+		let nextHighwayWaypoint = getNextHighwayWaypoint(creep, to);
+		if (nextHighwayWaypoint instanceof RoomPosition) {
 			// log.d(`Creep [${creep}] using highway`);
-			to = highwayNextPos;
+			to = nextHighwayWaypoint;
 			// log.d(`Creep [${creep}] using highway with next pos [${to}]`);
-		} else if (highwayNextPos != OK) {
-			log.e(`Creep [${creep}] at [${creep.pos}] failed to walk highway from [${creep.memory.highway?.from}] to [${to}] with error [${errorCodeToString(highwayNextPos)}]`);
+		} else if (nextHighwayWaypoint != OK) {
+			log.e(`Creep [${creep}] at [${creep.pos}] failed to walk highway from [${creep.memory.highway?.from}] to [${to}] with error [${errorCodeToString(nextHighwayWaypoint)}]`);
 		}
 	}
 	if (!creep.fatigue) {

@@ -3,7 +3,7 @@ import { findMaxBy } from './Array';
 import { getWithCallback, objectServerCache } from './Cache';
 import { log } from "./Logger";
 import { nextExtensionPos } from "./Planning";
-import { findMyConstructionSites, findRoomSource, requestCreepSpawn, RoomSource, SpawnQueuePriority } from "./Room";
+import { findMyConstructionSites, findRoomSource, requestCreepSpawn, RoomSource, SpawnQueuePriority, currentConstruction, constructionQueueSize, requestConstruction, BuildQueuePriority } from "./Room";
 import { findNearbyEnergy } from './RoomPosition';
 import { isConcreteStructure } from './Structure';
 import { Task } from "./Task";
@@ -26,14 +26,14 @@ export class TaskBuildRoom extends Task {
 	readonly room: Room;
 	readonly roomSource?: RoomSource;
 	readonly constructionSite?: ConstructionSite;
-	readonly constructionSites: ConstructionSite[];
+	private constructionQueueSize: number;
 
 	constructor(roomName: Id<TaskBuildRoom>) {
 		super(TaskBuildRoom, roomName);
 		this.roomName = roomName;
 		this.room = Game.rooms[roomName];
-		this.constructionSites = findMyConstructionSites(this.room);
-		this.constructionSite = findNextConstructionSite(this.constructionSites);
+		this.constructionSite = currentConstruction(this.room.name);
+		this.constructionQueueSize = constructionQueueSize(this.room.name);
 		if (this.constructionSite) {
 			this.roomSource = findRoomSource(this.room);
 		}
@@ -43,32 +43,29 @@ export class TaskBuildRoom extends Task {
 		// create new extensions
 		everyN(50, () => {
 			for (let pos of nextExtensionPos(this.room)) {
-				let rv = pos.createConstructionSite(STRUCTURE_EXTENSION);
-				if (rv != OK) {
-					log.e(`Failed to created STRUCTURE_EXTENSION at [${pos}]`);
+				let rv = requestConstruction(pos, STRUCTURE_EXTENSION, BuildQueuePriority.EXTENSION);
+				if (rv != OK && rv != ERR_NAME_EXISTS) {
+					log.e(`Failed to request STRUCTURE_EXTENSION at [${pos}]`);
 				}
 			}
 		});
 
 		// run builders
-		if (this.constructionSites.length) {
-			let progressRemaining = _.sum(this.constructionSites, s => s.progressTotal - s.progress);
-			let numCreeps = Math.min(Math.ceil(progressRemaining / 5000), 3);
-			for (let i = 0; i < 3; i++) {
-				let name = `${this.id}.${i}`;
-				let creep = Game.creeps[name];
-				if (creep) {
-					A.runSequence(buildCreepActions, creep, { creep: creep, task: this });
-				} else if (i < numCreeps) {
-					everyN(20, () => {
-						requestCreepSpawn(this.room, name, () => ({
-							priority: SpawnQueuePriority.BUILDER,
-							name: name,
-							body: [MOVE, MOVE, CARRY, WORK],
-							cost: BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK],
-						}));
-					});
-				}
+		let numCreeps = Math.min(Math.ceil(this.constructionQueueSize / 5000), 3);
+		for (let i = 0; i < 3; i++) {
+			let name = `${this.id}.${i}`;
+			let creep = Game.creeps[name];
+			if (creep) {
+				A.runSequence(buildCreepActions, creep, { creep: creep, task: this });
+			} else if (i < numCreeps) {
+				everyN(20, () => {
+					requestCreepSpawn(this.room, name, () => ({
+						priority: SpawnQueuePriority.BUILDER,
+						name: name,
+						body: [MOVE, MOVE, CARRY, WORK],
+						cost: BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK],
+					}));
+				});
 			}
 		}
 	}

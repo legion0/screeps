@@ -3,7 +3,7 @@ import { getWithCallback, objectServerCache } from './Cache';
 import { EventEnum, events } from './Events';
 import { log } from './Logger';
 import { MemInit } from './Memory';
-import { fromMemory, posKey, RoomPositionMemory, toMemory } from './RoomPosition';
+import { fromMemory, posKey, RoomPositionMemory, toMemory, lookForStructureAt } from './RoomPosition';
 import { isWalkableStructure, isRoad } from './Structure';
 import { everyN } from './Tick';
 
@@ -15,7 +15,8 @@ interface HighwayMemory {
 declare global {
 	interface Memory {
 		highways: { [key: string]: HighwayMemory }
-		showHighways: boolean;
+		showHighways?: boolean;
+		clearHighways?: boolean;
 	}
 }
 
@@ -48,7 +49,7 @@ export class Highway {
 			return this;
 		}
 		let rv = PathFinder.search(
-			this.from, { pos: this.to, range: 3 },
+			this.from, { pos: this.to, range: 1 },
 			{
 				plainCost: 1,
 				swampCost: 1,
@@ -58,7 +59,7 @@ export class Highway {
 		if (rv.incomplete) {
 			return ERR_NO_PATH;
 		}
-		let path = rv.path.filter(pos => pos.getRangeTo(this.from) > 3);
+		let path = rv.path.slice(2, rv.path.length - 2);
 		this.memory.path = path.map(toMemory);
 		return this;
 	}
@@ -107,13 +108,17 @@ export class Highway {
 			});
 	}
 
-	nextSegment(from: RoomPosition, to: RoomPosition): RoomPosition[] {
+	nextSegment(current: RoomPosition, to: RoomPosition): RoomPosition[] {
 		if (!this.memory.path || !this.memory.path.length) {
 			log.e(`Accessing Failed Highway at [${this.name}]`);
 			return [];
 		}
 		let highwayPath = this.memory.path.map(fromMemory);
-		let startIdx = findMinIndexBy(highwayPath, from.getRangeTo.bind(from));
+		let range = current.getRangeTo(to);
+		// we use range as a tie breaker for positions that are equally far from
+		// the creep, this is important when changing routes between 2 highways
+		// after changing destination.
+		let startIdx = findMinIndexBy(highwayPath, pos => pos.getRangeTo(current) + pos.getRangeTo(to) / range);
 		let endIdx = findMinIndexBy(highwayPath, to.getRangeTo.bind(to));
 
 		if (startIdx > endIdx) {
@@ -121,7 +126,7 @@ export class Highway {
 			[startIdx, endIdx] = [highwayPath.length - startIdx - 1, highwayPath.length - endIdx - 1];
 		}
 		// console.log(startIdx, endIdx, highwayPath.length);
-		if (highwayPath[startIdx].isEqualTo(from)) {
+		if (highwayPath[startIdx].isEqualTo(current)) {
 			startIdx++;
 		}
 		return highwayPath.slice(startIdx, Math.min(endIdx, startIdx + 5));
@@ -184,4 +189,87 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 		// room.find(FIND_CONSTRUCTION_SITES).filter(s => !allPos.some(other => s.pos.isEqualTo(other))).forEach(s => s.remove());
 		// room.find(FIND_STRUCTURES).filter(isRoad).filter(s => !allPos.some(other => s.pos.isEqualTo(other))).forEach(s => s.destroy());
 	}
+
+	if (Memory.clearHighways) {
+		log.w(`Clearing all highways!`);
+		delete Memory.clearHighways;
+		for (let name in Memory.highways) {
+			Memory.highways[name].path.forEach(posMem => {
+				let pos = fromMemory(posMem);
+				let road = lookForStructureAt(STRUCTURE_ROAD, pos);
+				if (road instanceof ConstructionSite) {
+					road.remove();
+				} else if (road instanceof StructureRoad) {
+					road.destroy();
+				}
+			});
+			delete Memory.highways[name];
+		}
+		for (let name in Memory.creeps) {
+			delete Memory.creeps[name].highway;
+		}
+	}
 });
+
+// TOP: 1 as DirectionConstant,
+// TOP_RIGHT: 2 as DirectionConstant,
+// RIGHT: 3 as DirectionConstant,
+// BOTTOM_RIGHT: 4 as DirectionConstant,
+// BOTTOM: 5 as DirectionConstant,
+// BOTTOM_LEFT: 6 as DirectionConstant,
+// LEFT: 7 as DirectionConstant,
+// TOP_LEFT: 8 as DirectionConstant,
+
+// function serializePath(currentPos: RoomPosition, posPath: RoomPosition[]) {
+// 	if (!currentPos.isNearTo(posPath[0])) {
+// 		return ERR_NO_PATH;
+// 	}
+// 	let prevPos = currentPos;
+// 	let res = '';
+// 	for (let pos of posPath) {
+// 		res += prevPos.getDirectionTo(pos);
+// 		prevPos = pos;
+// 	}
+// 	return res;
+// }
+
+// let room = _.find(Game.rooms);
+// let spawn = room.find(FIND_MY_SPAWNS)[0];
+// let controller = room.controller;
+// let path = room.findPath(spawn.pos, controller.pos);
+// console.log(JSON.stringify(path));
+// let serialized = Room.serializePath(path);
+// console.log(serialized, typeof (serialized));
+// let deserialized = Room.deserializePath(serialized);
+// console.log(JSON.stringify(deserialized));
+
+// [
+// 	{ "x": 29, "y": 17, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 30, "y": 18, "dx": 1, "dy": 1, "direction": 4 },
+// 	{ "x": 31, "y": 19, "dx": 1, "dy": 1, "direction": 4 },
+// 	{ "x": 32, "y": 20, "dx": 1, "dy": 1, "direction": 4 },
+// 	{ "x": 32, "y": 21, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 32, "y": 22, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 32, "y": 23, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 31, "y": 24, "dx": -1, "dy": 1, "direction": 6 },
+// 	{ "x": 30, "y": 25, "dx": -1, "dy": 1, "direction": 6 },
+// 	{ "x": 29, "y": 26, "dx": -1, "dy": 1, "direction": 6 },
+// 	{ "x": 29, "y": 27, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 28, "y": 28, "dx": -1, "dy": 1, "direction": 6 },
+// 	{ "x": 27, "y": 28, "dx": -1, "dy": 0, "direction": 7 },
+// 	{ "x": 26, "y": 29, "dx": -1, "dy": 1, "direction": 6 },
+// 	{ "x": 25, "y": 30, "dx": -1, "dy": 1, "direction": 6 },
+// 	{ "x": 24, "y": 31, "dx": -1, "dy": 1, "direction": 6 },
+// 	{ "x": 24, "y": 32, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 24, "y": 33, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 24, "y": 34, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 24, "y": 35, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 24, "y": 36, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 24, "y": 37, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 24, "y": 38, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 23, "y": 39, "dx": -1, "dy": 1, "direction": 6 },
+// 	{ "x": 22, "y": 40, "dx": -1, "dy": 1, "direction": 6 },
+// 	{ "x": 22, "y": 41, "dx": 0, "dy": 1, "direction": 5 },
+// 	{ "x": 23, "y": 42, "dx": 1, "dy": 1, "direction": 4 }
+// ]
+// 2917544455566656766655555556654
