@@ -1,4 +1,4 @@
-import { findMinIndexBy } from './Array';
+import { findMinIndexBy, findMinBy } from './Array';
 import { getWithCallback, objectServerCache } from './Cache';
 import { EventEnum, events } from './Events';
 import { log } from './Logger';
@@ -82,7 +82,6 @@ export class Highway {
 
 	buildRoad() {
 		getWithCallback(objectServerCache, `${this.name}.roads`, 100, () => {
-			// log.d(`Building roads for [${this.name}]`);
 			this.memory.path
 				.map(fromMemoryWorld)
 				.filter(pos => !pos.lookFor(LOOK_STRUCTURES).some(isRoad))
@@ -106,6 +105,28 @@ export class Highway {
 					.filter(s => s.structureType == STRUCTURE_ROAD)
 					.forEach(s => s.destroy());
 			});
+	}
+
+	static findHighway(current: RoomPosition, to: RoomPosition) {
+		let range = current.getRangeTo(to);
+		let candidates = Object.values(Memory.highways).filter(memory =>
+			fromMemoryWorld(memory.path[0]).getRangeTo(to) <= 5 ||
+			fromMemoryWorld(memory.path[memory.path.length - 1]).getRangeTo(to) <= 5);
+
+		for (let memory of candidates) {
+			let start = fromMemoryWorld(memory.path[0]);
+			let end = fromMemoryWorld(memory.path[memory.path.length - 1]);
+			let onRamp = findMinBy(memory.path.map(fromMemoryWorld), pos => pos.getRangeTo(current) + pos.getRangeTo(to) / range);
+			if (onRamp.getRangeTo(current) > 5) {
+				continue;
+			}
+			if (start.getRangeTo(to) < 5) {
+				return end;
+			} else if (end.getRangeTo(to) < 5) {
+				return start;
+			}
+		}
+		return null;
 	}
 
 	nextSegment(current: RoomPosition, to: RoomPosition): RoomPosition[] {
@@ -233,14 +254,14 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 // 	return res;
 // }
 
-let room = _.find(Game.rooms);
-let spawn = room.find(FIND_MY_SPAWNS)[0];
-let path = room.findPath(new RoomPosition(8, 8, room.name), spawn.pos);
-console.log(JSON.stringify(path));
-let serialized = Room.serializePath(path);
-console.log(serialized, typeof (serialized));
-let deserialized = Room.deserializePath(serialized);
-console.log(JSON.stringify(deserialized));
+// let room = _.find(Game.rooms);
+// let spawn = room.find(FIND_MY_SPAWNS)[0];
+// let path = room.findPath(new RoomPosition(8, 8, room.name), spawn.pos);
+// console.log(JSON.stringify(path));
+// let serialized = Room.serializePath(path);
+// console.log(serialized, typeof (serialized));
+// let deserialized = Room.deserializePath(serialized);
+// console.log(JSON.stringify(deserialized));
 
 // let room = _.find(Game.rooms);
 // let spawn = room.find(FIND_MY_SPAWNS)[0];

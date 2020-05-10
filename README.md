@@ -17,12 +17,13 @@ https://wiki.screepspl.us/index.php/Private_Server_Common_Tasks
 ## TODO
 
 ### P0
-* Add build queue to room so room builders only build construction sites in room queue (and not boot containers for example or roads that are maintained by those who walk them)
 * Figure out task replacment strategy, when/how does harvester_hauler replace boot task?
+* Make highway lookup by finding highway endpoint within range of edges, otherwise it creates multiple different highways for very close together destinations, this will also potentially allow to hick to existing highway from random position without the "from" position.
 
 ### P1
 * recycleCreep when its job is done, e.g. room builders
 * Clean up how server cache write back to tick cache in get
+* Convert highway path in creep memory to standard serialized path and use moveByPath
 
 ## Aspirational TODO
 

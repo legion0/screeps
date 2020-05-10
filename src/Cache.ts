@@ -40,6 +40,7 @@ export class ObjectCacheService<T> implements CacheService<T> {
 				ttl: ttl,
 			};
 		} else {
+			entry.insertTime = Game.time;
 			entry.value = value;
 			entry.ttl = ttl;
 		}
@@ -133,11 +134,11 @@ export class ChainingCacheService<T> implements CacheService<T> {
 		let i = 0;
 		for (; i < this.caches.length; i++) {
 			value = this.caches[i].get(id);
-			if (value != undefined) {
+			if (value !== undefined) {
 				break;
 			}
 		}
-		// TODO figure out a cleaner way to have server cache write back to tick cache, maybe abandon ChainingCacheService in favor of 3 custom implementations.
+		// TODO: figure out a cleaner way to have server cache write back to tick cache, maybe abandon ChainingCacheService in favor of 3 custom implementations.
 		if (value !== undefined && i > 0) {
 			this.caches[0].set(id, value, 1);
 		}
@@ -158,11 +159,13 @@ export class ChainingCacheService<T> implements CacheService<T> {
 }
 
 function fromMemory(id: Id<any>) {
-	return Game.getObjectById(id);
+	let o = Game.getObjectById(id);
+	return o;
 }
 
 function toMemory(value: ObjectWithId<any>) {
-	return value?.id ?? null;
+	let id = value?.id ?? null;
+	return id;
 }
 
 function fromMemoryMany(ids: Id<any>[]): ObjectWithId<any>[] {

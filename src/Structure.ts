@@ -1,4 +1,7 @@
-export function isWalkableStructure(structure: Structure<StructureConstant>) {
+export function isWalkableStructure(structure: Structure<StructureConstant> | Ruin) {
+	if (structure instanceof Ruin) {
+		return true;
+	}
 	switch (structure.structureType) {
 		case STRUCTURE_CONTAINER:
 		case STRUCTURE_ROAD:
@@ -28,6 +31,10 @@ export function filterStructureType<T extends StructureConstant>(structures: Any
 
 export function isSpawnOrExtension(s: any): s is StructureSpawn | StructureExtension {
 	return s instanceof StructureSpawn || s instanceof StructureExtension;
+}
+
+export function isSpawn(s: any): s is StructureSpawn {
+	return s instanceof StructureSpawn;
 }
 
 export function isRoad(s: any): s is StructureRoad | ConstructionSite<STRUCTURE_ROAD> {

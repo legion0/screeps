@@ -71,7 +71,6 @@ export function fromMemoryRoom(memory: number, roomName: string): RoomPosition {
 test('toMemoryRoom', () => {
 	for (let x = 0; x < ROOM_WIDTH; x++) {
 		for (let y = 0; y < ROOM_WIDTH; y++) {
-			// console.log('.');
 			let pos = new RoomPosition(x, y, 'W0N0');
 			expect(fromMemoryRoom(toMemoryRoom(pos), 'W0N0')).toMatchObject(pos);
 		}

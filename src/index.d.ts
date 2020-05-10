@@ -9,6 +9,6 @@ interface ObjectWithId<T> {
 }
 
 type ObjectWithStore = { store: StoreDefinition };
-type ObjectWithEnergy = ObjectWithStore | { energy: number, energyCapacity: number };
+type ObjectWithEnergy = ObjectWithStore | { energy: number, energyCapacity: number } | Resource<RESOURCE_ENERGY>;
 
 type ObjectWithPos = { pos: RoomPosition };

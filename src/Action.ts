@@ -2,10 +2,10 @@ import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE } from "./c
 import { Highway } from "./Highway";
 import { log } from "./Logger";
 import { MemInit } from "./Memory";
-import { isRoomSource, isRoomSync, RoomSource, RoomSync } from "./Room";
-import { fromMemoryWorld, toMemoryWorld, toMemoryRoom, RoomPositionMemory } from "./RoomPosition";
+import { isRoomSource, isRoomSync, RoomSource, RoomSync, getRecyclePos } from "./Room";
+import { fromMemoryWorld, toMemoryWorld, toMemoryRoom, RoomPositionMemory, lookNear } from "./RoomPosition";
 import { hasFreeCapacity, hasUsedCapacity } from "./Store";
-import { isDamaged } from "./Structure";
+import { isDamaged, isSpawnOrExtension, isSpawn } from "./Structure";
 
 declare global {
 	interface CreepMemory {
@@ -35,6 +35,7 @@ export enum ActionType {
 	WITHDRAW,
 }
 
+// TODO: move to tick end calculation, this code is not executed if creep if fatigued
 function creepIsStuck(creep: Creep) {
 	let lastPos = MemInit(creep.memory, 'lastPos', {});
 	if (lastPos.pos != toMemoryRoom(creep.pos)) {
@@ -54,17 +55,21 @@ function getFrom(creep: Creep, to: RoomPosition) {
 	}
 	let from = fromMemoryWorld(creep.memory.highway.from);
 	if (from.isEqualTo(to)) {
-		delete creep.memory.highway.from;
-		if (creep.pos.getRangeTo(to) > 4) {
-			log.e(`Creep [${creep}] is at [${creep.pos}] and from [${from}] is equal to destination!`);
+		// turned around (e.g. out of energy building highway on path to target)
+		let from = Highway.findHighway(creep.pos, to);
+		if (from) {
+			creep.memory.highway.from = toMemoryWorld(from);
+			return from;
 		}
+		// if (creep.pos.getRangeTo(to) > 4) {
+		// 	log.e(`Creep [${creep}] is at [${creep.pos}] and from [${from}] is equal to destination!`);
+		// }
 		return null;
 	}
 	return from;
 }
 
 function buildHighway(creep: Creep, from: RoomPosition, to: RoomPosition) {
-	// log.d(`Creep [${creep}] at [${creep.pos}] is creating a highway from [${from}] to [${to}]`);
 	if (Memory.highwayDebugVisuals) {
 		creep.room.visual.line(from.x, from.y, to.x, to.y, { color: 'blue' });
 		creep.room.visual.line(from.x, from.y, creep.pos.x, creep.pos.y, { color: 'blue' });
@@ -122,29 +127,45 @@ function getNextHighwayWaypoint(creep: Creep, to: RoomPosition): RoomPosition | 
 	return path[0];
 }
 
-export function moveTo(creep: Creep, to: RoomPosition, highway: boolean) {
+export function moveTo(creep: Creep, to: RoomPosition, highway: boolean, range: number) {
+	if (creep.fatigue) {
+		return OK;
+	}
 	let rv: ScreepsReturnCode = OK;
 	if (highway) {
 		let nextHighwayWaypoint = getNextHighwayWaypoint(creep, to);
 		if (nextHighwayWaypoint instanceof RoomPosition) {
-			// log.d(`Creep [${creep}] using highway`);
 			to = nextHighwayWaypoint;
-			// log.d(`Creep [${creep}] using highway with next pos [${to}]`);
 		} else if (nextHighwayWaypoint != OK) {
 			log.e(`Creep [${creep}] at [${creep.pos}] failed to walk highway from [${creep.memory.highway?.from}] to [${to}] with error [${errorCodeToString(nextHighwayWaypoint)}]`);
 		}
 	}
-	if (!creep.fatigue) {
-		if (creep.pos.isNearTo(to)) {
-			rv = creep.move(creep.pos.getDirectionTo(to));
-		} else {
-			rv = creep.moveTo(to);
-		}
-		if (rv != OK) {
-			log.e(`[${creep.name}] failed to moveTo [${to}] [${creep.pos}]->[${to}] with error [${errorCodeToString(rv)}]`);
-		}
+	if (creep.pos.isNearTo(to)) {
+		rv = creep.move(creep.pos.getDirectionTo(to));
+	} else {
+		rv = creep.moveTo(to);
+	}
+	if (rv != OK) {
+		log.e(`[${creep.name}] failed to moveTo [${to}] [${creep.pos}]->[${to}] with error [${errorCodeToString(rv)}]`);
 	}
 	return rv;
+}
+
+export function recycle(creep: Creep) {
+	let recyclePos = getRecyclePos(creep.room);
+	if (creep.pos.isNearTo(recyclePos)) {
+		let spawn = lookNear(recyclePos, LOOK_STRUCTURES, isSpawn)[0] as StructureSpawn;
+		if (spawn) {
+			let rv = spawn.recycleCreep(creep);
+			if (rv != OK) {
+				log.e(`[${creep.name}] failed to be recycled by [${spawn}] at [${creep.pos}] with error [${errorCodeToString(rv)}]`);
+			}
+		} else {
+			log.e(`[${creep.name}] failed to find spawn for recycling at recycle pos [${creep.pos}]`);
+		}
+	} else {
+		creep.moveTo(recyclePos);
+	}
 }
 
 abstract class Action<ContextType> {
@@ -203,7 +224,7 @@ export class Deposit<ContextType> extends Action<ContextType> {
 				log.e(`[${creep.name}] failed to transfer to [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(creep, target.pos, this.highway);
+			rv = moveTo(creep, target.pos, this.highway, 1);
 		}
 		return rv;
 	}
@@ -226,7 +247,7 @@ export class Build<ContextType> extends Action<ContextType> {
 				log.e(`[${creep.name}] failed to build [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(creep, target.pos, this.highway);
+			rv = moveTo(creep, target.pos, this.highway, BUILD_RANGE);
 		}
 		return rv;
 	}
@@ -249,7 +270,7 @@ export class Repair<ContextType> extends Action<ContextType> {
 				log.e(`[${creep.name}] failed to repair [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(creep, target.pos, this.highway);
+			rv = moveTo(creep, target.pos, this.highway, REPAIR_RANGE);
 		}
 		return rv;
 	}
@@ -290,7 +311,7 @@ export class UpgradeController<ContextType> extends Action<ContextType> {
 				log.e(`[${creep.name}] failed to upgradeController [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(creep, target.pos, this.highway);
+			rv = moveTo(creep, target.pos, this.highway, UPGRADE_RANGE);
 		}
 		return rv;
 	}
@@ -308,12 +329,18 @@ export class Withdraw<ContextType> extends Action<ContextType> {
 	do(creep: Creep, target: RoomSource) {
 		let rv: ScreepsReturnCode = OK;
 		if (creep.pos.isNearTo(target.pos)) {
-			rv = target instanceof Source ? creep.harvest(target) : creep.withdraw(target, RESOURCE_ENERGY);
+			if (target instanceof Resource) {
+				rv = creep.pickup(target);
+			} else if (target instanceof Source) {
+				rv = creep.harvest(target);
+			} else {
+				rv = creep.withdraw(target, RESOURCE_ENERGY);
+			}
 			if (rv != OK) {
 				log.e(`[${creep.name}] failed to withdraw from [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(creep, target.pos, this.highway);
+			rv = moveTo(creep, target.pos, this.highway, 1);
 		}
 		return rv;
 	}

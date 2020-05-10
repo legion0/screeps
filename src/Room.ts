@@ -4,8 +4,8 @@ import { errorCodeToString } from "./constants";
 import { EventEnum, events } from "./Events";
 import { log } from "./Logger";
 import { PriorityQueue } from "./PriorityQueue";
-import { posKey, toMemoryWorld, fromMemoryWorld, lookForStructureAt, RoomPositionMemory } from "./RoomPosition";
-import { filterStructureType, isConcreteStructure, isSpawnOrExtension } from "./Structure";
+import { posKey, toMemoryWorld, fromMemoryWorld, lookForStructureAt, RoomPositionMemory, posNear } from "./RoomPosition";
+import { filterStructureType, isConcreteStructure, isSpawnOrExtension, isWalkableStructure } from "./Structure";
 import { everyN } from "./Tick";
 import { sortById } from "./util";
 import { MemInit } from "./Memory";
@@ -212,29 +212,51 @@ export function findStructuresByType<T extends StructureConstant>(room: Room, ty
 	return room ? filterStructureType(room.find(FIND_STRUCTURES), type) : [];
 }
 
-export type RoomSource = StructureContainer | Source;
+export type RoomSource = Resource<RESOURCE_ENERGY> | Tombstone | StructureContainer | Source;
 
 export function isRoomSource(s: any): s is RoomSource {
-	return s instanceof StructureContainer || s instanceof Source;
+	return s instanceof StructureContainer ||
+	s instanceof Source ||
+	(s instanceof Resource && s.resourceType == RESOURCE_ENERGY) ||
+	(s instanceof Tombstone && s.store.energy > 0);
 }
 
 function findRoomSourceImpl(room: Room): RoomSource {
 	let structures = findStructures(room);
 
-	let container = filterStructureType(structures, STRUCTURE_CONTAINER).filter(s => hasUsedCapacity(s))[0] as StructureContainer;
-	if (container) {
-		return container;
+	let roomSource: RoomSource = null;
+	let toombStone = getRecyclePos(room).lookFor(LOOK_TOMBSTONES).find(t => t.store.energy);
+	if (toombStone) {
+		roomSource = toombStone;
 	}
 
-	let source = findSources(room).filter(s => hasUsedCapacity(s))[0] as Source;
-	if (source) {
-		return source;
+	if (!roomSource) {
+		let recycledEnergy = getRecyclePos(room).lookFor(LOOK_ENERGY)[0];
+		if (recycledEnergy) {
+			roomSource = recycledEnergy;
+		}
 	}
+
+	if (!roomSource) {
+		let container = filterStructureType(structures, STRUCTURE_CONTAINER).filter(s => hasUsedCapacity(s))[0] as StructureContainer;
+		if (container) {
+			roomSource = container;
+		}
+	}
+
+	if (!roomSource) {
+		let source = findSources(room).filter(s => hasUsedCapacity(s))[0] as Source;
+		if (source) {
+			roomSource = source;
+		}
+	}
+
+	return roomSource;
 }
 
 export function findRoomSource(room: Room): RoomSource {
-	let roomSource = getWithCallback(objectServerCache, `${room.name}.roomSource`, 500, findRoomSourceImpl, room);
-	if (!hasUsedCapacity(roomSource)) {
+	let roomSource = getWithCallback(objectServerCache, `${room.name}.roomSource`, 50, findRoomSourceImpl, room);
+	if (!roomSource || !hasUsedCapacity(roomSource)) {
 		objectServerCache.clear(`${room.name}.roomSource`);
 		return findRoomSource(room);
 	}
@@ -273,5 +295,9 @@ export function findRoomSync(room: Room): RoomSync {
 
 export function getRecyclePos(room: Room): RoomPosition {
 	let spawns = findMySpawns(room);
-	
+	return posNear(spawns[0].pos, false).find(isWalkablePos);
+}
+
+function isWalkablePos(pos: RoomPosition): boolean {
+	return pos.lookFor(LOOK_STRUCTURES).every(s => isWalkableStructure(s));
 }

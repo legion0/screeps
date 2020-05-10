@@ -1,13 +1,11 @@
 import * as A from './Action';
-import { findMaxBy } from './Array';
-import { getWithCallback, objectServerCache } from './Cache';
 import { log } from "./Logger";
 import { nextExtensionPos } from "./Planning";
-import { findMyConstructionSites, findRoomSource, requestCreepSpawn, RoomSource, SpawnQueuePriority, currentConstruction, constructionQueueSize, requestConstruction, BuildQueuePriority } from "./Room";
+import { BuildQueuePriority, constructionQueueSize, currentConstruction, findRoomSource, requestConstruction, requestCreepSpawn, RoomSource, SpawnQueuePriority } from "./Room";
 import { findNearbyEnergy } from './RoomPosition';
-import { isConcreteStructure } from './Structure';
 import { Task } from "./Task";
 import { everyN } from "./Tick";
+import { getWithCallback, rawServerCache } from './Cache';
 
 interface SequenceContext {
 	creep: Creep;
@@ -50,13 +48,22 @@ export class TaskBuildRoom extends Task {
 			}
 		});
 
+		let lastBuild = rawServerCache.get(`${this.id}.lastBuild`) as number;
+		if (this.constructionSite || lastBuild === undefined) {
+			rawServerCache.set(`${this.id}.lastBuild`, Game.time, 100);
+		}
+
 		// run builders
 		let numCreeps = Math.min(Math.ceil(this.constructionQueueSize / 5000), 3);
 		for (let i = 0; i < 3; i++) {
 			let name = `${this.id}.${i}`;
 			let creep = Game.creeps[name];
 			if (creep) {
-				A.runSequence(buildCreepActions, creep, { creep: creep, task: this });
+				if (lastBuild != null && lastBuild + 10 < Game.time) {
+					A.recycle(creep);
+				} else {
+					A.runSequence(buildCreepActions, creep, { creep: creep, task: this });
+				}
 			} else if (i < numCreeps) {
 				everyN(20, () => {
 					requestCreepSpawn(this.room, name, () => ({
@@ -77,18 +84,6 @@ export class TaskBuildRoom extends Task {
 		}
 		return new TaskBuildRoom(roomName as Id<TaskBuildRoom>);
 	}
-}
-
-function findContainer(constructionSite: ConstructionSite): StructureContainer {
-	return getWithCallback(objectServerCache, `${constructionSite.id}.container`, 50, findContainerImpl, constructionSite) as StructureContainer;
-}
-function findContainerImpl(constructionSite: ConstructionSite): StructureContainer {
-	let containers = constructionSite.room.find(FIND_STRUCTURES).filter(s => isConcreteStructure(s, STRUCTURE_CONTAINER)) as StructureContainer[];
-	return findMaxBy(containers, s => s.store.energy);
-}
-
-function findNextConstructionSite(constructionSites: ConstructionSite[]): ConstructionSite {
-	return findMaxBy(constructionSites, s => s.progress / s.progressTotal);
 }
 
 Task.register.registerTaskClass(TaskBuildRoom);
