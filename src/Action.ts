@@ -3,7 +3,7 @@ import { Highway } from "./Highway";
 import { log } from "./Logger";
 import { MemInit } from "./Memory";
 import { isRoomSource, isRoomSync, RoomSource, RoomSync } from "./Room";
-import { fromMemory, RoomPositionMemory, toMemory } from "./RoomPosition";
+import { fromMemoryWorld, toMemoryWorld, toMemoryRoom, RoomPositionMemory } from "./RoomPosition";
 import { hasFreeCapacity, hasUsedCapacity } from "./Store";
 import { isDamaged } from "./Structure";
 
@@ -37,8 +37,8 @@ export enum ActionType {
 
 function creepIsStuck(creep: Creep) {
 	let lastPos = MemInit(creep.memory, 'lastPos', {});
-	if (!creep.pos.isEqualTo(fromMemory(lastPos.pos))) {
-		lastPos.pos = toMemory(creep.pos);
+	if (lastPos.pos != toMemoryRoom(creep.pos)) {
+		lastPos.pos = toMemoryRoom(creep.pos);
 		lastPos.since = Game.time;
 		return false;
 	}
@@ -47,12 +47,12 @@ function creepIsStuck(creep: Creep) {
 
 function getFrom(creep: Creep, to: RoomPosition) {
 	if (creep.pos.getRangeTo(to) <= 4) {
-		creep.memory.highway.from = toMemory(to);
+		creep.memory.highway.from = toMemoryWorld(to);
 		return null;
 	} else if (!creep.memory.highway.from) {
 		return null;
 	}
-	let from = fromMemory(creep.memory.highway.from);
+	let from = fromMemoryWorld(creep.memory.highway.from);
 	if (from.isEqualTo(to)) {
 		delete creep.memory.highway.from;
 		if (creep.pos.getRangeTo(to) > 4) {
@@ -87,7 +87,7 @@ function getNextHighwayWaypoint(creep: Creep, to: RoomPosition): RoomPosition | 
 
 	// let highway = buildHighway(creep, from, to);
 
-	let path = creep.memory.highway.path.map(fromMemory);
+	let path = creep.memory.highway.path.map(fromMemoryWorld);
 	if (path.length && path[0].isEqualTo(creep.pos)) {
 		path.shift();
 		creep.memory.highway.path.shift();
@@ -104,7 +104,7 @@ function getNextHighwayWaypoint(creep: Creep, to: RoomPosition): RoomPosition | 
 			let highway = buildHighway(creep, from, to);
 			if (highway) {
 				path = highway.nextSegment(fakeCurrent, to);
-				creep.memory.highway.path = path.map(toMemory);
+				creep.memory.highway.path = path.map(toMemoryWorld);
 			}
 		} else {
 			return OK;

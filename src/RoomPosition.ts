@@ -4,14 +4,14 @@ import { isConcreteStructure, isConstructionSiteForStructure } from "./Structure
 
 // import { isWalkableStructure } from "./util.Structure";
 
-export interface RoomPositionMemory extends String { }
-
 declare global {
 
 	interface RoomPosition {
 		_clearance: number;
 	}
 }
+
+export type RoomPositionMemory = number;
 
 // RoomPosition.prototype.key = function (): string {
 // 	return this.roomName + '_' + this.x + '_' + this.y;
@@ -21,29 +21,60 @@ declare global {
 // 	return RoomPosition.prototype.lookFor(LOOK_STRUCTURES).every(structure => isWalkableStructure(structure));
 // }
 
-export function fromMemory(memory: RoomPositionMemory): RoomPosition {
-	if (!memory) {
-		return undefined;
+const worldSize = Game.map.getWorldSize();
+const halfWorld = Math.ceil(worldSize / 2);
+const maxWorldCord = worldSize * ROOM_WIDTH;
+
+function roomNameToXY(name: string): [number, number] {
+	let match = name.match(/^(\w)(\d+)(\w)(\d+)$/);
+	if (!match) {
+		return null;
 	}
-	let parts = memory.split('_');
-	return new RoomPosition(parseInt(parts[1]), parseInt(parts[2]), parts[0]);
+	let [, hor, xStr, ver, yStr] = match;
+	let x = hor == 'W' ? Number(xStr) + halfWorld : Number(xStr);
+	let y = ver == 'N' ? Number(yStr) + halfWorld : Number(yStr);
+	return [x, y];
 }
 
-export function toMemory(pos: RoomPosition): RoomPositionMemory {
+function getRoomNameFromXY(x: number, y: number) {
+	let xStr = x >= halfWorld ? 'W' + (x - halfWorld) : 'E' + x;
+	let yStr = y >= halfWorld ? 'N' + (y - halfWorld) : 'S' + y;
+	return xStr + yStr;
+}
+
+export function fromMemoryWorld(memory: RoomPositionMemory): RoomPosition {
+	let worldY = memory % maxWorldCord;
+	let worldX = (memory - worldY) / maxWorldCord;
+	let x = worldX % ROOM_WIDTH;
+	let roomX = (worldX - x) / ROOM_WIDTH;
+	let y = worldY % ROOM_WIDTH;
+	let roomY = (worldY - y) / ROOM_WIDTH;
+	let roomName = getRoomNameFromXY(roomX, roomY);
+	return new RoomPosition(x, y, roomName);
+}
+
+export function toMemoryWorld(pos: RoomPosition): RoomPositionMemory {
 	if (pos instanceof RoomPosition) {
-		return `${pos.roomName}_${pos.x}_${pos.y}`;
+		let roomXY = roomNameToXY(pos.roomName);
+		let worldX = roomXY[0] * ROOM_WIDTH + pos.x;
+		let worldY = roomXY[1] * ROOM_WIDTH + pos.y;
+		return worldX * maxWorldCord + worldY;
 	}
 	return null;
 }
 
-// export function toMemoryShort(pos: RoomPosition): string {
-// 	if (pos instanceof RoomPosition) {
-// 		let x = pos.x < 10 ? '0' + pos.x : '' + pos.x;
-// 		let y = pos.y < 10 ? '0' + pos.y : '' + pos.y;
-// 		return x + y;
-// 	}
-// 	return null;
-// }
+export function toMemoryRoom(pos: RoomPosition): RoomPositionMemory {
+	if (pos instanceof RoomPosition) {
+		return pos.x * ROOM_WIDTH + pos.y;
+	}
+	return null;
+}
+
+export function fromMemoryRoom(memory: RoomPositionMemory, roomName: string): RoomPosition {
+	let y = memory % ROOM_WIDTH;
+	let x = (memory - y) / ROOM_WIDTH;
+	return new RoomPosition(x, y, roomName);
+}
 
 // RoomPosition.prototype.closest = function (positions: RoomPosition[]): RoomPosition {
 // 	return positions.reduce((best, current) => current.getRangeTo(this) < best.getRangeTo(this) ? current : best, positions.first());
@@ -155,10 +186,6 @@ export function findObjectByPos<T extends RoomObject & { id: Id<T> }>(
 
 export function posKey(pos: RoomPosition) {
 	return `${pos.roomName}_${pos.x}_${pos.y}`;
-}
-
-export function posKeyFromMemory(pos: RoomPositionMemory): string {
-	return pos as string;
 }
 
 export function findNearbyEnergy(pos: RoomPosition) {

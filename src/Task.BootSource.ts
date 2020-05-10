@@ -3,7 +3,7 @@ import { getWithCallback, MutatingCacheService, ObjectCacheService, objectServer
 import { errorCodeToString, TERRAIN_PLAIN } from "./constants";
 import { log } from "./Logger";
 import { findMySpawns, findRoomSync, requestCreepSpawn, SpawnQueuePriority } from "./Room";
-import { findNearbyEnergy, fromMemory, getClearance, lookNear, posNear, RoomPositionMemory, toMemory } from "./RoomPosition";
+import { findNearbyEnergy, fromMemoryWorld, getClearance, lookNear, posNear, toMemoryWorld, RoomPositionMemory } from "./RoomPosition";
 import { isConcreteStructure, isConstructionSiteForStructure, isSpawnOrExtension } from "./Structure";
 import { Task } from "./Task";
 import { everyN } from "./Tick";
@@ -79,7 +79,7 @@ export class TaskBootSource extends Task {
 			return;
 		}
 
-		let posCache = new MutatingCacheService<RoomPosition, RoomPositionMemory>(this.cache, fromMemory, toMemory);
+		let posCache = new MutatingCacheService<RoomPosition, RoomPositionMemory>(this.cache, fromMemoryWorld, toMemoryWorld);
 		let containerPos = getWithCallback(posCache, `containerPos`, 50, findContainerPos, this.source.pos);
 		let rv = containerPos?.createConstructionSite(STRUCTURE_CONTAINER);
 		if (rv != OK) {

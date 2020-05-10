@@ -4,7 +4,7 @@ import { errorCodeToString } from "./constants";
 import { EventEnum, events } from "./Events";
 import { log } from "./Logger";
 import { PriorityQueue } from "./PriorityQueue";
-import { posKey, RoomPositionMemory, toMemory, fromMemory, lookForStructureAt } from "./RoomPosition";
+import { posKey, toMemoryWorld, fromMemoryWorld, lookForStructureAt, RoomPositionMemory } from "./RoomPosition";
 import { filterStructureType, isConcreteStructure, isSpawnOrExtension } from "./Structure";
 import { everyN } from "./Tick";
 import { sortById } from "./util";
@@ -89,7 +89,7 @@ export function requestConstruction(pos: RoomPosition, structureType: BuildableS
 		return ERR_FULL;
 	}
 	queue.push({
-		pos: toMemory(pos),
+		pos: toMemoryWorld(pos),
 		structureType: structureType,
 		priority: priority,
 		name: name,
@@ -111,7 +111,7 @@ export function currentConstruction(roomName: string): ConstructionSite<Buildabl
 	}
 	while (!queue.isEmpty()) {
 		let item = queue.peek();
-		let pos = fromMemory(item.pos);
+		let pos = fromMemoryWorld(item.pos);
 		constructionSite = _.find(pos.lookFor(LOOK_CONSTRUCTION_SITES), s => s.my && s.structureType == item.structureType);
 		if (constructionSite) {
 			break;
@@ -269,4 +269,9 @@ export function findRoomSync(room: Room): RoomSync {
 	}
 
 	return null;
+}
+
+export function getRecyclePos(room: Room): RoomPosition {
+	let spawns = findMySpawns(room);
+	
 }

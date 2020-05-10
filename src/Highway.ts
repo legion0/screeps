@@ -3,7 +3,7 @@ import { getWithCallback, objectServerCache } from './Cache';
 import { EventEnum, events } from './Events';
 import { log } from './Logger';
 import { MemInit } from './Memory';
-import { fromMemory, posKey, RoomPositionMemory, toMemory, lookForStructureAt } from './RoomPosition';
+import { fromMemoryWorld, posKey, toMemoryWorld, lookForStructureAt, RoomPositionMemory } from './RoomPosition';
 import { isWalkableStructure, isRoad } from './Structure';
 import { everyN } from './Tick';
 
@@ -60,13 +60,13 @@ export class Highway {
 			return ERR_NO_PATH;
 		}
 		let path = rv.path.slice(2, rv.path.length - 2);
-		this.memory.path = path.map(toMemory);
+		this.memory.path = path.map(toMemoryWorld);
 		return this;
 	}
 
 	show() {
 		this.memory.path
-			.map(fromMemory)
+			.map(fromMemoryWorld)
 			.forEach((pos, idx) => pos.createFlag(`${this.name}_${idx}`));
 	}
 
@@ -84,7 +84,7 @@ export class Highway {
 		getWithCallback(objectServerCache, `${this.name}.roads`, 100, () => {
 			// log.d(`Building roads for [${this.name}]`);
 			this.memory.path
-				.map(fromMemory)
+				.map(fromMemoryWorld)
 				.filter(pos => !pos.lookFor(LOOK_STRUCTURES).some(isRoad))
 				.filter(pos => !pos.lookFor(LOOK_CONSTRUCTION_SITES).some(isRoad))
 				.forEach(pos => Game.rooms[pos.roomName].createConstructionSite(pos, STRUCTURE_ROAD));
@@ -97,7 +97,7 @@ export class Highway {
 	// TODO: make sure we don't remove construction sites and roads not placed by this highway.
 	clearRoad() {
 		this.memory.path
-			.map(fromMemory)
+			.map(fromMemoryWorld)
 			.forEach(pos => {
 				pos.lookFor(LOOK_CONSTRUCTION_SITES)
 					.filter(s => s.structureType == STRUCTURE_ROAD)
@@ -113,7 +113,7 @@ export class Highway {
 			log.e(`Accessing Failed Highway at [${this.name}]`);
 			return [];
 		}
-		let highwayPath = this.memory.path.map(fromMemory);
+		let highwayPath = this.memory.path.map(fromMemoryWorld);
 		let range = current.getRangeTo(to);
 		// we use range as a tie breaker for positions that are equally far from
 		// the creep, this is important when changing routes between 2 highways
@@ -163,7 +163,7 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 			if (lastUsed + 2000 < Game.time) {
 				log.v(`Removing old unused highway [${name}]`);
 				Memory.highways[name].path
-					.map(fromMemory)
+					.map(fromMemoryWorld)
 					.forEach(pos => {
 						pos.lookFor(LOOK_CONSTRUCTION_SITES)
 							.filter(s => s.structureType == STRUCTURE_ROAD)
@@ -176,7 +176,7 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 
 	if (Memory.showHighways) {
 		for (let name in Memory.highways) {
-			let path = Memory.highways[name].path.map(fromMemory);
+			let path = Memory.highways[name].path.map(fromMemoryWorld);
 			let room = Game.rooms[path[0].roomName];
 			room.visual.poly(path, { stroke: 'yellow' });
 		}
@@ -195,7 +195,7 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 		delete Memory.clearHighways;
 		for (let name in Memory.highways) {
 			Memory.highways[name].path.forEach(posMem => {
-				let pos = fromMemory(posMem);
+				let pos = fromMemoryWorld(posMem);
 				let road = lookForStructureAt(STRUCTURE_ROAD, pos);
 				if (road instanceof ConstructionSite) {
 					road.remove();
@@ -232,6 +232,15 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 // 	}
 // 	return res;
 // }
+
+let room = _.find(Game.rooms);
+let spawn = room.find(FIND_MY_SPAWNS)[0];
+let path = room.findPath(new RoomPosition(8, 8, room.name), spawn.pos);
+console.log(JSON.stringify(path));
+let serialized = Room.serializePath(path);
+console.log(serialized, typeof (serialized));
+let deserialized = Room.deserializePath(serialized);
+console.log(JSON.stringify(deserialized));
 
 // let room = _.find(Game.rooms);
 // let spawn = room.find(FIND_MY_SPAWNS)[0];
