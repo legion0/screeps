@@ -2,10 +2,10 @@ import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE } from "./c
 import { Highway } from "./Highway";
 import { log } from "./Logger";
 import { MemInit } from "./Memory";
-import { isRoomSource, isRoomSync, RoomSource, RoomSync, getRecyclePos } from "./Room";
-import { fromMemoryWorld, toMemoryWorld, toMemoryRoom, RoomPositionMemory, lookNear } from "./RoomPosition";
+import { getRecyclePos, isRoomSync, RoomSync } from "./Room";
+import { fromMemoryWorld, lookNear, RoomPositionMemory, toMemoryRoom, toMemoryWorld } from "./RoomPosition";
 import { hasFreeCapacity, hasUsedCapacity } from "./Store";
-import { isDamaged, isSpawnOrExtension, isSpawn } from "./Structure";
+import { isDamaged, isSpawn } from "./Structure";
 
 declare global {
 	interface CreepMemory {
@@ -33,7 +33,22 @@ export enum ActionType {
 	PICKUP,
 	UPGRADE_CONTROLLER,
 	WITHDRAW,
+	HARVEST,
+	ATTACK,
+	DISMANTLE,
+	ATTACK_CONTROLLER,
+	RANGED_HEAL,
+	HEAL,
+	RANGED_ATTACK,
+	RANGED_MASS_ATTACK,
+	TRANSFER,
+	DROP,
 }
+
+// let ORDER1 = [ActionType.HARVEST, ActionType.ATTACK, ActionType.BUILD, ActionType.REPAIR, ActionType.DISMANTLE, ActionType.ATTACK_CONTROLLER, ActionType.RANGED_HEAL, ActionType.HEAL];
+// let ORDER2 = [ActionType.RANGED_ATTACK, ActionType.RANGED_MASS_ATTACK, ActionType.BUILD, ActionType.RANGED_HEAL];
+// // Only when not enough energy to do everything:
+// let ORDER3 = [ActionType.UPGRADE_CONTROLLER, ActionType.BUILD, ActionType.REPAIR, ActionType.WITHDRAW, ActionType.TRANSFER, ActionType.DROP];
 
 // TODO: move to tick end calculation, this code is not executed if creep if fatigued
 function creepIsStuck(creep: Creep) {
@@ -205,9 +220,9 @@ abstract class Action<ContextType> {
 	}
 }
 
-export class Deposit<ContextType> extends Action<ContextType> {
+export class Transfer<ContextType> extends Action<ContextType> {
 	constructor() {
-		super(ActionType.DEPOSIT);
+		super(ActionType.TRANSFER);
 	}
 
 	test(creep: Creep, target: any) {
@@ -259,13 +274,13 @@ export class Repair<ContextType> extends Action<ContextType> {
 	}
 
 	test(creep: Creep, target: any) {
-		return ((target instanceof Structure && isDamaged(target)) || target instanceof ConstructionSite) && hasUsedCapacity(creep);
+		return (target instanceof Structure && isDamaged(target)) && hasUsedCapacity(creep);
 	}
 
-	do(creep: Creep, target: Structure | ConstructionSite) {
+	do(creep: Creep, target: Structure) {
 		let rv: ScreepsReturnCode = OK;
 		if (creep.pos.inRangeTo(target.pos, REPAIR_RANGE)) {
-			rv = target instanceof ConstructionSite ? creep.build(target) : creep.repair(target);
+			rv = creep.repair(target);
 			if (rv != OK) {
 				log.e(`[${creep.name}] failed to repair [${target}] with error [${errorCodeToString(rv)}]`);
 			}
@@ -317,27 +332,58 @@ export class UpgradeController<ContextType> extends Action<ContextType> {
 	}
 }
 
+type WithdrawTarget = Tombstone | Ruin | StructureContainer | StructureSpawn | StructureExtension | StructureTower | StructureStorage;
+function isWithdrawTarget(o: any): o is WithdrawTarget {
+	return o instanceof Tombstone ||
+		o instanceof Ruin ||
+		o instanceof StructureContainer ||
+		o instanceof StructureSpawn ||
+		o instanceof StructureExtension ||
+		o instanceof StructureTower ||
+		o instanceof StructureStorage;
+}
+
 export class Withdraw<ContextType> extends Action<ContextType> {
 	constructor() {
 		super(ActionType.WITHDRAW);
 	}
 
-	test(creep: Creep, target: any) {
-		return isRoomSource(target) && hasFreeCapacity(creep) && hasUsedCapacity(target);
+	test(creep: Creep, target: any): boolean {
+		return isWithdrawTarget(target) && hasFreeCapacity(creep) && hasUsedCapacity(target);
 	}
 
-	do(creep: Creep, target: RoomSource) {
+	do(creep: Creep, target: WithdrawTarget): ScreepsReturnCode {
 		let rv: ScreepsReturnCode = OK;
 		if (creep.pos.isNearTo(target.pos)) {
-			if (target instanceof Resource) {
-				rv = creep.pickup(target);
-			} else if (target instanceof Source) {
-				rv = creep.harvest(target);
-			} else {
-				rv = creep.withdraw(target, RESOURCE_ENERGY);
-			}
+			rv = creep.withdraw(target, RESOURCE_ENERGY);
 			if (rv != OK) {
 				log.e(`[${creep.name}] failed to withdraw from [${target}] with error [${errorCodeToString(rv)}]`);
+			}
+		} else {
+			rv = moveTo(creep, target.pos, this.highway, 1);
+		}
+		return rv;
+	}
+}
+
+export class Harvest<ContextType> extends Action<ContextType> {
+	constructor() {
+		super(ActionType.HARVEST);
+	}
+
+	test(creep: Creep, target: any) {
+		if (target instanceof Mineral || target instanceof Deposit) {
+			throw new Error('Harvest of Mineral/Deposit not implemented.');
+		}
+		return (target instanceof Source/* || target instanceof Mineral || target instanceof Deposit*/) && hasFreeCapacity(creep) && hasUsedCapacity(target);
+	}
+
+	do(creep: Creep, target: Source | Mineral | Deposit): ScreepsReturnCode {
+		let rv: ScreepsReturnCode = OK;
+		if (creep.pos.isNearTo(target.pos)) {
+			rv = creep.harvest(target);
+			if (rv != OK) {
+				log.e(`[${creep.name}] failed to harvest from [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
 			rv = moveTo(creep, target.pos, this.highway, 1);
