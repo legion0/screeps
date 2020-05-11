@@ -15,14 +15,15 @@ interface SequenceContext {
 const buildCreepActions = [
 	new A.Build<SequenceContext>().setArgs(c => c.task.constructionSite),
 	new A.Pickup<SequenceContext>().setArgs(c => findNearbyEnergy(c.creep.pos)),
-	new A.Withdraw<SequenceContext>().setArgs(c => c.task.roomSource).setPersist(),
+	new A.Withdraw<SequenceContext>().setArgs(c => c.task.roomSource),
+	new A.Harvest<SequenceContext>().setArgs(c => c.task.roomSource).setPersist(),
 ];
 
 export class TaskBuildRoom extends Task {
 	static readonly className = 'BuildRoom' as Id<typeof Task>;
 	readonly roomName: string;
 	readonly room: Room;
-	readonly roomSource?: RoomSource;
+	readonly roomSource: RoomSource | null;
 	readonly constructionSite: ConstructionSite | null;
 	private constructionQueueSize: number;
 

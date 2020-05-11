@@ -250,6 +250,10 @@ export class Transfer<ContextType> extends Action<ContextType> {
 		}
 		return rv;
 	}
+
+	setArgs(callback: (context: ContextType) => RoomSync | null) {
+		return super.setArgs(callback);
+	}
 }
 
 export class Build<ContextType> extends Action<ContextType> {
@@ -272,6 +276,10 @@ export class Build<ContextType> extends Action<ContextType> {
 			rv = moveTo(creep, target.pos, this.highway, BUILD_RANGE);
 		}
 		return rv;
+	}
+
+	setArgs(callback: (context: ContextType) => ConstructionSite | null) {
+		return super.setArgs(callback);
 	}
 }
 
@@ -296,6 +304,10 @@ export class Repair<ContextType> extends Action<ContextType> {
 		}
 		return rv;
 	}
+
+	setArgs(callback: (context: ContextType) => Structure | null) {
+		return super.setArgs(callback);
+	}
 }
 
 export class Pickup<ContextType> extends Action<ContextType> {
@@ -313,6 +325,10 @@ export class Pickup<ContextType> extends Action<ContextType> {
 			log.e(`[${creep.name}] failed to pickup [${target}] with error [${errorCodeToString(rv)}]`);
 		}
 		return rv;
+	}
+
+	setArgs(callback: (context: ContextType) => Resource | null) {
+		return super.setArgs(callback);
 	}
 }
 
@@ -336,6 +352,10 @@ export class UpgradeController<ContextType> extends Action<ContextType> {
 			rv = moveTo(creep, target.pos, this.highway, UPGRADE_RANGE);
 		}
 		return rv;
+	}
+
+	setArgs(callback: (context: ContextType) => StructureController | null) {
+		return super.setArgs(callback);
 	}
 }
 
@@ -371,6 +391,10 @@ export class Withdraw<ContextType> extends Action<ContextType> {
 		}
 		return rv;
 	}
+
+	setArgs(callback: (context: ContextType) => WithdrawTarget | null) {
+		return super.setArgs(callback);
+	}
 }
 
 export class Harvest<ContextType> extends Action<ContextType> {
@@ -396,6 +420,10 @@ export class Harvest<ContextType> extends Action<ContextType> {
 			rv = moveTo(creep, target.pos, this.highway, 1);
 		}
 		return rv;
+	}
+
+	setArgs(callback: (context: ContextType) => Source | Mineral | Deposit | null) {
+		return super.setArgs(callback);
 	}
 }
 

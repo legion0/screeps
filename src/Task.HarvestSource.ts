@@ -18,7 +18,7 @@ const harvestCreepActions = [
 	new A.Repair<SequenceContext>().setArgs(c => c.task.container),
 	new A.Pickup<SequenceContext>().setArgs(c => findNearbyEnergy(c.creep.pos)),
 	new A.Transfer<SequenceContext>().setArgs(c => c.task.container),
-	new A.Withdraw<SequenceContext>().setArgs(c => c.task.source).setPersist(),
+	new A.Harvest<SequenceContext>().setArgs(c => c.task.source).setPersist(),
 ];
 
 const haulCreepActions = [
