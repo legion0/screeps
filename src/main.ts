@@ -2,7 +2,7 @@ import { EventEnum, events } from './Events';
 import { log, getFullStack } from './Logger';
 import { MemInit } from "./Memory";
 import { detectRespawn } from './reset';
-import { serverId } from './ServerCache';
+import { serverId, checkServerCache } from './ServerCache';
 import { Task } from './Task';
 import { TaskBootRoom } from './Task.BootRoom';
 import { TaskUpgradeController } from './Task.UpgradeController';
@@ -50,7 +50,7 @@ function main_loop() {
 			events.fire(EventEnum.NEW_ROOM_DISCOVERED, room);
 			discoveredRooms[room.name] = null;
 		}
-		if (room.controller.my) {
+		if (room.controller && room.controller.my) {
 			TaskBootRoom.create(room.name);
 			TaskUpgradeController.create(room.name);
 		}
@@ -69,6 +69,7 @@ module.exports.loop = function () {
 			Memory.creeps = {};
 			return;
 		}
+		checkServerCache();
 		events.fire(EventEnum.EVENT_TICK_START);
 		main_loop();
 		events.fire(EventEnum.EVENT_TICK_END);

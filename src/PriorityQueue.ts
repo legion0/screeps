@@ -9,7 +9,7 @@ type CompareFunc<T> = (lhs: T, rhs: T) => boolean;
 
 export class PriorityQueue<T> {
 	private memory: PriorityQueueMemory<T>;
-	private keyFunc: KeyFunc<T>;
+	private keyFunc?: KeyFunc<T>;
 	private compareFunc: CompareFunc<T>;
 
 	private constructor(memory: PriorityQueueMemory<T>, compareFunc: CompareFunc<T>, keyFunc?: KeyFunc<T>) {
@@ -30,7 +30,7 @@ export class PriorityQueue<T> {
 	}
 
 	push(item: T) {
-		if (this.hasIndex()) {
+		if (this.memory.index && this.keyFunc) {
 			this.memory.index[this.keyFunc(item)] = null;
 		}
 		let i = this.memory.size;
@@ -58,7 +58,7 @@ export class PriorityQueue<T> {
 		} else {
 			this.memory.size--;
 		}
-		if (this.hasIndex()) {
+		if (this.memory.index && this.keyFunc) {
 			delete this.memory.index[this.keyFunc(ans)];
 		}
 		return ans;
@@ -77,14 +77,10 @@ export class PriorityQueue<T> {
 	}
 
 	hasItem(key: string) {
-		if (!this.hasIndex()) {
+		if (!(this.memory.index && this.keyFunc)) {
 			throw new Error('This PriorityQueue has no index');
 		}
 		return key in this.memory.index;
-	}
-
-	private hasIndex() {
-		return this.memory.index != null && this.keyFunc != null;
 	}
 
 	private percolateDown(i: number) {

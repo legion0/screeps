@@ -17,12 +17,12 @@ const harvestCreepActions = [
 	new A.Build<SequenceContext>().setArgs(c => c.task.constructionSite),
 	new A.Repair<SequenceContext>().setArgs(c => c.task.container),
 	new A.Pickup<SequenceContext>().setArgs(c => findNearbyEnergy(c.creep.pos)),
-	new A.Deposit<SequenceContext>().setArgs(c => c.task.container),
+	new A.Transfer<SequenceContext>().setArgs(c => c.task.container),
 	new A.Withdraw<SequenceContext>().setArgs(c => c.task.source).setPersist(),
 ];
 
 const haulCreepActions = [
-	new A.Deposit<SequenceContext>().setArgs(c => c.task.roomSync),
+	new A.Transfer<SequenceContext>().setArgs(c => c.task.roomSync),
 	new A.Withdraw<SequenceContext>().setArgs(c => c.task.container).setPersist(),
 ];
 
@@ -32,13 +32,17 @@ export class TaskHarvestSource extends Task {
 	readonly source: Source;
 	readonly container?: StructureContainer;
 	readonly constructionSite?: ConstructionSite<STRUCTURE_CONTAINER>;
-	readonly roomSync?: RoomSync;
+	readonly roomSync: RoomSync | null;
 
 	private readonly cache = new ObjectCacheService<any>(this);
 
 	constructor(sourceId: Id<TaskHarvestSource>) {
 		super(TaskHarvestSource, sourceId);
-		this.source = Game.getObjectById(sourceId as unknown as Id<Source>);
+		let source = Game.getObjectById(sourceId as unknown as Id<Source>);
+		if (!source) {
+			throw new Error(`TaskBootSource cannot find source [${sourceId}]`);
+		}
+		this.source = source;
 		this.container = getWithCallback(objectServerCache, `${this.id}.container`, 50, findContainer, this.source.pos) as StructureContainer;
 		this.constructionSite = getWithCallback(objectServerCache, `${this.id}.constructionSite`, 50, findConstructionSite, this.source.pos) as ConstructionSite<STRUCTURE_CONTAINER>;
 		this.roomSync = findRoomSync(this.source.room);
@@ -84,7 +88,7 @@ export class TaskHarvestSource extends Task {
 
 		let posCache = new MutatingCacheService<RoomPosition, RoomPositionMemory>(this.cache, fromMemoryWorld, toMemoryWorld);
 		let containerPos = getWithCallback(posCache, `containerPos`, 50, findContainerPos, this.source.pos);
-		let rv = containerPos?.createConstructionSite(STRUCTURE_CONTAINER);
+		let rv = containerPos ? containerPos.createConstructionSite(STRUCTURE_CONTAINER) : ERR_NOT_FOUND;
 		if (rv != OK) {
 			log.e(`Failed to create STRUCTURE_CONTAINER at [${containerPos}] with error [${errorCodeToString(rv)}]`);
 		}

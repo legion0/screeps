@@ -99,8 +99,8 @@ export function requestConstruction(pos: RoomPosition, structureType: BuildableS
 	return OK;
 }
 
-export function currentConstruction(roomName: string): ConstructionSite<BuildableStructureConstant> {
-	let constructionSite = tickCacheService.get(`${roomName}.currentConstruction`) as ConstructionSite;
+export function currentConstruction(roomName: string): ConstructionSite | null {
+	let constructionSite = tickCacheService.get(`${roomName}.currentConstruction`) as ConstructionSite | null | undefined;
 	if (constructionSite !== undefined) {
 		return constructionSite;
 	}
@@ -112,7 +112,7 @@ export function currentConstruction(roomName: string): ConstructionSite<Buildabl
 	while (!queue.isEmpty()) {
 		let item = queue.peek();
 		let pos = fromMemoryWorld(item.pos);
-		constructionSite = _.find(pos.lookFor(LOOK_CONSTRUCTION_SITES), s => s.my && s.structureType == item.structureType);
+		constructionSite = pos.lookFor(LOOK_CONSTRUCTION_SITES).find(s => s.my && s.structureType == item.structureType);
 		if (constructionSite) {
 			break;
 		}
@@ -131,7 +131,8 @@ export function currentConstruction(roomName: string): ConstructionSite<Buildabl
 		Memory.rooms[roomName].constructionQueueSize -= CONSTRUCTION_COST[item.structureType];
 		queue.pop();
 	}
-	tickCacheService.set(`${roomName}.currentConstruction`, constructionSite ?? null);
+	constructionSite = constructionSite ?? null;
+	tickCacheService.set(`${roomName}.currentConstruction`, constructionSite);
 	return constructionSite;
 }
 
@@ -148,8 +149,8 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 				everyN(50, () => log.w(`Not enough energy for swawning next request in room [${room.name}]`));
 				break;
 			}
-			let request = queue.pop();
-			let rv = spawns.pop().spawnCreep(request.body, request.name, request.opts);
+			let request = queue.pop()!;
+			let rv = spawns.pop()!.spawnCreep(request.body, request.name, request.opts);
 			if (rv != OK) {
 				log.e(`Failed to spawn new creep with error [${errorCodeToString(rv)}]`);
 			} else {
@@ -216,22 +217,22 @@ export type RoomSource = Resource<RESOURCE_ENERGY> | Tombstone | StructureContai
 
 export function isRoomSource(s: any): s is RoomSource {
 	return s instanceof StructureContainer ||
-	s instanceof Source ||
-	(s instanceof Resource && s.resourceType == RESOURCE_ENERGY) ||
-	(s instanceof Tombstone && s.store.energy > 0);
+		s instanceof Source ||
+		(s instanceof Resource && s.resourceType == RESOURCE_ENERGY) ||
+		(s instanceof Tombstone && s.store.energy > 0);
 }
 
-function findRoomSourceImpl(room: Room): RoomSource {
+function findRoomSourceImpl(room: Room): RoomSource | null {
 	let structures = findStructures(room);
 
-	let roomSource: RoomSource = null;
-	let toombStone = getRecyclePos(room).lookFor(LOOK_TOMBSTONES).find(t => t.store.energy);
+	let roomSource: RoomSource | null = null;
+	let toombStone = getRecyclePos(room)?.lookFor(LOOK_TOMBSTONES).find(t => t.store.energy);
 	if (toombStone) {
 		roomSource = toombStone;
 	}
 
 	if (!roomSource) {
-		let recycledEnergy = getRecyclePos(room).lookFor(LOOK_ENERGY)[0];
+		let recycledEnergy = getRecyclePos(room)?.lookFor(LOOK_ENERGY)[0];
 		if (recycledEnergy) {
 			roomSource = recycledEnergy;
 		}
@@ -269,7 +270,7 @@ export function isRoomSync(s: any): s is RoomSync {
 	return s instanceof StructureSpawn || s instanceof StructureContainer || s instanceof StructureExtension;
 }
 
-export function findRoomSync(room: Room): RoomSync {
+export function findRoomSync(room: Room): RoomSync | null {
 	let sync: RoomSync = tickCacheService.get(`${room.name}.roomSync`);
 	if (sync) {
 		return sync;
@@ -293,11 +294,11 @@ export function findRoomSync(room: Room): RoomSync {
 	return null;
 }
 
-export function getRecyclePos(room: Room): RoomPosition {
+export function getRecyclePos(room: Room): RoomPosition | null {
 	let spawns = findMySpawns(room);
-	return posNear(spawns[0].pos, false).find(isWalkablePos);
+	return posNear(spawns[0].pos, false).find(isGoodRecyclePos) ?? null;
 }
 
-function isWalkablePos(pos: RoomPosition): boolean {
+function isGoodRecyclePos(pos: RoomPosition): boolean {
 	return pos.lookFor(LOOK_STRUCTURES).every(s => isWalkableStructure(s));
 }

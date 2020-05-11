@@ -11,7 +11,7 @@ declare global {
 	interface CreepMemory {
 		lastAction?: ActionType;
 		highway?: {
-			path?: RoomPositionMemory[];
+			path: RoomPositionMemory[];
 			from: RoomPositionMemory;
 		};
 		lastPos?: {
@@ -62,6 +62,10 @@ function creepIsStuck(creep: Creep) {
 }
 
 function getFrom(creep: Creep, to: RoomPosition) {
+	if (!creep.memory.highway) {
+		log.e(`getFrom requires highway`);
+		return null;
+	}
 	if (creep.pos.getRangeTo(to) <= 4) {
 		creep.memory.highway.from = toMemoryWorld(to);
 		return null;
@@ -107,15 +111,15 @@ function getNextHighwayWaypoint(creep: Creep, to: RoomPosition): RoomPosition | 
 
 	// let highway = buildHighway(creep, from, to);
 
-	let path = creep.memory.highway.path.map(fromMemoryWorld);
+	let path = creep.memory.highway!.path.map(fromMemoryWorld);
 	if (path.length && path[0].isEqualTo(creep.pos)) {
 		path.shift();
-		creep.memory.highway.path.shift();
+		creep.memory.highway!.path.shift();
 	}
 	if (path.length && creepIsStuck(creep)) {
 		log.w(`Creep [${creep}] stuck, moving to next highway position`);
-		fakeCurrent = path.shift();
-		creep.memory.highway.path.shift();
+		fakeCurrent = path.shift()!;
+		creep.memory.highway!.path.shift();
 	}
 
 	if (!path.length) {
@@ -124,7 +128,7 @@ function getNextHighwayWaypoint(creep: Creep, to: RoomPosition): RoomPosition | 
 			let highway = buildHighway(creep, from, to);
 			if (highway) {
 				path = highway.nextSegment(fakeCurrent, to);
-				creep.memory.highway.path = path.map(toMemoryWorld);
+				creep.memory.highway!.path = path.map(toMemoryWorld);
 			}
 		} else {
 			return OK;
@@ -168,6 +172,9 @@ export function moveTo(creep: Creep, to: RoomPosition, highway: boolean, range: 
 
 export function recycle(creep: Creep) {
 	let recyclePos = getRecyclePos(creep.room);
+	if (!recyclePos) {
+		return;
+	}
 	if (creep.pos.isNearTo(recyclePos)) {
 		let spawn = lookNear(recyclePos, LOOK_STRUCTURES, isSpawn)[0] as StructureSpawn;
 		if (spawn) {
@@ -396,7 +403,7 @@ export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any
 	if (creep.spawning) {
 		return;
 	}
-	let chosenAction: Action<T> = null;
+	let chosenAction: Action<T> | null = null;
 	let chosenTarget: any = null;
 	// first try to find the persistent action we started last round and see if its still applicable
 	if (creep.memory.lastAction) {

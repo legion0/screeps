@@ -21,13 +21,16 @@ export class TaskUpgradeController extends Task {
 	static className = 'UpgradeController' as Id<typeof Task>;
 
 	readonly room: Room;
-	readonly controller: StructureController;
+	readonly controller: StructureController | null;
 	readonly roomSource?: RoomSource;
 
 	constructor(roomName: Id<TaskUpgradeController>) {
 		super(TaskUpgradeController, roomName);
 		this.room = Game.rooms[roomName];
-		this.controller = Game.rooms[roomName]?.controller;
+		if (this.room && !this.room.controller) {
+			throw new Error(`No Controller in room [${roomName}]`);
+		}
+		this.controller = this.room ? this.room.controller! : null;
 		this.roomSource = findRoomSource(this.room);
 	}
 
@@ -39,7 +42,9 @@ export class TaskUpgradeController extends Task {
 				A.runSequence(upgradeControllerActions, creep, { creep: creep, task: this });
 			} else {
 				everyN(20, () => {
-					requestCreepSpawn(this.controller.room, name, creepSpawnCallback);
+					if (this.controller) {
+						requestCreepSpawn(this.controller.room, name, creepSpawnCallback);
+					}
 				});
 			}
 		}

@@ -2,7 +2,8 @@
 	"compilerOptions": {
 		"target": "ES6",
 		"moduleResolution": "node",
-		"outDir": "dist/js"
+		"outDir": "dist/js",
+		"strictNullChecks": true
 	},
 	"rootDir": "src",
 	"include": [

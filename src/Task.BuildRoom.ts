@@ -23,7 +23,7 @@ export class TaskBuildRoom extends Task {
 	readonly roomName: string;
 	readonly room: Room;
 	readonly roomSource?: RoomSource;
-	readonly constructionSite?: ConstructionSite;
+	readonly constructionSite: ConstructionSite | null;
 	private constructionQueueSize: number;
 
 	constructor(roomName: Id<TaskBuildRoom>) {

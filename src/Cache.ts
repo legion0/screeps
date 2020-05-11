@@ -5,7 +5,7 @@ import { threadId } from "worker_threads";
 
 export interface CacheService<T> {
 	// returns the value from the cache or undefined if value is not in the cache or expired.
-	get(id: string): T;
+	get(id: string): T | undefined;
 	set(id: string, value: T, ttl: number): void;
 	clear(id: string): void;
 }
@@ -17,7 +17,7 @@ export class ObjectCacheService<T> implements CacheService<T> {
 		this.cache = obj;
 	}
 
-	get(id: string): T {
+	get(id: string): T | undefined {
 		let entry = this.cache[id];
 		return entry && (Game.time - entry.insertTime < entry.ttl) ? entry.value : undefined;
 	}
@@ -104,7 +104,7 @@ export class MutatingCacheService<T, W> implements CacheService<T> {
 		this.writer = writer;
 	}
 
-	get(id: string): T {
+	get(id: string): T | undefined {
 		let value = this.cache.get(id);
 		return value !== undefined ? this.reader(value) : undefined;
 	}
@@ -129,8 +129,8 @@ export class ChainingCacheService<T> implements CacheService<T> {
 		this.caches = caches;
 	}
 
-	get(id: string): T {
-		let value = undefined;
+	get(id: string): T | undefined {
+		let value: T | undefined = undefined;
 		let i = 0;
 		for (; i < this.caches.length; i++) {
 			value = this.caches[i].get(id);
@@ -186,7 +186,7 @@ export let objectServerCache: CacheService<ObjectWithId<any>> = new ChainingCach
 export let objectsServerCache: CacheService<ObjectWithId<any>[]> = new ChainingCacheService(tickCacheService, new MutatingCacheService(rawCache, fromMemoryMany, toMemoryMany));
 
 export function getWithCallback<T, ContextType>(cache: CacheService<unknown>, id: string, ttl: number, callback: (context?: ContextType) => T, context?: ContextType) {
-	let value = cache.get(id) as T;
+	let value = cache.get(id) as T | null | undefined;
 	if (value === undefined) {
 		value = callback(context) ?? null;
 		cache.set(id, value, ttl);

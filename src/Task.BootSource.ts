@@ -14,11 +14,11 @@ interface SequenceContext {
 }
 
 const bootCreepActions = [
-	new A.Deposit<SequenceContext>().setArgs(c => c.task.spawnOrExt),
+	new A.Transfer<SequenceContext>().setArgs(c => c.task.spawnOrExt),
 	new A.Build<SequenceContext>().setArgs(c => c.task.constructionSite),
 	new A.Repair<SequenceContext>().setArgs(c => c.task.container),
 	new A.Pickup<SequenceContext>().setArgs(c => findNearbyEnergy(c.creep.pos)),
-	new A.Deposit<SequenceContext>().setArgs(c => c.task.container),
+	new A.Transfer<SequenceContext>().setArgs(c => c.task.container),
 	new A.Withdraw<SequenceContext>().setArgs(c => c.task.source).setPersist(),
 ];
 
@@ -26,15 +26,19 @@ export class TaskBootSource extends Task {
 	static readonly className = 'BootSource' as Id<typeof Task>;
 
 	readonly source: Source;
-	readonly spawnOrExt?: StructureSpawn | StructureExtension;
-	readonly container?: StructureContainer;
-	readonly constructionSite?: ConstructionSite<STRUCTURE_CONTAINER>;
+	readonly spawnOrExt: StructureSpawn | StructureExtension | null;
+	readonly container: StructureContainer | null;
+	readonly constructionSite: ConstructionSite<STRUCTURE_CONTAINER> | null;
 
 	private readonly cache = new ObjectCacheService<any>(this);
 
 	constructor(sourceId: Id<TaskBootSource>) {
 		super(TaskBootSource, sourceId);
-		this.source = Game.getObjectById(sourceId as unknown as Id<Source>);
+		let source = Game.getObjectById(sourceId as unknown as Id<Source>);
+		if (!source) {
+			throw new Error(`TaskBootSource cannot find source [${sourceId}]`);
+		}
+		this.source = source;
 		let roomSync = findRoomSync(this.source.room);
 		this.spawnOrExt = isSpawnOrExtension(roomSync) ? roomSync : null;
 
@@ -81,7 +85,7 @@ export class TaskBootSource extends Task {
 
 		let posCache = new MutatingCacheService<RoomPosition, RoomPositionMemory>(this.cache, fromMemoryWorld, toMemoryWorld);
 		let containerPos = getWithCallback(posCache, `containerPos`, 50, findContainerPos, this.source.pos);
-		let rv = containerPos?.createConstructionSite(STRUCTURE_CONTAINER);
+		let rv = containerPos ? containerPos.createConstructionSite(STRUCTURE_CONTAINER) : ERR_NOT_FOUND;
 		if (rv != OK) {
 			log.e(`Failed to create STRUCTURE_CONTAINER at [${containerPos}] with error [${errorCodeToString(rv)}]`);
 		}

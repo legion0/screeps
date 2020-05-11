@@ -1,3 +1,5 @@
+import { log } from "./Logger";
+
 export type ObjectWithEnergy = Source | StructureSpawn | StructureExtension;
 export function isObjectWithEnergy(o: any): o is ObjectWithEnergy {
 	return o instanceof Source ||
@@ -20,30 +22,40 @@ export function isObjectWithAmount(o: any): o is ObjectWithAmount {
 	return o instanceof Resource;
 }
 
-export function getUsedCapacity(target: ObjectWithEnergy | ObjectWithStore | ObjectWithAmount, resourceType: ResourceConstant = RESOURCE_ENERGY): number {
+export function getUsedCapacity(target: ObjectWithStore | ObjectWithEnergy | ObjectWithAmount, resource: ResourceConstant = RESOURCE_ENERGY): number {
 	if (isObjectWithStore(target)) {
-		return target instanceof StructureTower ? target.store.getUsedCapacity(resourceType) : target.store.getUsedCapacity(resourceType);
-	} else if (isObjectWithAmount(target)) {
-		return target.amount;
+		if (target instanceof StructureTower) {
+			return resource == RESOURCE_ENERGY ? target.store.getUsedCapacity(resource) : 0;
+		} else {
+			return target.store.getUsedCapacity(resource);
+		}
 	} else if (isObjectWithEnergy(target)) {
 		return target.energy;
+	} else if (isObjectWithAmount(target)) {
+		return target.amount;
 	}
+	log.e(`Invalid target for getUsedCapacity [${target}] [${resource}]`);
 	return 0;
 }
 
-export function hasUsedCapacity(target: ObjectWithEnergy | ObjectWithStore | ObjectWithAmount, resourceType: ResourceConstant = RESOURCE_ENERGY) {
-	return getUsedCapacity(target, resourceType) > 0;
+export function hasUsedCapacity(target: ObjectWithStore | ObjectWithEnergy | ObjectWithAmount, resource: ResourceConstant = RESOURCE_ENERGY): boolean {
+	return getUsedCapacity(target, resource) > 0;
 }
 
-export function getFreeCapacity(target: ObjectWithEnergy | ObjectWithStore, resourceType: ResourceConstant = RESOURCE_ENERGY) {
+export function getFreeCapacity(target: ObjectWithStore | ObjectWithEnergy, resource: ResourceConstant = RESOURCE_ENERGY): number {
 	if (isObjectWithStore(target)) {
-		return target instanceof StructureTower ? target.store.getFreeCapacity(resourceType) : target.store.getFreeCapacity(resourceType);
+		if (target instanceof StructureTower) {
+			return resource == RESOURCE_ENERGY ? target.store.getFreeCapacity(resource) : 0;
+		} else {
+			return target.store.getFreeCapacity(resource);
+		}
 	} else if (isObjectWithEnergy(target)) {
 		return target.energyCapacity - target.energy;
 	}
+	log.e(`Invalid target for getFreeCapacity [${target}] [${resource}]`);
 	return 0;
 }
 
-export function hasFreeCapacity(target: ObjectWithEnergy | ObjectWithStore, resourceType: ResourceConstant = RESOURCE_ENERGY) {
-	return getFreeCapacity(target, resourceType) > 0;
+export function hasFreeCapacity(target: ObjectWithEnergy | ObjectWithStore, resource: ResourceConstant = RESOURCE_ENERGY): boolean {
+	return getFreeCapacity(target, resource) > 0;
 }
