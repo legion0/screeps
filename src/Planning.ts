@@ -1,6 +1,7 @@
 import { ROOM_HEIGHT, ROOM_WIDTH, TERRAIN_PLAIN, TERRAIN_SWAMP } from "./constants";
 import { findMyExtensions, findMySpawns, findMyConstructionSites } from "./Room";
 import { isConstructionSiteForStructure } from "./Structure";
+import * as assert from "./assert";
 
 function canBuildExtension(room: Room, x: number, y: number): boolean {
 	let terrain = room.lookForAt(LOOK_TERRAIN, x, y)[0];
@@ -8,7 +9,7 @@ function canBuildExtension(room: Room, x: number, y: number): boolean {
 }
 
 export function* nextExtensionPos(room: Room) {
-
+	if (!assert.hasProperty(room, 'controller')) return;
 	let maxExtensions = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.controller.level];
 	if (maxExtensions == 0) {
 		return;
@@ -37,7 +38,7 @@ function* spread(x: number, y: number): Generator<[number, number]> {
 	visited.add(value);
 
 	while (queue.length) {
-		value = queue.shift();
+		value = queue.shift()!;
 		let y = value % ROOM_WIDTH;
 		let x = (value - y) / ROOM_WIDTH;
 		yield [x, y];

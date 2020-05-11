@@ -1,9 +1,10 @@
 import * as A from './Action';
+import { isWithdrawTarget, WithdrawTarget } from './Action';
+import { findMaxBy } from './Array';
 import { findRoomSource, requestCreepSpawn, RoomSource, SpawnQueueItem, SpawnQueuePriority } from "./Room";
-import { findNearbyEnergy, lookForStructureAt } from './RoomPosition';
+import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
 import { Task } from "./Task";
 import { everyN } from "./Tick";
-import { findMaxBy } from './Array';
 
 interface SequenceContext {
 	creep: Creep;
@@ -11,10 +12,12 @@ interface SequenceContext {
 }
 
 const upgradeControllerActions = [
+	new A.Build<SequenceContext>().setArgs(c => lookForConstructionAt(STRUCTURE_ROAD, c.creep.pos)),
 	new A.Repair<SequenceContext>().setArgs(c => lookForStructureAt(STRUCTURE_ROAD, c.creep.pos)),
 	new A.UpgradeController<SequenceContext>().setArgs(c => c.task.controller).setHighway(),
 	new A.Pickup<SequenceContext>().setArgs(c => findNearbyEnergy(c.creep.pos)),
-	new A.Withdraw<SequenceContext>().setArgs(c => c.task.roomSource).setPersist().setHighway(),
+	new A.Withdraw<SequenceContext>().setArgs(c => c.task.withdrawTarget).setHighway(),
+	new A.Harvest<SequenceContext>().setArgs(c => c.task.harvestTarget).setHighway().setPersist(),
 ];
 
 export class TaskUpgradeController extends Task {
@@ -22,7 +25,9 @@ export class TaskUpgradeController extends Task {
 
 	readonly room: Room;
 	readonly controller: StructureController | null;
-	readonly roomSource?: RoomSource;
+	readonly roomSource: RoomSource;
+	readonly withdrawTarget: WithdrawTarget | null;
+	readonly harvestTarget: Source | null;
 
 	constructor(roomName: Id<TaskUpgradeController>) {
 		super(TaskUpgradeController, roomName);
@@ -31,7 +36,12 @@ export class TaskUpgradeController extends Task {
 			throw new Error(`No Controller in room [${roomName}]`);
 		}
 		this.controller = this.room ? this.room.controller! : null;
-		this.roomSource = findRoomSource(this.room);
+		let roomSource = findRoomSource(this.room);
+		if (isWithdrawTarget(roomSource)) {
+			this.withdrawTarget = roomSource;
+		} else if (roomSource instanceof Source) {
+			this.harvestTarget = roomSource;
+		}
 	}
 
 	protected run() {
@@ -74,7 +84,7 @@ let harvesterBodySpec: BodySpec[] = [{
 }));
 
 function creepSpawnCallback(room: Room, name: string): SpawnQueueItem {
-	let bodySpec = findMaxBy(harvesterBodySpec, spec => spec.cost <= room.energyAvailable ? spec.cost : 0);
+	let bodySpec = findMaxBy(harvesterBodySpec, spec => spec.cost <= room.energyAvailable ? spec.cost : 0)!;
 	return {
 		priority: SpawnQueuePriority.UPGRADER,
 		name: name,

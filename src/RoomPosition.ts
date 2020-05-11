@@ -1,3 +1,4 @@
+import * as assert from "./assert";
 import { getWithCallback, tickCacheService } from "./Cache";
 import { ROOM_HEIGHT, ROOM_WIDTH, TERRAIN_PLAIN } from "./constants";
 import { isConcreteStructure, isConstructionSiteForStructure } from "./Structure";
@@ -13,10 +14,6 @@ declare global {
 
 export type RoomPositionMemory = number;
 
-// RoomPosition.prototype.key = function (): string {
-// 	return this.roomName + '_' + this.x + '_' + this.y;
-// };
-
 // RoomPosition.prototype.isWalkable = function (): boolean {
 // 	return RoomPosition.prototype.lookFor(LOOK_STRUCTURES).every(structure => isWalkableStructure(structure));
 // }
@@ -28,7 +25,7 @@ const maxWorldCord = worldSize * ROOM_WIDTH;
 function roomNameToXY(name: string): [number, number] {
 	let match = name.match(/^(\w)(\d+)(\w)(\d+)$/);
 	if (!match) {
-		return null;
+		throw new Error(`Invalid room name [${name}]`);
 	}
 	let [, hor, xStr, ver, yStr] = match;
 	let x = hor == 'W' ? Number(xStr) + halfWorld : Number(xStr);
@@ -43,6 +40,7 @@ function getRoomNameFromXY(x: number, y: number) {
 }
 
 export function fromMemoryWorld(memory: RoomPositionMemory): RoomPosition {
+	assert.ok(_.isNumber(memory));
 	let worldY = memory % maxWorldCord;
 	let worldX = (memory - worldY) / maxWorldCord;
 	let x = worldX % ROOM_WIDTH;
@@ -54,23 +52,21 @@ export function fromMemoryWorld(memory: RoomPositionMemory): RoomPosition {
 }
 
 export function toMemoryWorld(pos: RoomPosition): RoomPositionMemory {
-	if (pos instanceof RoomPosition) {
-		let roomXY = roomNameToXY(pos.roomName);
-		let worldX = roomXY[0] * ROOM_WIDTH + pos.x;
-		let worldY = roomXY[1] * ROOM_WIDTH + pos.y;
-		return worldX * maxWorldCord + worldY;
-	}
-	return null;
+	assert.instanceOf(pos, RoomPosition);
+	let roomXY = roomNameToXY(pos.roomName);
+	let worldX = roomXY[0] * ROOM_WIDTH + pos.x;
+	let worldY = roomXY[1] * ROOM_WIDTH + pos.y;
+	return worldX * maxWorldCord + worldY;
 }
 
 export function toMemoryRoom(pos: RoomPosition): RoomPositionMemory {
-	if (pos instanceof RoomPosition) {
-		return pos.x * ROOM_WIDTH + pos.y;
-	}
-	return null;
+	assert.instanceOf(pos, RoomPosition);
+	return pos.x * ROOM_WIDTH + pos.y;
 }
 
 export function fromMemoryRoom(memory: RoomPositionMemory, roomName: string): RoomPosition {
+	assert.isNumber(memory);
+	assert.isString(roomName);
 	let y = memory % ROOM_WIDTH;
 	let x = (memory - y) / ROOM_WIDTH;
 	return new RoomPosition(x, y, roomName);
@@ -89,7 +85,7 @@ export function posNear(center: RoomPosition, includeSelf: boolean): RoomPositio
 	let results: RoomPosition[] = [];
 	for (let x = xMin; x <= xMax; x++) {
 		for (let y = yMin; y <= yMax; y++) {
-			let pos = null as RoomPosition;
+			let pos: RoomPosition | null = null;
 			if (x == center.x && y == center.y) {
 				if (includeSelf) {
 					pos = this;
@@ -125,11 +121,11 @@ export function findObjectByPos<T extends RoomObject & { id: Id<T> }>(
 	cacheReader: () => Id<T>,
 	cacheWriter: (id: Id<T>) => void,
 	findCallback: () => T,
-	interval: number = 5) {
+	interval: number = 5): T | RoomPosition | null {
 	if (!(pos.roomName in Game.rooms)) {
 		return pos;
 	}
-	let object = null;
+	let object: T | null = null;
 	let id = cacheReader();
 	if (id) {
 		object = Game.getObjectById(id);
@@ -188,11 +184,17 @@ export function posKey(pos: RoomPosition) {
 	return `${pos.roomName}_${pos.x}_${pos.y}`;
 }
 
-export function findNearbyEnergy(pos: RoomPosition) {
-	return getWithCallback(tickCacheService, `${posKey(pos)}.nearbyEnergy`, 1, (pos) => lookNear(pos, LOOK_ENERGY)[0], pos);
+export function findNearbyEnergy(pos: RoomPosition): Resource<RESOURCE_ENERGY> | null {
+	if (!(pos instanceof RoomPosition)) {
+		return null;
+	}
+	return getWithCallback(tickCacheService, `${posKey(pos)}.nearbyEnergy`, 1, (pos) => lookNear(pos!, LOOK_ENERGY)[0], pos);
 }
 
-export function lookForStructureAt<T extends BuildableStructureConstant>(structureType: T, pos: RoomPosition): ConcreteStructure<T> | ConstructionSite<T> {
-	return (pos.lookFor(LOOK_STRUCTURES).find(s => isConcreteStructure(s, structureType)) as ConcreteStructure<T>) ??
-		(pos.lookFor(LOOK_CONSTRUCTION_SITES).find(s => isConstructionSiteForStructure(s, structureType)) as ConstructionSite<T>);
+export function lookForStructureAt<T extends BuildableStructureConstant>(structureType: T, pos: RoomPosition): ConcreteStructure<T> | null {
+	return (pos.lookFor(LOOK_STRUCTURES).find(s => isConcreteStructure(s, structureType)) as ConcreteStructure<T>) ?? null;
+}
+
+export function lookForConstructionAt<T extends BuildableStructureConstant>(structureType: T, pos: RoomPosition): ConstructionSite<T> | null {
+	return (pos.lookFor(LOOK_CONSTRUCTION_SITES).find(s => isConstructionSiteForStructure(s, structureType)) as ConstructionSite<T>) ?? null;
 }

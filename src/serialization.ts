@@ -75,7 +75,7 @@ const SPEC = {
 			writeInt64ToBuffer(val.length, buffer, 1);
 			let offset = 9;
 			for (let codePoint of val) {
-				buffer.setUint32(offset, codePoint.codePointAt(0));
+				buffer.setUint32(offset, codePoint.codePointAt(0)!);
 				offset += 4;
 			}
 			buffers.push(buffer.buffer);
@@ -166,7 +166,7 @@ const SPEC = {
 		decode: (buffer: DataView, offset: { i: number; }) => {
 			let size = getInt64(buffer, offset.i);
 			offset.i += 8;
-			let arr = [];
+			let arr: any[] = [];
 			for (let i = 0; i < size; i++) {
 				arr.push(decodeR(buffer, offset));
 			}

@@ -160,8 +160,8 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 	}
 });
 
-export function findSources(room: Room) {
-	return (room ? getWithCallback(objectsServerCache, `${room.name}.sources`, 100, findSourcesImpl, room) : []) as Source[];
+export function findSources(room: Room): Source[] {
+	return getWithCallback(objectsServerCache, `${room.name}.sources`, 100, findSourcesImpl, room) ?? [];
 }
 function findSourcesImpl(room: Room): Source[] {
 	return sortById(room.find(FIND_SOURCES));

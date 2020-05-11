@@ -1,4 +1,4 @@
-export function findMinBy<T>(arr: T[], predicate: (element: T) => number): T {
+export function findMinBy<T>(arr: T[], predicate: (element: T) => number): T | null {
 	if (!arr.length) {
 		return null;
 	}
@@ -12,7 +12,7 @@ export function findMinBy<T>(arr: T[], predicate: (element: T) => number): T {
 	return min[0];
 }
 
-export function findMaxBy<T>(arr: T[], predicate: (element: T) => number): T {
+export function findMaxBy<T>(arr: T[], predicate: (element: T) => number): T | null {
 	if (!arr.length) {
 		return null;
 	}
@@ -26,9 +26,9 @@ export function findMaxBy<T>(arr: T[], predicate: (element: T) => number): T {
 	return max[0];
 }
 
-export function findMinIndexBy<T>(arr: T[], predicate: (element: T) => number): number {
+export function findMinIndexBy<T>(arr: T[], predicate: (element: T) => number): number | -1 {
 	if (!arr.length) {
-		return null;
+		return -1;
 	}
 	let min: [T, number, number] = [arr[0], predicate(arr[0]), 0];
 	for (let i = 1; i < arr.length; i++) {

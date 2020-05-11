@@ -58,7 +58,7 @@ export function getSourcePosition(skipFrames?: number): SourcePosition {
 		error = err;
 	}
 	// console.log(error.stack);
-	let callerLine = error.stack.split("\n")[(skipFrames ?? 0) + 2];
+	let callerLine = error.stack!.split("\n")[(skipFrames ?? 0) + 2];
 	let match = getSourcePositionRegEx.exec(callerLine);
 	if (!match) {
 		throw new Error(`Failed to parse call stack line [${callerLine}] at getSourcePosition`);
@@ -120,14 +120,14 @@ class Logger {
 		if (log_level > print_level) {
 			return;
 		}
-		let args = [];
+		let args: string[] = [];
 		if (log_level <= LogLevel.WARN || print_level >= LogLevel.DEBUG) {
 			let padded_str = LogLevel[log_level] + "   ";
 			padded_str = padded_str.substr(0, 7);
 			let colored_str = `<font color="${LogLevelColor[log_level]}">${padded_str}</font>`;
 			args.push(colored_str);
 		}
-		args.push(Game.time);
+		args.push(''+Game.time);
 		for (let i = 0; i < log_args.length; ++i) {
 			let arg_value = log_args[i];
 			let arg_repr;

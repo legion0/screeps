@@ -359,8 +359,8 @@ export class UpgradeController<ContextType> extends Action<ContextType> {
 	}
 }
 
-type WithdrawTarget = Tombstone | Ruin | StructureContainer | StructureSpawn | StructureExtension | StructureTower | StructureStorage;
-function isWithdrawTarget(o: any): o is WithdrawTarget {
+export type WithdrawTarget = Tombstone | Ruin | StructureContainer | StructureSpawn | StructureExtension | StructureTower | StructureStorage;
+export function isWithdrawTarget(o: any): o is WithdrawTarget {
 	return o instanceof Tombstone ||
 		o instanceof Ruin ||
 		o instanceof StructureContainer ||

@@ -5,11 +5,12 @@ import './Task.BuildRoom';
 import { TaskBuildRoom } from './Task.BuildRoom';
 import { TaskHarvestSource } from "./Task.HarvestSource";
 import { everyN } from "./Tick";
+import * as assert from "./assert";
 
 export class TaskBootRoom extends Task {
 	static readonly className = 'BootRoom' as Id<typeof Task>;
 	readonly roomName: string;
-	readonly room?: Room;
+	readonly room: Room;
 
 	constructor(roomName: Id<TaskBootRoom>) {
 		super(TaskBootRoom, roomName);
@@ -25,6 +26,7 @@ export class TaskBootRoom extends Task {
 		// boot sources
 		everyN(10, () => {
 			findSources(this.room).forEach(source => {
+				if (!assert.hasProperty(source.room, 'controller')) return;
 				if (source.room.controller.level < 2) {
 					TaskBootSource.create(source)
 				} else {

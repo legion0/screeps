@@ -30,8 +30,8 @@ export class TaskHarvestSource extends Task {
 	static readonly className = 'HarvestSource' as Id<typeof Task>;
 
 	readonly source: Source;
-	readonly container?: StructureContainer;
-	readonly constructionSite?: ConstructionSite<STRUCTURE_CONTAINER>;
+	readonly container: StructureContainer | null;
+	readonly constructionSite: ConstructionSite<STRUCTURE_CONTAINER> | null;
 	readonly roomSync: RoomSync | null;
 
 	private readonly cache = new ObjectCacheService<any>(this);

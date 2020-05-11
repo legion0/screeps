@@ -116,7 +116,7 @@ export class Highway {
 		for (let memory of candidates) {
 			let start = fromMemoryWorld(memory.path[0]);
 			let end = fromMemoryWorld(memory.path[memory.path.length - 1]);
-			let onRamp = findMinBy(memory.path.map(fromMemoryWorld), pos => pos.getRangeTo(current) + pos.getRangeTo(to) / range);
+			let onRamp = findMinBy(memory.path.map(fromMemoryWorld), pos => pos.getRangeTo(current) + pos.getRangeTo(to) / range)!;
 			if (onRamp.getRangeTo(current) > 5) {
 				continue;
 			}
@@ -153,16 +153,16 @@ export class Highway {
 		return highwayPath.slice(startIdx, Math.min(endIdx, startIdx + 5));
 	}
 
-	private roomCallback(roomName: string) {
+	private roomCallback(roomName: string): CostMatrix {
 		let room = Game.rooms[roomName];
 		// TODO: handle non visible rooms
 		// option 1: log information about room when room is discovered
 		// option 2: postpone unknown room path calculation until
 		// we are actually in that room building the highway.
-		if (!room) {
-			return;
-		}
 		let costs = new PathFinder.CostMatrix;
+		if (!room) {
+			return costs;
+		}
 		room
 			.find(FIND_STRUCTURES)
 			.filter(structure => !isWalkableStructure(structure))

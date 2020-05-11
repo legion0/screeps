@@ -18,11 +18,11 @@ export function sortByKey<T>(keyFunc: KeyFunc<T>, compareFunc: CompareFunc<numbe
 	return (lhs: T, rhs: T) => compareFunc(keyFunc(lhs), keyFunc(rhs));
 }
 
-export function property(propName: string) {
-	return (obj: unknown) => obj[propName];
+export function property<T, K extends keyof T>(propName: K): (obj: T) => T[K] {
+	return (obj: T) => obj[propName];
 }
 
-export function sortByProperty<T>(propName: string, compareFunc: CompareFunc<number> = less) {
+export function sortByProperty<T extends Record<K,number>, K extends keyof T>(propName: K, compareFunc: CompareFunc<number> = less) {
 	return sortByKey<T>(property(propName), compareFunc);
 }
 

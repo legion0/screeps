@@ -6,6 +6,7 @@ import { findNearbyEnergy } from './RoomPosition';
 import { Task } from "./Task";
 import { everyN } from "./Tick";
 import { getWithCallback, rawServerCache } from './Cache';
+import { isWithdrawTarget, WithdrawTarget } from './Action';
 
 interface SequenceContext {
 	creep: Creep;
@@ -15,17 +16,18 @@ interface SequenceContext {
 const buildCreepActions = [
 	new A.Build<SequenceContext>().setArgs(c => c.task.constructionSite),
 	new A.Pickup<SequenceContext>().setArgs(c => findNearbyEnergy(c.creep.pos)),
-	new A.Withdraw<SequenceContext>().setArgs(c => c.task.roomSource),
-	new A.Harvest<SequenceContext>().setArgs(c => c.task.roomSource).setPersist(),
+	new A.Withdraw<SequenceContext>().setArgs(c => c.task.withdrawTarget),
+	new A.Harvest<SequenceContext>().setArgs(c => c.task.harvestTarget).setPersist(),
 ];
 
 export class TaskBuildRoom extends Task {
 	static readonly className = 'BuildRoom' as Id<typeof Task>;
 	readonly roomName: string;
 	readonly room: Room;
-	readonly roomSource: RoomSource | null;
 	readonly constructionSite: ConstructionSite | null;
 	private constructionQueueSize: number;
+	readonly withdrawTarget: WithdrawTarget | null;
+	readonly harvestTarget: Source | null;
 
 	constructor(roomName: Id<TaskBuildRoom>) {
 		super(TaskBuildRoom, roomName);
@@ -34,7 +36,12 @@ export class TaskBuildRoom extends Task {
 		this.constructionSite = currentConstruction(this.room.name);
 		this.constructionQueueSize = constructionQueueSize(this.room.name);
 		if (this.constructionSite) {
-			this.roomSource = findRoomSource(this.room);
+			let roomSource = findRoomSource(this.room);
+			if (isWithdrawTarget(roomSource)) {
+				this.withdrawTarget = roomSource;
+			} else if (roomSource instanceof Source) {
+				this.harvestTarget = roomSource;
+			}
 		}
 	}
 
