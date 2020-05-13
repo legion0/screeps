@@ -39,6 +39,7 @@ https://github.com/techfort/LokiJS/wiki
 ## Console Commands
 
 * `Memory.creepSayAction = true` 
+* `Memory.creepSayIdle = true` 
 * `Memory.highwayDebugVisuals = true` 
 * `Memory.showHighways = true` 
 * `Memory.clearHighways = true` 

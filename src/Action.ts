@@ -4,8 +4,9 @@ import { log } from "./Logger";
 import { MemInit } from "./Memory";
 import { getRecyclePos, isRoomSync, RoomSync } from "./Room";
 import { fromMemoryWorld, lookNear, RoomPositionMemory, toMemoryRoom, toMemoryWorld } from "./RoomPosition";
-import { hasFreeCapacity, hasUsedCapacity } from "./Store";
+import { hasFreeCapacity, hasUsedCapacity, getFreeCapacity } from "./Store";
 import { isDamaged, isSpawn } from "./Structure";
+import { memoryCache } from "./MemoryCache";
 
 declare global {
 	interface CreepMemory {
@@ -20,8 +21,9 @@ declare global {
 		};
 	}
 	interface Memory {
-		creepSayAction: boolean;
-		highwayDebugVisuals: boolean;
+		creepSayAction?: boolean;
+		creepSayIdle?: boolean;
+		highwayDebugVisuals?: boolean;
 	}
 }
 
@@ -227,21 +229,29 @@ abstract class Action<ContextType> {
 	}
 }
 
+export type TrasferTarget = StructureSpawn | StructureExtension | StructureContainer | StructureTower | StructureStorage;
+export function isTrasferTarget(o: any): o is TrasferTarget {
+	return o instanceof StructureSpawn ||
+		o instanceof StructureExtension ||
+		o instanceof StructureContainer ||
+		o instanceof StructureTower ||
+		o instanceof StructureStorage;
+}
+
 export class Transfer<ContextType> extends Action<ContextType> {
 	constructor() {
 		super(ActionType.TRANSFER);
 	}
 
 	test(creep: Creep, target: any) {
-		return isRoomSync(target) &&
+		return isTrasferTarget(target) &&
 			hasFreeCapacity(target) && hasUsedCapacity(creep);
 	}
 
-	do(creep: Creep, target: RoomSync) {
+	do(creep: Creep, target: TrasferTarget) {
 		let rv: ScreepsReturnCode = OK;
 		if (creep.pos.isNearTo(target)) {
-			let freeCapacity = target instanceof StructureContainer ? target.store.getFreeCapacity(RESOURCE_ENERGY) : target.store.getFreeCapacity(RESOURCE_ENERGY);
-			rv = creep.transfer(target, RESOURCE_ENERGY, Math.min(creep.store.energy, freeCapacity));
+			rv = creep.transfer(target, RESOURCE_ENERGY, Math.min(creep.store.energy, getFreeCapacity(target)));
 			if (rv != OK) {
 				log.e(`[${creep.name}] failed to transfer to [${target}] with error [${errorCodeToString(rv)}]`);
 			}
@@ -251,7 +261,7 @@ export class Transfer<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => RoomSync | undefined) {
+	setArgs(callback: (context: ContextType) => TrasferTarget | undefined) {
 		return super.setArgs(callback);
 	}
 }
@@ -310,16 +320,21 @@ export class Repair<ContextType> extends Action<ContextType> {
 	}
 }
 
+export type PickupTarget = Resource;
+export function isPickupTarget(o: any): o is PickupTarget {
+	return o instanceof Resource;
+}
+
 export class Pickup<ContextType> extends Action<ContextType> {
 	constructor() {
 		super(ActionType.PICKUP);
 	}
 
 	test(creep: Creep, target: any) {
-		return target instanceof Resource && hasFreeCapacity(creep);
+		return isPickupTarget(target) && hasFreeCapacity(creep);
 	}
 
-	do(creep: Creep, target: Resource) {
+	do(creep: Creep, target: PickupTarget) {
 		let rv = creep.pickup(target);
 		if (rv != OK) {
 			log.e(`[${creep.name}] failed to pickup [${target}] with error [${errorCodeToString(rv)}]`);
@@ -327,7 +342,7 @@ export class Pickup<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => Resource | undefined) {
+	setArgs(callback: (context: ContextType) => PickupTarget | undefined) {
 		return super.setArgs(callback);
 	}
 }
@@ -468,7 +483,7 @@ export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any
 		if (Memory.creepSayAction) {
 			creep.say(ActionType[chosenAction.actionType]);
 		}
-	} else {
+	} else if (Memory.creepSayIdle) {
 		creep.say('idle');
 	}
 }

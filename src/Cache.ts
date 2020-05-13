@@ -143,6 +143,7 @@ export function getFromCacheSpec<T, ContextType>(spec: CacheEntrySpec<T, Context
 	let value = spec.cache.get(id) as T | null | undefined;
 	if (value === undefined || (value != null && spec.test && !spec.test(value))) {
 		value = spec.callback(context);
+		// log.d(`Got value [${value}] from callback for id [${id}]`);
 		if (value !== undefined) {
 			spec.cache.set(id, value, spec.ttl);
 		}

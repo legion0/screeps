@@ -37,6 +37,10 @@ export function isSpawn(s: any): s is StructureSpawn {
 	return s instanceof StructureSpawn;
 }
 
+export function isExtension(s: any): s is StructureExtension {
+	return s instanceof StructureExtension;
+}
+
 export function isRoad(s: any): s is StructureRoad | ConstructionSite<STRUCTURE_ROAD> {
 	return s instanceof StructureRoad || (s instanceof ConstructionSite && s.structureType == STRUCTURE_ROAD);
 }

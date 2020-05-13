@@ -9,6 +9,7 @@ import { TaskUpgradeController } from './Task.UpgradeController';
 import { nextExtensionPos } from './Planning';
 import { posKey } from './RoomPosition';
 import { ALL } from 'dns';
+import { energyWeb } from './EnergyWeb';
 
 declare global {
 	interface Memory {
@@ -56,6 +57,7 @@ function main_loop() {
 		}
 	}
 	Task.runAll();
+	energyWeb.run();
 }
 
 module.exports.loop = function () {

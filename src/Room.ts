@@ -5,7 +5,7 @@ import { EventEnum, events } from "./Events";
 import { log } from "./Logger";
 import { PriorityQueue } from "./PriorityQueue";
 import { posKey, toMemoryWorld, fromMemoryWorld, lookForStructureAt, RoomPositionMemory, posNear } from "./RoomPosition";
-import { filterStructureType, isConcreteStructure, isSpawnOrExtension, isWalkableStructure } from "./Structure";
+import { filterStructureType, isConcreteStructure, isSpawnOrExtension, isWalkableStructure, isSpawn, isExtension } from "./Structure";
 import { everyN } from "./Tick";
 import { sortById } from "./util";
 import { MemInit } from "./Memory";
@@ -174,7 +174,7 @@ export function findMySpawnsOrExtensions(room: Room): (StructureSpawn | Structur
 }
 
 export function findMyExtensions(room: Room): StructureExtension[] {
-	return sortById(room.find(FIND_MY_STRUCTURES).filter(s => isConcreteStructure(s, STRUCTURE_EXTENSION))) as StructureExtension[];
+	return sortById(room.find(FIND_MY_STRUCTURES).filter(isExtension)) as StructureExtension[];
 }
 
 export function findMyConstructionSites(room: Room): ConstructionSite[] {
@@ -246,31 +246,28 @@ export function findRoomSource(room: Room): RoomSource | undefined {
 export type RoomSync = StructureSpawn | StructureExtension | StructureContainer;
 
 export function isRoomSync(s: any): s is RoomSync {
-	return s instanceof StructureSpawn || s instanceof StructureContainer || s instanceof StructureExtension;
+	return s instanceof StructureSpawn || s instanceof StructureExtension || s instanceof StructureContainer;
 }
 
-let findRoomSyncCache: CacheEntrySpec<RoomSync, Room> = {
-	cache: objectServerCache as CacheService<RoomSync | null>,
-	ttl: 50,
-	callback: (room: Room): RoomSync | undefined => {
-		let structures = findStructures(room);
-		let sync: RoomSync | undefined = undefined;
-
-		let spawnOrExt = findMinBy(structures.filter(isSpawnOrExtension).filter(s => s.energy < s.energyCapacity), s => s.energy / s.energyCapacity);
-		if (spawnOrExt) {
-			sync = spawnOrExt;
-		}
-
-		let container = findMinBy(filterStructureType(structures, STRUCTURE_CONTAINER).filter(s => s.store.getFreeCapacity(RESOURCE_ENERGY)), s => s.store.energy);
-		if (container) {
-			sync = container;
-		}
-		return sync;
-	},
-	test: (sync: RoomSync): boolean => hasFreeCapacity(sync),
-};
 export function findRoomSync(room: Room): RoomSync | undefined {
-	return getFromCacheSpec(findRoomSyncCache, `${room.name}.roomSync`, room) ?? undefined;
+	let structures = findStructures(room);
+	let sync: RoomSync | undefined = undefined;
+
+	let spawn = findMinBy(structures.filter(isSpawn), s => s.energy);
+	if (!sync && spawn && spawn.energy < spawn.energyCapacity) {
+		sync = spawn;
+	}
+
+	let ext = findMinBy(structures.filter(isExtension), s => s.energy);
+	if (!sync && ext && ext.energy < ext.energyCapacity) {
+		sync = ext;
+	}
+
+	let container = findMinBy(filterStructureType(structures, STRUCTURE_CONTAINER).filter(s => s.store.getFreeCapacity(RESOURCE_ENERGY)), s => s.store.energy);
+	if (!sync && container) {
+		sync = container;
+	}
+	return sync;
 }
 
 export function getRecyclePos(room: Room): RoomPosition | undefined {
