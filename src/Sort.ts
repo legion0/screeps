@@ -22,7 +22,7 @@ export function property<T, K extends keyof T>(propName: K): (obj: T) => T[K] {
 	return (obj: T) => obj[propName];
 }
 
-export function sortByProperty<T extends Record<K,number>, K extends keyof T>(propName: K, compareFunc: CompareFunc<number> = less) {
+export function sortByProperty<T extends Record<K, number>, K extends keyof T>(propName: K, compareFunc: CompareFunc<number> = less) {
 	return sortByKey<T>(property(propName), compareFunc);
 }
 

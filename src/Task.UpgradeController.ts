@@ -23,11 +23,11 @@ const upgradeControllerActions = [
 export class TaskUpgradeController extends Task {
 	static className = 'UpgradeController' as Id<typeof Task>;
 
-	readonly room: Room;
-	readonly controller: StructureController | null;
+	readonly room?: Room;
+	readonly controller?: StructureController;
 	readonly roomSource: RoomSource;
-	readonly withdrawTarget: WithdrawTarget | null;
-	readonly harvestTarget: Source | null;
+	readonly withdrawTarget?: WithdrawTarget;
+	readonly harvestTarget?: Source;
 
 	constructor(roomName: Id<TaskUpgradeController>) {
 		super(TaskUpgradeController, roomName);
@@ -35,7 +35,7 @@ export class TaskUpgradeController extends Task {
 		if (this.room && !this.room.controller) {
 			throw new Error(`No Controller in room [${roomName}]`);
 		}
-		this.controller = this.room ? this.room.controller! : null;
+		this.controller = this.room?.controller;
 		let roomSource = findRoomSource(this.room);
 		if (isWithdrawTarget(roomSource)) {
 			this.withdrawTarget = roomSource;

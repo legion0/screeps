@@ -1,3 +1,4 @@
+import * as assert from "./assert";
 import { findSources } from "./Room";
 import { Task } from "./Task";
 import { TaskBootSource } from "./Task.BootSource";
@@ -5,7 +6,6 @@ import './Task.BuildRoom';
 import { TaskBuildRoom } from './Task.BuildRoom';
 import { TaskHarvestSource } from "./Task.HarvestSource";
 import { everyN } from "./Tick";
-import * as assert from "./assert";
 
 export class TaskBootRoom extends Task {
 	static readonly className = 'BootRoom' as Id<typeof Task>;

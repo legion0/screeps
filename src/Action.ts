@@ -251,7 +251,7 @@ export class Transfer<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => RoomSync | null) {
+	setArgs(callback: (context: ContextType) => RoomSync | undefined) {
 		return super.setArgs(callback);
 	}
 }
@@ -278,7 +278,7 @@ export class Build<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => ConstructionSite | null) {
+	setArgs(callback: (context: ContextType) => ConstructionSite | undefined) {
 		return super.setArgs(callback);
 	}
 }
@@ -305,7 +305,7 @@ export class Repair<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => Structure | null) {
+	setArgs(callback: (context: ContextType) => Structure | undefined) {
 		return super.setArgs(callback);
 	}
 }
@@ -327,7 +327,7 @@ export class Pickup<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => Resource | null) {
+	setArgs(callback: (context: ContextType) => Resource | undefined) {
 		return super.setArgs(callback);
 	}
 }
@@ -354,7 +354,7 @@ export class UpgradeController<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => StructureController | null) {
+	setArgs(callback: (context: ContextType) => StructureController | undefined) {
 		return super.setArgs(callback);
 	}
 }
@@ -392,7 +392,7 @@ export class Withdraw<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => WithdrawTarget | null) {
+	setArgs(callback: (context: ContextType) => WithdrawTarget | undefined) {
 		return super.setArgs(callback);
 	}
 }
@@ -422,7 +422,7 @@ export class Harvest<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => Source | Mineral | Deposit | null) {
+	setArgs(callback: (context: ContextType) => Source | Mineral | Deposit | undefined) {
 		return super.setArgs(callback);
 	}
 }

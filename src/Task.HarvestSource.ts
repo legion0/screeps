@@ -1,9 +1,10 @@
 import * as A from './Action';
-import { getWithCallback, MutatingCacheService, ObjectCacheService, objectServerCache } from "./Cache";
+import { CacheEntrySpec, CacheService, getFromCacheSpec, MutatingCacheService, ObjectCacheService } from "./Cache";
 import { errorCodeToString, TERRAIN_PLAIN } from "./constants";
 import { log } from "./Logger";
-import { findRoomSync, requestCreepSpawn, RoomSync, SpawnQueuePriority, SpawnQueueItem } from "./Room";
-import { findNearbyEnergy, fromMemoryWorld, lookNear, posNear, toMemoryWorld, RoomPositionMemory } from "./RoomPosition";
+import { findRoomSync, requestCreepSpawn, RoomSync, SpawnQueueItem, SpawnQueuePriority } from "./Room";
+import { findNearbyEnergy, fromMemoryWorld, lookNear, posNear, toMemoryWorld } from "./RoomPosition";
+import { objectServerCache, rawServerStrongCache } from './ServerCache';
 import { isConcreteStructure, isConstructionSiteForStructure, isContainer } from "./Structure";
 import { Task } from "./Task";
 import { everyN } from "./Tick";
@@ -30,9 +31,9 @@ export class TaskHarvestSource extends Task {
 	static readonly className = 'HarvestSource' as Id<typeof Task>;
 
 	readonly source: Source;
-	readonly container: StructureContainer | null;
-	readonly constructionSite: ConstructionSite<STRUCTURE_CONTAINER> | null;
-	readonly roomSync: RoomSync | null;
+	readonly container?: StructureContainer;
+	readonly constructionSite?: ConstructionSite<STRUCTURE_CONTAINER>;
+	readonly roomSync?: RoomSync;
 
 	private readonly cache = new ObjectCacheService<any>(this);
 
@@ -43,11 +44,13 @@ export class TaskHarvestSource extends Task {
 			throw new Error(`TaskBootSource cannot find source [${sourceId}]`);
 		}
 		this.source = source;
-		this.container = getWithCallback(objectServerCache, `${this.id}.container`, 50, findContainer, this.source.pos) as StructureContainer;
-		this.constructionSite = getWithCallback(objectServerCache, `${this.id}.constructionSite`, 50, findConstructionSite, this.source.pos) as ConstructionSite<STRUCTURE_CONTAINER>;
-		this.roomSync = findRoomSync(this.source.room);
+		this.container = getFromCacheSpec(containerCache, `${this.id}.container`, this.source.pos) ?? undefined;
+		if (!this.container) {
+			this.constructionSite = getFromCacheSpec(constructionSiteCache, `${this.id}.constructionSite`, this.source.pos) ?? undefined;
+		}
+		this.roomSync = findRoomSync(this.source.room) ?? undefined;
 		if (isContainer(this.roomSync)) {
-			this.roomSync = null;
+			this.roomSync = undefined;
 		}
 		this.maybePlaceContainer();
 	}
@@ -86,8 +89,7 @@ export class TaskHarvestSource extends Task {
 			return;
 		}
 
-		let posCache = new MutatingCacheService<RoomPosition, RoomPositionMemory>(this.cache, fromMemoryWorld, toMemoryWorld);
-		let containerPos = getWithCallback(posCache, `containerPos`, 50, findContainerPos, this.source.pos);
+		let containerPos = getFromCacheSpec(containerPositionCache, `${this.id}.containerPos`, this.source.pos);
 		let rv = containerPos ? containerPos.createConstructionSite(STRUCTURE_CONTAINER) : ERR_NOT_FOUND;
 		if (rv != OK) {
 			log.e(`Failed to create STRUCTURE_CONTAINER at [${containerPos}] with error [${errorCodeToString(rv)}]`);
@@ -97,16 +99,9 @@ export class TaskHarvestSource extends Task {
 
 Task.register.registerTaskClass(TaskHarvestSource);
 
-function findContainer(pos: RoomPosition) {
-	return (lookNear(pos, LOOK_STRUCTURES, s => isConcreteStructure(s, STRUCTURE_CONTAINER))[0] ?? null) as StructureContainer;
-}
-
-function findConstructionSite(pos: RoomPosition) {
-	return (lookNear(pos, LOOK_CONSTRUCTION_SITES, s => isConstructionSiteForStructure(s, STRUCTURE_CONTAINER))[0] ?? null) as ConstructionSite<STRUCTURE_CONTAINER>;
-}
-
-function findContainerPos(sourcePos: RoomPosition) {
-	return posNear(sourcePos, /*includeSelf=*/false).find(isPosGoodForContainer);
+function findContainer(pos: RoomPosition): StructureContainer | undefined {
+	let containers = lookNear(pos, LOOK_STRUCTURES, s => isConcreteStructure(s, STRUCTURE_CONTAINER)) as StructureContainer[];
+	return containers[0];
 }
 
 function isPosGoodForContainer(pos: RoomPosition) {
@@ -148,3 +143,29 @@ function haulerSpawnCallback(room: Room, name: string): SpawnQueueItem {
 		cost: cost,
 	};
 }
+
+let containerCache: CacheEntrySpec<StructureContainer, RoomPosition> = {
+	cache: objectServerCache as CacheService<StructureContainer>,
+	ttl: 50,
+	callback: findContainer,
+	test: (s: StructureContainer) => {
+		return s.store.energy > 0;
+	}
+};
+
+let constructionSiteCache: CacheEntrySpec<ConstructionSite<STRUCTURE_CONTAINER>, RoomPosition> = {
+	cache: objectServerCache as CacheService<ConstructionSite<STRUCTURE_CONTAINER>>,
+	ttl: 50,
+	callback: (pos: RoomPosition) => {
+		let constructionSites = lookNear(pos, LOOK_CONSTRUCTION_SITES, s => isConstructionSiteForStructure(s, STRUCTURE_CONTAINER));
+		return (constructionSites[0] ?? null) as ConstructionSite<STRUCTURE_CONTAINER>;
+	},
+};
+
+let containerPositionCache: CacheEntrySpec<RoomPosition, RoomPosition> = {
+	cache: new MutatingCacheService(rawServerStrongCache, fromMemoryWorld, toMemoryWorld),
+	ttl: 50,
+	callback: (sourcePos: RoomPosition) => {
+		return posNear(sourcePos, /*includeSelf=*/false).find(isPosGoodForContainer) ?? null;
+	},
+};

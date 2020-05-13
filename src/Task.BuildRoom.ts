@@ -1,12 +1,12 @@
 import * as A from './Action';
+import { isWithdrawTarget, WithdrawTarget } from './Action';
 import { log } from "./Logger";
 import { nextExtensionPos } from "./Planning";
-import { BuildQueuePriority, constructionQueueSize, currentConstruction, findRoomSource, requestConstruction, requestCreepSpawn, RoomSource, SpawnQueuePriority } from "./Room";
+import { BuildQueuePriority, constructionQueueSize, currentConstruction, findRoomSource, requestConstruction, requestCreepSpawn, SpawnQueuePriority } from "./Room";
 import { findNearbyEnergy } from './RoomPosition';
 import { Task } from "./Task";
 import { everyN } from "./Tick";
-import { getWithCallback, rawServerCache } from './Cache';
-import { isWithdrawTarget, WithdrawTarget } from './Action';
+import { rawServerCache, elapsed } from './ServerCache';
 
 interface SequenceContext {
 	creep: Creep;
@@ -24,16 +24,16 @@ export class TaskBuildRoom extends Task {
 	static readonly className = 'BuildRoom' as Id<typeof Task>;
 	readonly roomName: string;
 	readonly room: Room;
-	readonly constructionSite: ConstructionSite | null;
+	readonly constructionSite?: ConstructionSite;
 	private constructionQueueSize: number;
-	readonly withdrawTarget: WithdrawTarget | null;
-	readonly harvestTarget: Source | null;
+	readonly withdrawTarget?: WithdrawTarget;
+	readonly harvestTarget?: Source;
 
 	constructor(roomName: Id<TaskBuildRoom>) {
 		super(TaskBuildRoom, roomName);
 		this.roomName = roomName;
 		this.room = Game.rooms[roomName];
-		this.constructionSite = currentConstruction(this.room.name);
+		this.constructionSite = currentConstruction(this.room.name) ?? undefined;
 		this.constructionQueueSize = constructionQueueSize(this.room.name);
 		if (this.constructionSite) {
 			let roomSource = findRoomSource(this.room);
@@ -56,10 +56,7 @@ export class TaskBuildRoom extends Task {
 			}
 		});
 
-		let lastBuild = rawServerCache.get(`${this.id}.lastBuild`) as number;
-		if (this.constructionSite || lastBuild === undefined) {
-			rawServerCache.set(`${this.id}.lastBuild`, Game.time, 100);
-		}
+		let noMoreBuilding = elapsed(`${this.id}.lastBuild`, 10, this.constructionSite ? true : false);
 
 		// run builders
 		let numCreeps = Math.min(Math.ceil(this.constructionQueueSize / 5000), 3);
@@ -67,7 +64,7 @@ export class TaskBuildRoom extends Task {
 			let name = `${this.id}.${i}`;
 			let creep = Game.creeps[name];
 			if (creep) {
-				if (lastBuild != null && lastBuild + 10 < Game.time) {
+				if (noMoreBuilding) {
 					A.recycle(creep);
 				} else {
 					A.runSequence(buildCreepActions, creep, { creep: creep, task: this });

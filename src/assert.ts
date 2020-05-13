@@ -1,5 +1,3 @@
-type RequiredKeys<T, K extends keyof T> = Exclude<T, K> & Required<Pick<T, K>>;
-
 export class AssertionError extends Error { }
 
 export function strictEqual(actual: any, expected: any, message?: string): void {
@@ -21,7 +19,7 @@ export function instanceOf<T extends new (...args: any) => any>(value: any, expe
 	return true;
 }
 
-export function hasProperty<T, K extends keyof T>(o: T, prop: K, message?: string): o is RequiredKeys<T, K> {
+export function hasProperty<T, K extends keyof T>(o: T, prop: K, message?: string): o is Exclude<T, K> & Required<Pick<T, K>> {
 	if (!(prop in o)) {
 		throw new AssertionError(makeMessage(`[${prop}] not in [${o}]`, message));
 	}

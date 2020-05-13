@@ -1,5 +1,5 @@
 import { findMaxBy, findMinBy } from "./Array";
-import { getWithCallback, objectsServerCache, tickCacheService, objectServerCache } from "./Cache";
+import { tickCacheService, CacheEntrySpec, CacheService, getFromCacheSpec } from "./Cache";
 import { errorCodeToString } from "./constants";
 import { EventEnum, events } from "./Events";
 import { log } from "./Logger";
@@ -9,7 +9,8 @@ import { filterStructureType, isConcreteStructure, isSpawnOrExtension, isWalkabl
 import { everyN } from "./Tick";
 import { sortById } from "./util";
 import { MemInit } from "./Memory";
-import { getUsedCapacity, hasUsedCapacity } from "./Store";
+import { getUsedCapacity, hasUsedCapacity, hasFreeCapacity } from "./Store";
+import { objectServerCache } from "./ServerCache";
 
 declare global {
 	interface RoomMemory {
@@ -161,51 +162,30 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 });
 
 export function findSources(room: Room): Source[] {
-	return getWithCallback(objectsServerCache, `${room.name}.sources`, 100, findSourcesImpl, room) ?? [];
-}
-function findSourcesImpl(room: Room): Source[] {
 	return sortById(room.find(FIND_SOURCES));
 }
 
 export function findMySpawns(room: Room): StructureSpawn[] {
-	return (room ? getWithCallback(objectsServerCache, `${room.name}.spawns`, 100, findMySpawnsImpl, room) : []) as StructureSpawn[];
-}
-function findMySpawnsImpl(room: Room): StructureSpawn[] {
 	return sortById(room.find(FIND_MY_SPAWNS));
 }
 
 export function findMySpawnsOrExtensions(room: Room): (StructureSpawn | StructureExtension)[] {
-	return (room ? getWithCallback(objectsServerCache, `${room.name}.spawnsOrExtensions`, 50, findMySpawnsOrExtensionsImpl, room) : []) as (StructureSpawn | StructureExtension)[];
-}
-function findMySpawnsOrExtensionsImpl(room: Room): (StructureSpawn | StructureExtension)[] {
 	return sortById(room.find(FIND_MY_STRUCTURES).filter(isSpawnOrExtension));
 }
 
 export function findMyExtensions(room: Room): StructureExtension[] {
-	return (room ? getWithCallback(objectsServerCache, `${room.name}.extensions`, 50, findExtensionsImpl, room) : []) as StructureExtension[];
-}
-function findExtensionsImpl(room: Room): StructureExtension[] {
 	return sortById(room.find(FIND_MY_STRUCTURES).filter(s => isConcreteStructure(s, STRUCTURE_EXTENSION))) as StructureExtension[];
 }
 
 export function findMyConstructionSites(room: Room): ConstructionSite[] {
-	return (room ? getWithCallback(objectsServerCache, `${room.name}.constructionSites`, 50, findMyConstructionSitesImpl, room) : []) as ConstructionSite[];
-}
-function findMyConstructionSitesImpl(room: Room): ConstructionSite[] {
 	return sortById(room.find(FIND_MY_CONSTRUCTION_SITES));
 }
 
 export function findMyStructures(room: Room): AnyOwnedStructure[] {
-	return (room ? getWithCallback(objectsServerCache, `${room.name}.myStructures`, 50, findMyStructuresImpl, room) : []) as AnyOwnedStructure[];
-}
-function findMyStructuresImpl(room: Room): AnyOwnedStructure[] {
 	return sortById(room.find(FIND_MY_STRUCTURES));
 }
 
 export function findStructures(room: Room): AnyStructure[] {
-	return (room ? getWithCallback(objectsServerCache, `${room.name}.structures`, 50, findStructuresImpl, room) : []) as AnyStructure[];
-}
-function findStructuresImpl(room: Room): AnyStructure[] {
 	return sortById(room.find(FIND_STRUCTURES));
 }
 
@@ -222,46 +202,45 @@ export function isRoomSource(s: any): s is RoomSource {
 		(s instanceof Tombstone && s.store.energy > 0);
 }
 
-function findRoomSourceImpl(room: Room): RoomSource | null {
-	let structures = findStructures(room);
+let findRoomSourceCache: CacheEntrySpec<RoomSource, Room> = {
+	cache: objectServerCache as CacheService<RoomSource | null>,
+	ttl: 50,
+	callback: (room: Room): RoomSource | null => {
+		let structures = findStructures(room);
 
-	let roomSource: RoomSource | null = null;
-	let toombStone = getRecyclePos(room)?.lookFor(LOOK_TOMBSTONES).find(t => t.store.energy);
-	if (toombStone) {
-		roomSource = toombStone;
-	}
-
-	if (!roomSource) {
-		let recycledEnergy = getRecyclePos(room)?.lookFor(LOOK_ENERGY)[0];
-		if (recycledEnergy) {
-			roomSource = recycledEnergy;
+		let roomSource: RoomSource | null = null;
+		let toombStone = getRecyclePos(room)?.lookFor(LOOK_TOMBSTONES).find(t => t.store.energy);
+		if (toombStone) {
+			roomSource = toombStone;
 		}
-	}
 
-	if (!roomSource) {
-		let container = filterStructureType(structures, STRUCTURE_CONTAINER).filter(s => hasUsedCapacity(s))[0] as StructureContainer;
-		if (container) {
-			roomSource = container;
+		if (!roomSource) {
+			let recycledEnergy = getRecyclePos(room)?.lookFor(LOOK_ENERGY)[0];
+			if (recycledEnergy) {
+				roomSource = recycledEnergy;
+			}
 		}
-	}
 
-	if (!roomSource) {
-		let source = findSources(room).filter(s => hasUsedCapacity(s))[0] as Source;
-		if (source) {
-			roomSource = source;
+		if (!roomSource) {
+			let container = filterStructureType(structures, STRUCTURE_CONTAINER).filter(s => hasUsedCapacity(s))[0] as StructureContainer;
+			if (container) {
+				roomSource = container;
+			}
 		}
-	}
 
-	return roomSource;
-}
+		if (!roomSource) {
+			let source = findSources(room).filter(s => hasUsedCapacity(s))[0] as Source;
+			if (source) {
+				roomSource = source;
+			}
+		}
 
-export function findRoomSource(room: Room): RoomSource {
-	let roomSource = getWithCallback(objectServerCache, `${room.name}.roomSource`, 50, findRoomSourceImpl, room);
-	if (!roomSource || !hasUsedCapacity(roomSource)) {
-		objectServerCache.clear(`${room.name}.roomSource`);
-		return findRoomSource(room);
-	}
-	return roomSource;
+		return roomSource;
+	},
+	test: (roomSource: RoomSource): boolean => hasUsedCapacity(roomSource),
+};
+export function findRoomSource(room: Room): RoomSource | undefined {
+	return getFromCacheSpec(findRoomSourceCache, `${room.name}.roomSource`, room) ?? undefined;
 }
 
 export type RoomSync = StructureSpawn | StructureExtension | StructureContainer;
@@ -270,33 +249,37 @@ export function isRoomSync(s: any): s is RoomSync {
 	return s instanceof StructureSpawn || s instanceof StructureContainer || s instanceof StructureExtension;
 }
 
-export function findRoomSync(room: Room): RoomSync | null {
-	let sync: RoomSync = tickCacheService.get(`${room.name}.roomSync`);
-	if (sync) {
-		return sync;
-	}
+let findRoomSyncCache: CacheEntrySpec<RoomSync, Room> = {
+	cache: objectServerCache as CacheService<RoomSync | null>,
+	ttl: 50,
+	callback: (room: Room): RoomSync | undefined => {
+		let structures = findStructures(room);
+		let sync: RoomSync | undefined = undefined;
 
-	let structures = findStructures(room);
-	let spawnOrExt = findMinBy(structures.filter(isSpawnOrExtension).filter(s => s.energy < s.energyCapacity), s => s.energy / s.energyCapacity);
-	if (spawnOrExt) {
-		sync = spawnOrExt;
-		tickCacheService.set(`${room.name}.roomSync`, sync);
-		return sync;
-	}
+		let spawnOrExt = findMinBy(structures.filter(isSpawnOrExtension).filter(s => s.energy < s.energyCapacity), s => s.energy / s.energyCapacity);
+		if (spawnOrExt) {
+			sync = spawnOrExt;
+		}
 
-	let container = findMinBy(filterStructureType(structures, STRUCTURE_CONTAINER).filter(s => s.store.getFreeCapacity(RESOURCE_ENERGY)), s => s.store.energy);
-	if (container) {
-		sync = container;
-		tickCacheService.set(`${room.name}.roomSync`, sync);
+		let container = findMinBy(filterStructureType(structures, STRUCTURE_CONTAINER).filter(s => s.store.getFreeCapacity(RESOURCE_ENERGY)), s => s.store.energy);
+		if (container) {
+			sync = container;
+		}
 		return sync;
-	}
-
-	return null;
+	},
+	test: (sync: RoomSync): boolean => hasFreeCapacity(sync),
+};
+export function findRoomSync(room: Room): RoomSync | undefined {
+	return getFromCacheSpec(findRoomSyncCache, `${room.name}.roomSync`, room) ?? undefined;
 }
 
-export function getRecyclePos(room: Room): RoomPosition | null {
+export function getRecyclePos(room: Room): RoomPosition | undefined {
 	let spawns = findMySpawns(room);
-	return posNear(spawns[0].pos, false).find(isGoodRecyclePos) ?? null;
+	let pos = posNear(spawns[0].pos, false).find(isGoodRecyclePos) ?? undefined;
+	if (pos) {
+		Game.rooms[pos.roomName].visual.circle(pos.x, pos.y, { fill: 'blue' });
+	}
+	return pos;
 }
 
 function isGoodRecyclePos(pos: RoomPosition): boolean {

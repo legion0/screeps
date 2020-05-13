@@ -127,7 +127,7 @@ class Logger {
 			let colored_str = `<font color="${LogLevelColor[log_level]}">${padded_str}</font>`;
 			args.push(colored_str);
 		}
-		args.push(''+Game.time);
+		args.push('' + Game.time);
 		for (let i = 0; i < log_args.length; ++i) {
 			let arg_value = log_args[i];
 			let arg_repr;

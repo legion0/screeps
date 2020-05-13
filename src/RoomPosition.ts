@@ -1,5 +1,5 @@
 import * as assert from "./assert";
-import { getWithCallback, tickCacheService } from "./Cache";
+import { tickCacheService, CacheEntrySpec, CacheService, getFromCacheSpec } from "./Cache";
 import { ROOM_HEIGHT, ROOM_WIDTH, TERRAIN_PLAIN } from "./constants";
 import { isConcreteStructure, isConstructionSiteForStructure } from "./Structure";
 
@@ -107,6 +107,19 @@ export function lookNear<T extends keyof AllLookAtTypes>(
 	return _.flatten(posNear(pos, /*includeSelf=*/true).map((pos: RoomPosition) => pos.lookFor(type).filter(filter)));
 }
 
+export function lookNearStructure<T extends StructureConstant>(
+	pos: RoomPosition,
+	type: T)
+	: ConcreteStructure<T>[] {
+	return lookNear(pos, LOOK_STRUCTURES, s => isConcreteStructure(s, type)) as ConcreteStructure<T>[];
+}
+
+export function lookNearConstruction<T extends BuildableStructureConstant>(
+	pos: RoomPosition,
+	type: T)
+	: ConstructionSite<T>[] {
+	return lookNear(pos, LOOK_CONSTRUCTION_SITES, s => isConstructionSiteForStructure(s, type)) as ConstructionSite<T>[];
+}
 
 export function getClearance(pos: RoomPosition) {
 	return pos._clearance ?? (pos._clearance = (() => {
@@ -184,17 +197,20 @@ export function posKey(pos: RoomPosition) {
 	return `${pos.roomName}_${pos.x}_${pos.y}`;
 }
 
-export function findNearbyEnergy(pos: RoomPosition): Resource<RESOURCE_ENERGY> | null {
-	if (!(pos instanceof RoomPosition)) {
-		return null;
-	}
-	return getWithCallback(tickCacheService, `${posKey(pos)}.nearbyEnergy`, 1, (pos) => lookNear(pos!, LOOK_ENERGY)[0], pos);
+let nearbyEnergyCache: CacheEntrySpec<Resource<RESOURCE_ENERGY>, RoomPosition> = {
+	cache: tickCacheService as CacheService<Resource<RESOURCE_ENERGY>>,
+	ttl: 1,
+	callback: (pos) => lookNear(pos!, LOOK_ENERGY)[0] ?? null,
+};
+
+export function findNearbyEnergy(pos: RoomPosition): Resource<RESOURCE_ENERGY> | undefined {
+	return getFromCacheSpec(nearbyEnergyCache, `${posKey(pos)}.nearbyEnergy`, pos) ?? undefined;
 }
 
-export function lookForStructureAt<T extends BuildableStructureConstant>(structureType: T, pos: RoomPosition): ConcreteStructure<T> | null {
-	return (pos.lookFor(LOOK_STRUCTURES).find(s => isConcreteStructure(s, structureType)) as ConcreteStructure<T>) ?? null;
+export function lookForStructureAt<T extends BuildableStructureConstant>(structureType: T, pos: RoomPosition): ConcreteStructure<T> | undefined {
+	return pos.lookFor(LOOK_STRUCTURES).find(s => isConcreteStructure(s, structureType)) as ConcreteStructure<T>;
 }
 
-export function lookForConstructionAt<T extends BuildableStructureConstant>(structureType: T, pos: RoomPosition): ConstructionSite<T> | null {
-	return (pos.lookFor(LOOK_CONSTRUCTION_SITES).find(s => isConstructionSiteForStructure(s, structureType)) as ConstructionSite<T>) ?? null;
+export function lookForConstructionAt<T extends BuildableStructureConstant>(structureType: T, pos: RoomPosition): ConstructionSite<T> | undefined {
+	return pos.lookFor(LOOK_CONSTRUCTION_SITES).find(s => isConstructionSiteForStructure(s, structureType)) as ConstructionSite<T>;
 }

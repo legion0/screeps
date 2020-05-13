@@ -21,7 +21,7 @@ declare global {
 	}
 }
 
-log.i(`Reloading on server [${serverId}]`);
+log.d(`Reloading on server [${serverId}]`);
 
 function main_loop() {
 

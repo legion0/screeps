@@ -1,12 +1,14 @@
 import * as A from './Action';
-import { getWithCallback, MutatingCacheService, ObjectCacheService, objectServerCache } from "./Cache";
 import { errorCodeToString, TERRAIN_PLAIN } from "./constants";
 import { log } from "./Logger";
 import { findMySpawns, findRoomSync, requestCreepSpawn, SpawnQueuePriority } from "./Room";
-import { findNearbyEnergy, fromMemoryWorld, getClearance, lookNear, posNear, toMemoryWorld, RoomPositionMemory } from "./RoomPosition";
+import { findNearbyEnergy, fromMemoryWorld, getClearance, lookNear, posNear, RoomPositionMemory, toMemoryWorld } from "./RoomPosition";
 import { isConcreteStructure, isConstructionSiteForStructure, isSpawnOrExtension } from "./Structure";
 import { Task } from "./Task";
 import { everyN } from "./Tick";
+import { getFromCacheSpec, CacheEntrySpec, CacheService, MutatingCacheService } from './Cache';
+import { objectServerCache, rawServerStrongCache } from './ServerCache';
+import { memoryCache } from './MemoryCache';
 
 interface SequenceContext {
 	creep: Creep;
@@ -26,11 +28,9 @@ export class TaskBootSource extends Task {
 	static readonly className = 'BootSource' as Id<typeof Task>;
 
 	readonly source: Source;
-	readonly spawnOrExt: StructureSpawn | StructureExtension | null;
-	readonly container: StructureContainer | null;
-	readonly constructionSite: ConstructionSite<STRUCTURE_CONTAINER> | null;
-
-	private readonly cache = new ObjectCacheService<any>(this);
+	readonly spawnOrExt?: StructureSpawn | StructureExtension;
+	readonly container?: StructureContainer;
+	readonly constructionSite?: ConstructionSite<STRUCTURE_CONTAINER>;
 
 	constructor(sourceId: Id<TaskBootSource>) {
 		super(TaskBootSource, sourceId);
@@ -40,10 +40,12 @@ export class TaskBootSource extends Task {
 		}
 		this.source = source;
 		let roomSync = findRoomSync(this.source.room);
-		this.spawnOrExt = isSpawnOrExtension(roomSync) ? roomSync : null;
+		this.spawnOrExt = isSpawnOrExtension(roomSync) ? roomSync : undefined;
 
-		this.container = getWithCallback(objectServerCache, `${this.id}.container`, 50, findContainer, this.source.pos) as StructureContainer;
-		this.constructionSite = getWithCallback(objectServerCache, `${this.id}.constructionSite`, 50, findConstructionSite, this.source.pos) as ConstructionSite<STRUCTURE_CONTAINER>;
+		this.container = getFromCacheSpec(containerCache, `${this.id}.container`, this.source.pos) ?? undefined;
+		if (!this.container) {
+			this.constructionSite = getFromCacheSpec(constructionSiteCache, `${this.id}.constructionSite`, this.source.pos) ?? undefined;
+		}
 		this.maybePlaceContainer();
 	}
 
@@ -83,8 +85,7 @@ export class TaskBootSource extends Task {
 			return;
 		}
 
-		let posCache = new MutatingCacheService<RoomPosition, RoomPositionMemory>(this.cache, fromMemoryWorld, toMemoryWorld);
-		let containerPos = getWithCallback(posCache, `containerPos`, 50, findContainerPos, this.source.pos);
+		let containerPos = getFromCacheSpec(containerPositionCache, `${this.id}.containerPos`, this.source.pos);
 		let rv = containerPos ? containerPos.createConstructionSite(STRUCTURE_CONTAINER) : ERR_NOT_FOUND;
 		if (rv != OK) {
 			log.e(`Failed to create STRUCTURE_CONTAINER at [${containerPos}] with error [${errorCodeToString(rv)}]`);
@@ -94,24 +95,37 @@ export class TaskBootSource extends Task {
 
 Task.register.registerTaskClass(TaskBootSource);
 
-function findContainer(pos: RoomPosition) {
-	return (lookNear(pos, LOOK_STRUCTURES, s => isConcreteStructure(s, STRUCTURE_CONTAINER))[0] ?? null) as StructureContainer;
-}
-
-function findConstructionSite(pos: RoomPosition) {
-	return (lookNear(pos, LOOK_CONSTRUCTION_SITES, s => isConstructionSiteForStructure(s, STRUCTURE_CONTAINER))[0] ?? null) as ConstructionSite<STRUCTURE_CONTAINER>;
-}
-
-function findContainerPos(sourcePos: RoomPosition) {
-	return posNear(sourcePos, /*includeSelf=*/false).find(isPosGoodForContainer);
-}
-
-function findSpawn(room: Room): StructureSpawn {
-	return findMySpawns(room)[0] ?? null;
-}
-
 function isPosGoodForContainer(pos: RoomPosition) {
 	return pos.lookFor(LOOK_CONSTRUCTION_SITES).length == 0 &&
 		pos.lookFor(LOOK_TERRAIN)[0] == TERRAIN_PLAIN &&
 		pos.lookFor(LOOK_STRUCTURES).length == 0;
 }
+
+let containerCache: CacheEntrySpec<StructureContainer, RoomPosition> = {
+	cache: objectServerCache as CacheService<StructureContainer>,
+	ttl: 50,
+	callback: (pos: RoomPosition): StructureContainer | null => {
+		let containers = lookNear(pos, LOOK_STRUCTURES, s => isConcreteStructure(s, STRUCTURE_CONTAINER));
+		return (containers[0] as StructureContainer | undefined) ?? null;
+	},
+	test: (s: StructureContainer) => {
+		return s.store.energy > 0;
+	}
+};
+
+let constructionSiteCache: CacheEntrySpec<ConstructionSite<STRUCTURE_CONTAINER>, RoomPosition> = {
+	cache: objectServerCache as CacheService<ConstructionSite<STRUCTURE_CONTAINER>>,
+	ttl: 50,
+	callback: (pos: RoomPosition) => {
+		let constructionSites = lookNear(pos, LOOK_CONSTRUCTION_SITES, s => isConstructionSiteForStructure(s, STRUCTURE_CONTAINER));
+		return (constructionSites[0] as ConstructionSite<STRUCTURE_CONTAINER>) ?? null;
+	},
+};
+
+let containerPositionCache: CacheEntrySpec<RoomPosition, RoomPosition> = {
+	cache: new MutatingCacheService(rawServerStrongCache, fromMemoryWorld, toMemoryWorld),
+	ttl: 50,
+	callback: (sourcePos: RoomPosition) => {
+		return posNear(sourcePos, /*includeSelf=*/false).find(isPosGoodForContainer) ?? null;
+	},
+};

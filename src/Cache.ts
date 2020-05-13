@@ -4,8 +4,8 @@ import { getFullStack, log } from "./Logger";
 import { threadId } from "worker_threads";
 
 export interface CacheService<T> {
-	// returns the value from the cache or undefined if value is not in the cache or expired.
-	get(id: string): T | undefined;
+	get(id: string, ttlOut?: [number]): T | undefined;
+	// `value` must be !== undefined and implementations should log an error when undefined is being cached.
 	set(id: string, value: T, ttl: number): void;
 	clear(id: string): void;
 }
@@ -17,13 +17,20 @@ export class ObjectCacheService<T> implements CacheService<T> {
 		this.cache = obj;
 	}
 
-	get(id: string): T | undefined {
+	get(id: string, ttlOut?: [number]): T | undefined {
 		let entry = this.cache[id];
-		return entry && (Game.time - entry.insertTime < entry.ttl) ? entry.value : undefined;
+		if (entry) {
+			let ttl = entry.ttl - (Game.time - entry.insertTime);
+			if (ttlOut) {
+				ttlOut[0] = ttl;
+			}
+			return ttl > 0 ? entry.value : undefined;
+		}
+		return undefined;
 	}
 
 	clear(id: string): void {
-		delete this.cache[id];
+		delete this.cache[id];;
 	}
 
 	set(id: string, value: T, ttl: number): void {
@@ -61,7 +68,7 @@ export class TickCacheService<T> implements CacheService<T> {
 	private time: number = 0;
 	private cache: { [key: number]: { [key: string]: T } } = {};
 
-	get(id: string): T {
+	get(id: string): T | undefined {
 		return this.cache[Game.time]?.[id];
 	}
 
@@ -104,12 +111,12 @@ export class MutatingCacheService<T, W> implements CacheService<T> {
 		this.writer = writer;
 	}
 
-	get(id: string): T | undefined {
-		let value = this.cache.get(id);
+	get(id: string, ttlOut?: [number]): T | undefined {
+		let value = this.cache.get(id, ttlOut);
 		return value !== undefined ? this.reader(value) : undefined;
 	}
 
-	clear(id: string) {
+	clear(id: string): void {
 		return this.cache.clear(id);
 	}
 
@@ -122,74 +129,23 @@ export class MutatingCacheService<T, W> implements CacheService<T> {
 	}
 }
 
-export class ChainingCacheService<T> implements CacheService<T> {
-	private caches: CacheService<T>[] = [];
+export interface CacheEntrySpec<T, ContextType> {
+	cache: CacheService<T | null>;
+	ttl: number;
+	// callback to find the value if its not in the cache or no longer valid.
+	// null return values are cached, undefined return values are not cached.
+	callback: (context?: ContextType) => T | null | undefined;
+	// test function to test whether the value is valid or not.
+	test?: (value: T) => boolean;
+}
 
-	constructor(...caches: CacheService<T>[]) {
-		this.caches = caches;
-	}
-
-	get(id: string): T | undefined {
-		let value: T | undefined = undefined;
-		let i = 0;
-		for (; i < this.caches.length; i++) {
-			value = this.caches[i].get(id);
-			if (value !== undefined) {
-				break;
-			}
+export function getFromCacheSpec<T, ContextType>(spec: CacheEntrySpec<T, ContextType>, id: string, context?: ContextType): T | null | undefined {
+	let value = spec.cache.get(id) as T | null | undefined;
+	if (value === undefined || (value != null && spec.test && !spec.test(value))) {
+		value = spec.callback(context);
+		if (value !== undefined) {
+			spec.cache.set(id, value, spec.ttl);
 		}
-		// TODO: figure out a cleaner way to have server cache write back to tick cache, maybe abandon ChainingCacheService in favor of 3 custom implementations.
-		if (value !== undefined && i > 0) {
-			this.caches[0].set(id, value, 1);
-		}
-		return value;
-	}
-
-	clear(id: string): void {
-		for (let cache of this.caches) {
-			cache.clear(id);
-		}
-	}
-
-	set(id: string, value: T, ttl: number): void {
-		for (let cache of this.caches) {
-			cache.set(id, value, ttl);
-		}
-	}
-}
-
-function fromMemory(id: Id<any>) {
-	let o = Game.getObjectById(id);
-	return o;
-}
-
-function toMemory(value: ObjectWithId<any>) {
-	let id = value?.id ?? null;
-	return id;
-}
-
-function fromMemoryMany(ids: Id<any>[]): ObjectWithId<any>[] {
-	return ids.map(id => Game.getObjectById(id)).filter(_.identity);
-}
-
-function toMemoryMany(values: ObjectWithId<any>[]): Id<any>[] {
-	return values.map(value => value.id);
-}
-
-let serverCacheStore = {};
-let rawCache = new ObjectCacheService<any>(serverCacheStore);
-
-export let rawServerCache = new ChainingCacheService(tickCacheService, rawCache);
-
-export let objectServerCache: CacheService<ObjectWithId<any>> = new ChainingCacheService(tickCacheService, new MutatingCacheService(rawCache, fromMemory, toMemory));
-
-export let objectsServerCache: CacheService<ObjectWithId<any>[]> = new ChainingCacheService(tickCacheService, new MutatingCacheService(rawCache, fromMemoryMany, toMemoryMany));
-
-export function getWithCallback<T, ContextType>(cache: CacheService<unknown>, id: string, ttl: number, callback: (context?: ContextType) => T, context?: ContextType) {
-	let value = cache.get(id) as T | null | undefined;
-	if (value === undefined) {
-		value = callback(context) ?? null;
-		cache.set(id, value, ttl);
 	}
 	return value;
 }

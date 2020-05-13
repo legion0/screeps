@@ -225,7 +225,7 @@ export function packAsString(buffer: ArrayBuffer): string {
 
 export function unpackString(str: string): ArrayBuffer {
 	let buffer = new Uint16Array(str.length);
-	for(var i = 0; i < str.length; i++) {
+	for (let i = 0; i < str.length; i++) {
 		buffer[i] = str.charCodeAt(i);
 	}
 	return buffer.buffer;

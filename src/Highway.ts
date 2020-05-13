@@ -1,11 +1,11 @@
 import { findMinIndexBy, findMinBy } from './Array';
-import { getWithCallback, objectServerCache } from './Cache';
 import { EventEnum, events } from './Events';
 import { log } from './Logger';
 import { MemInit } from './Memory';
 import { fromMemoryWorld, posKey, toMemoryWorld, lookForStructureAt, RoomPositionMemory } from './RoomPosition';
 import { isWalkableStructure, isRoad } from './Structure';
 import { everyN } from './Tick';
+import { elapsed } from './ServerCache';
 
 interface HighwayMemory {
 	path: RoomPositionMemory[];
@@ -81,14 +81,13 @@ export class Highway {
 	}
 
 	buildRoad() {
-		getWithCallback(objectServerCache, `${this.name}.roads`, 100, () => {
+		if (elapsed(`${this.name}.lastBuild`, 10, false)) {
 			this.memory.path
 				.map(fromMemoryWorld)
 				.filter(pos => !pos.lookFor(LOOK_STRUCTURES).some(isRoad))
 				.filter(pos => !pos.lookFor(LOOK_CONSTRUCTION_SITES).some(isRoad))
 				.forEach(pos => Game.rooms[pos.roomName].createConstructionSite(pos, STRUCTURE_ROAD));
-			return null;
-		});
+		}
 		return this;
 	}
 
