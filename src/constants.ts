@@ -51,3 +51,7 @@ export const UPGRADE_RANGE = 3;
 
 export const TERRAIN_PLAIN = 'plain';
 export const TERRAIN_SWAMP = 'swamp';
+
+// Spawn time	3 ticks per each body part
+// https://docs.screeps.com/api/#StructureSpawn
+export const BODY_PART_SPAWN_TIME = 3;

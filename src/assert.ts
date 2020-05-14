@@ -19,7 +19,7 @@ export function instanceOf<T extends new (...args: any) => any>(value: any, expe
 	return true;
 }
 
-export function hasProperty<T, K extends keyof T>(o: T, prop: K, message?: string): o is Exclude<T, K> & Required<Pick<T, K>> {
+export function hasProperty<T, K extends keyof T>(o: T, prop: K, message?: string): o is HasProperty<T, K> {
 	if (!(prop in o)) {
 		throw new AssertionError(makeMessage(`[${prop}] not in [${o}]`, message));
 	}
