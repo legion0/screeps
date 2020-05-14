@@ -9,9 +9,16 @@ rm -rf node_modules package-lock.json && npm install
 `npx jest` or `npx jest --watch` 
 
 system.setTickDuration(4000)
+
 storage.db['rooms.objects'].update({ type: 'constructionSite' }, { $set: { progress: 99999 }})
+
 storage.db['rooms.objects'].update({room: 'W7N4', type: 'container'}, {$set: {store: {energy: 0}}})
+
 storage.db['rooms.objects'].update({room: 'W8N3', type: 'energy'}, {$set: {energy: 5000}})
+
+storage.db['rooms.objects'].find({room: 'W8N3', type: 'creep', name: 'energyWeb1'})
+storage.db['rooms.objects'].update({room: 'W8N3', type: 'creep', name: 'energyWeb1'}, {$set: {ageTime: 119096 - 1300}})
+
 
 https://wiki.screepspl.us/index.php/Private_Server_Common_Tasks
 https://github.com/techfort/LokiJS/wiki

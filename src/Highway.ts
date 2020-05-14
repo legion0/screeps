@@ -43,9 +43,9 @@ export class Highway {
 		if (this.from.getRangeTo(this.to) < 10) {
 			return ERR_FULL;
 		}
-		this.memory = MemInit(Memory.highways, this.name, {});
+		this.memory = MemInit(Memory.highways, this.name, { path: [] });
 		this.memory.lastUsed = Game.time;
-		if (this.memory.path) {
+		if (this.memory.path.length) {
 			return this;
 		}
 		let rv = PathFinder.search(

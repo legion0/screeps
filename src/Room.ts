@@ -222,7 +222,8 @@ let findRoomSourceCache: CacheEntrySpec<RoomSource, Room> = {
 		}
 
 		if (!roomSource) {
-			let container = filterStructureType(structures, STRUCTURE_CONTAINER).filter(s => hasUsedCapacity(s))[0] as StructureContainer;
+			let containers = filterStructureType(structures, STRUCTURE_CONTAINER).filter(s => hasUsedCapacity(s));
+			let container = findMaxBy<StructureContainer>(containers, getUsedCapacity);
 			if (container) {
 				roomSource = container;
 			}

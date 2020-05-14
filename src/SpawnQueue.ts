@@ -1,15 +1,24 @@
-import * as assert from "./assert";
-import { BODY_PART_SPAWN_TIME } from "./constants";
-import { hasTicksToLive } from "./Creep";
-import { tickCacheService, CacheService } from "./Cache";
+import { findMinBy } from "./Array";
+import { CacheService } from "./Cache";
+import { BODY_PART_SPAWN_TIME, errorCodeToString } from "./constants";
+import { log } from "./Logger";
+import { SpawnQueuePriority } from "./Room";
+import { rawServerCache } from "./ServerCache";
+import { sortById } from "./util";
+import { RoomPositionMemory, toMemoryWorld, fromMemoryWorld } from "./RoomPosition";
+import { events, EventEnum } from "./Events";
+import { MemInit } from "./Memory";
+import { getCreepSpawnName } from "./Creep";
+
+export { SpawnQueuePriority };
 
 declare global {
 	interface Memory {
-		spawnQueue: SpawmQueueMemory;
+		spawnQueue: SpawnQueueMemory | undefined;
 	}
 }
 
-interface SpawmQueueMemory {
+interface SpawnQueueMemory {
 	array: SpawnRequestMemory[];
 	index: { [key: string]: null };
 }
@@ -17,7 +26,7 @@ interface SpawmQueueMemory {
 export interface SpawnRequest {
 	// the base creep name, may have _alt appended to it in cases where the new creep is spawned before the old one dies.
 	// use `getActiveCreep` to get the main and secondary creeps.
-	baseCreepName: string;
+	name: string;
 
 	body: BodyPartConstant[];
 	// where is the creep going after spawning, will be used to adjust actual spawning time.
@@ -25,74 +34,72 @@ export interface SpawnRequest {
 	// when do you want the creep to arrive at its destination post spawning
 	time: number;
 
-	priority: number;
+	priority: SpawnQueuePriority;
 	opts?: SpawnOptions;
 }
 
-interface SpawnRequestMemory extends SpawnRequest {
+interface SpawnRequestMemory {
+	name: string;
+	body: BodyPartConstant[];
+	pos: RoomPositionMemory;
 	startTime: number;
 	endTime: number;
+	priority: SpawnQueuePriority;
+	opts?: SpawnOptions;
 }
 
-export function getActiveCreep(baseCreepName: string): [Creep | undefined, Creep | undefined] {
-	let main = Game.creeps[baseCreepName];
-	let alt = Game.creeps[baseCreepName + '_alt'];
-
-	if (hasTicksToLive(alt) && hasTicksToLive(main) && alt.ticksToLive > main.ticksToLive) {
-		return [alt, main];
-	} else if (hasTicksToLive(alt) && hasTicksToLive(main)) {
-		return [alt, main];
-	}
-	return [main, alt];
-}
-
-class SpawnQueue {
-	private memory: SpawmQueueMemory;
-
-	private constructor(memory: SpawmQueueMemory) {
-		this.memory = memory;
-	}
-
-	static loadOrCreate<M, P extends keyof M>(parentMemory: HasPropertyOfType<M, P, SpawmQueueMemory>, name: P) {
-		let memory: SpawmQueueMemory | undefined = parentMemory[name];
-		if (memory === undefined) {
-			memory = { array: [], index: {} };
-			parentMemory[name] = memory as any;
-		}
-		return new SpawnQueue(memory);
-	}
+export class SpawnQueue {
+	private memory: SpawnQueueMemory;
 
 	push(request: SpawnRequest): void {
+		if (request.name in this.memory.index) {
+			throw new Error(`Trying to re-queue [${request.name}]`);
+		}
 		const duration = request.body.length * BODY_PART_SPAWN_TIME;
 
-		let r: SpawnRequestMemory = Object.assign(request, {
+		let r: SpawnRequestMemory = {
+			name: request.name,
+			body: request.body,
+			pos: toMemoryWorld(request.pos),
+			priority: request.priority,
+			opts: request.opts,
 			startTime: request.time - duration,
 			endTime: request.time,
-		});
+		};
 
+		log.d(`Pushing new request for [${request.name}]`);
 		this.memory.array.push(r);
-		this.memory.index[r.baseCreepName] = null;
-		this.buubleUpR(this.memory.array.length - 1);
+		this.memory.index[r.name] = null;
+		this.bubbleUpR(this.memory.array.length - 1);
 	}
 
-	size(): number {
-		return this.memory.array.length;
+	// private size(): number {
+	// 	return this.memory.array.length;
+	// }
+
+	has(name: string): boolean {
+		return name in this.memory.index;
 	}
 
-	isEmpty(): boolean {
-		return this.memory.array.length > 0 ? true : false;
+	private isEmpty(): boolean {
+		return this.memory.array.length > 0 ? false : true;
 	}
 
-	peek(): SpawnRequest | undefined {
+	private peek(): SpawnRequestMemory | undefined {
 		return this.memory.array[0];
 	}
 
-	pop(): SpawnRequest | undefined {
-		return this.memory.array.length > 0 ? this.memory.array.splice(0, 1)[0] : undefined;
+	private pop(): SpawnRequestMemory | undefined {
+		if (this.memory.array.length == 0) {
+			return undefined;
+		}
+		let item = this.memory.array.splice(0, 1)[0];
+		delete this.memory.index[item.name];
+		return item;
 	}
 
 	// move element at position index to its correct position
-	buubleUpR(index: number): void {
+	private bubbleUpR(index: number): void {
 		if (index == 0) {
 			return;
 		}
@@ -107,19 +114,45 @@ class SpawnQueue {
 		if (isLater(previous, current) || current.priority > previous.priority || (current.priority == previous.priority && current.startTime < previous.startTime)) {
 			this.memory.array[index] = previous;
 			this.memory.array[index - 1] = current;
-			this.buubleUpR(index - 1);
+			this.bubbleUpR(index - 1);
 		}
+	}
+
+	run() {
+		if (this.isEmpty() || this.peek()!.startTime > Game.time) {
+			return;
+		}
+
+		let request = this.peek()!;
+		let requestPos = fromMemoryWorld(request.pos);
+		let spawns = findAllSpawns().filter(s => !s.spawning);
+		let spawn = findMinBy(spawns, s => s.pos.getRangeTo(requestPos));
+		if (spawn) {
+			this.pop();
+			let newName = getCreepSpawnName(request.name);
+			let rv = spawn.spawnCreep(request.body, newName, request.opts);
+			if (rv == OK) {
+				log.v(`[${spawn}] spawning [${request.name}]`);
+			} else {
+				log.e(`[${spawn}] failed to spawn [${JSON.stringify(request)}] with error [${errorCodeToString(rv)}]`);
+			}
+		}
+	}
+
+	static getSpawnQueue(): SpawnQueue {
+		let cache = rawServerCache as CacheService<SpawnQueue>;
+		let queue = cache.get('spawnQueue');
+		if (queue == null) {
+			queue = new SpawnQueue();
+			cache.set('spawnQueue', queue, 10000);
+		}
+		queue.memory = initMemory();
+		return queue;
 	}
 }
 
-function getSpawnQueue() {
-	let cache = tickCacheService as CacheService<SpawnQueue>;
-	let queue = cache.get('spawnQueue');
-	if (queue === undefined) {
-		queue = SpawnQueue.loadOrCreate(Memory, 'spawnQueue');
-		cache.set('spawnQueue', queue, 1);
-	}
-	return queue;
+export function findAllSpawns(): StructureSpawn[] {
+	return sortById(_.flatten(Object.values(Game.rooms).map(room => room.find(FIND_MY_SPAWNS))));
 }
 
 // function hasOverlap(lhs: SpawnRequestMemory, rhs: SpawnRequestMemory) {
@@ -131,3 +164,12 @@ function getSpawnQueue() {
 function isLater(lhs: SpawnRequestMemory, rhs: SpawnRequestMemory) {
 	return lhs.startTime >= rhs.endTime;
 }
+
+function initMemory(): SpawnQueueMemory {
+	return MemInit(Memory, 'spawnQueue', { array: [], index: {} });
+}
+
+events.listen(EventEnum.HARD_RESET, () => {
+	Memory.spawnQueue = undefined;
+	initMemory();
+});

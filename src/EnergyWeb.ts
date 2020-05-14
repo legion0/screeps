@@ -1,10 +1,12 @@
 import * as A from "./Action";
+import { isPickupTarget, isWithdrawTarget, PickupTarget, TrasferTarget, WithdrawTarget } from "./Action";
+import { getActiveCreepTtl, getActiveCreep, getLiveCreeps, isActiveCreepSpawning } from "./Creep";
 import { MemInit } from "./Memory";
-import { requestCreepSpawn, SpawnQueueItem, SpawnQueuePriority, RoomSource, RoomSync, findRoomSource, findRoomSync, findMySpawns, findMyExtensions, findMySpawnsOrExtensions } from "./Room";
-import { everyN } from "./Tick";
-import { WithdrawTarget, TrasferTarget, isWithdrawTarget, PickupTarget, isPickupTarget } from "./Action";
-import { PriorityQueue } from "./PriorityQueue";
+import { findMySpawnsOrExtensions, findRoomSource, SpawnQueueItem } from "./Room";
+import { SpawnQueue, SpawnQueuePriority } from "./SpawnQueue";
 import { getFreeCapacity } from "./Store";
+import { everyN } from "./Tick";
+import { findNearbyEnergy } from "./RoomPosition";
 
 declare global {
 	interface Memory {
@@ -34,6 +36,7 @@ interface SequenceContext {
 }
 
 const webHaulCreepActions = [
+	new A.Pickup<SequenceContext>().setArgs(c => findNearbyEnergy(c.creep.pos)),
 	new A.Transfer<SequenceContext>().setArgs(c => c.transfer),
 	new A.Pickup<SequenceContext>().setArgs(c => c.pickup),
 	new A.Withdraw<SequenceContext>().setArgs(c => c.withdraw),
@@ -61,11 +64,8 @@ class EnergyWeb {
 			}
 		});
 
-		let haulerAssignments: { [key: string]: SequenceContext } = {};
+		let haulerAssignments: { [key: string]: Partial<SequenceContext> } = {};
 
-		if (!_.isEmpty(Memory.energyWeb.take)) {
-			console.log(JSON.stringify(Memory.energyWeb.take));
-		}
 		for (let [key, request] of Object.entries(Memory.energyWeb.take)) {
 			let dest = Game.getObjectById(request.dest) as TrasferTarget;
 			let freeCapacity = getFreeCapacity(dest);
@@ -73,40 +73,47 @@ class EnergyWeb {
 				delete Memory.energyWeb.take[key];
 				continue;
 			}
-			let room = Game.rooms[dest.pos.roomName];
-			let source = findRoomSource(room);
-			source = source instanceof Source ? undefined : source;
 
-			let creep = Game.creeps['energyWeb1'];
-			if (creep) {
-				haulerAssignments[creep.name] = {
-					creep: creep,
-					pickup: isPickupTarget(source) ? source : undefined,
-					withdraw: isWithdrawTarget(source) ? source : undefined,
-					transfer: dest,
-				};
-				break;  // we only have 1 creep at the moment
-			}
+			haulerAssignments[`${dest.pos.roomName}.hauler`] = {
+				transfer: dest,
+			};
+			break;
 		}
 
-		for (let name of ['energyWeb1'/*, 'energyWeb2'*/]) {
-			let creep = Game.creeps[name];
-			if (creep) {
+		// run creeps
+		for (let name of Object.keys(Game.rooms).map(roomName => `${roomName}.hauler`)) {
+			for (let creep of getLiveCreeps(name)) {
 				creep.room.visual.circle(creep.pos.x, creep.pos.y, { stroke: 'red', radius: 1, fill: 'transparent' });
-				let haulerAssignment = haulerAssignments[name] || {};
+				let sequenceContext = haulerAssignments[name] || {};
+				sequenceContext.creep = creep;
 				let room = Game.rooms[creep.pos.roomName];
 				let source = findRoomSource(room);
 				source = source instanceof Source ? undefined : source;
-				haulerAssignment.pickup = isPickupTarget(source) ? source : undefined;
-				haulerAssignment.withdraw = isWithdrawTarget(source) ? source : undefined;
+				sequenceContext.pickup = isPickupTarget(source) ? source : undefined;
+				sequenceContext.withdraw = isWithdrawTarget(source) ? source : undefined;
 
-				A.runSequence(webHaulCreepActions, Game.creeps[name], haulerAssignment);
+				A.runSequence(webHaulCreepActions, creep, sequenceContext);
 			}
 		}
 
+		// maintain creep fleet
 		everyN(20, () => {
-			for (let name of ['energyWeb1'/*, 'energyWeb2'*/]) {
-				requestCreepSpawn(_.find(Game.rooms)!, name, webHaulerSpawnCallback);
+			for (let room of Object.values(Game.rooms).filter(room => room.controller?.my)) {
+				let name = `${room.name}.hauler`;
+				if (getActiveCreepTtl(name) > 50 || isActiveCreepSpawning(name)) {
+					continue;
+				}
+				let queue = SpawnQueue.getSpawnQueue();
+
+				console.log('getActiveCreepTtl(name)', getActiveCreepTtl(name), 'queue.has(name)', queue.has(name));
+
+				queue.has(name) || queue.push({
+					name: name,
+					body: [CARRY, CARRY, MOVE, MOVE],
+					priority: SpawnQueuePriority.BUILDER,
+					time: Game.time + getActiveCreepTtl(name),
+					pos: new RoomPosition(25, 25, room.name),
+				});
 			}
 		});
 	}
@@ -133,7 +140,5 @@ MemInit(Memory, 'energyWeb', {
 	put: {},
 	take: {},
 });
-MemInit(Memory.energyWeb, 'put', {});
-MemInit(Memory.energyWeb, 'take', {});
 
 export let energyWeb = new EnergyWeb();

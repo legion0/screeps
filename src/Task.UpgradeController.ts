@@ -17,7 +17,7 @@ const upgradeControllerActions = [
 	new A.UpgradeController<SequenceContext>().setArgs(c => c.task.controller).setHighway(),
 	new A.Pickup<SequenceContext>().setArgs(c => findNearbyEnergy(c.creep.pos)),
 	new A.Withdraw<SequenceContext>().setArgs(c => c.task.withdrawTarget).setHighway(),
-	new A.Harvest<SequenceContext>().setArgs(c => c.task.harvestTarget).setHighway().setPersist(),
+	new A.Harvest<SequenceContext>().setArgs(c => c.task.harvestTarget).setPersist(),
 ];
 
 export class TaskUpgradeController extends Task {

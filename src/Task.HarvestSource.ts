@@ -65,15 +65,15 @@ export class TaskHarvestSource extends Task {
 				requestCreepSpawn(this.source.room, name, harvesterSpawnCallback);
 			});
 		}
-		name = `${this.id}.haul`;
-		creep = Game.creeps[name];
-		if (creep) {
-			A.runSequence(haulCreepActions, creep, { creep: creep, task: this });
-		} else {
-			everyN(20, () => {
-				requestCreepSpawn(this.source.room, name, haulerSpawnCallback);
-			});
-		}
+		// name = `${this.id}.haul`;
+		// creep = Game.creeps[name];
+		// if (creep) {
+		// 	A.runSequence(haulCreepActions, creep, { creep: creep, task: this });
+		// } else {
+		// 	everyN(20, () => {
+		// 		requestCreepSpawn(this.source.room, name, haulerSpawnCallback);
+		// 	});
+		// }
 	}
 
 	static create(source: Source) {

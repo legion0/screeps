@@ -1,19 +1,17 @@
+import { energyWeb } from './EnergyWeb';
 import { EventEnum, events } from './Events';
-import { log, getFullStack } from './Logger';
+import { log } from './Logger';
 import { MemInit } from "./Memory";
 import { detectRespawn } from './reset';
-import { serverId, checkServerCache } from './ServerCache';
+import { checkServerCache, serverId } from './ServerCache';
 import { Task } from './Task';
 import { TaskBootRoom } from './Task.BootRoom';
 import { TaskUpgradeController } from './Task.UpgradeController';
-import { nextExtensionPos } from './Planning';
-import { posKey } from './RoomPosition';
-import { ALL } from 'dns';
-import { energyWeb } from './EnergyWeb';
+import { SpawnQueue } from './SpawnQueue';
 
 declare global {
 	interface Memory {
-		discoveredRooms: string[];
+		discoveredRooms: { [key: string]: null };
 		hardReset: boolean;
 		cpu_ema: number;
 		cpu_ema_window_size: number;
@@ -58,6 +56,7 @@ function main_loop() {
 	}
 	Task.runAll();
 	energyWeb.run();
+	SpawnQueue.getSpawnQueue().run();
 }
 
 module.exports.loop = function () {

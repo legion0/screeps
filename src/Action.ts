@@ -13,7 +13,7 @@ declare global {
 		lastAction?: ActionType;
 		highway?: {
 			path: RoomPositionMemory[];
-			from: RoomPositionMemory;
+			from?: RoomPositionMemory;
 		};
 		lastPos?: {
 			pos: RoomPositionMemory;
@@ -54,7 +54,7 @@ export enum ActionType {
 
 // TODO: move to tick end calculation, this code is not executed if creep if fatigued
 function creepIsStuck(creep: Creep) {
-	let lastPos = MemInit(creep.memory, 'lastPos', {});
+	let lastPos = MemInit(creep.memory, 'lastPos', { pos: toMemoryRoom(creep.pos), since: Game.time });
 	if (lastPos.pos != toMemoryRoom(creep.pos)) {
 		lastPos.pos = toMemoryRoom(creep.pos);
 		lastPos.since = Game.time;
