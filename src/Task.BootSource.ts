@@ -70,7 +70,7 @@ export class TaskBootSource extends Task {
 
 	static create(source: Source) {
 		let rv = Task.createBase(TaskBootSource, source.id as unknown as Id<Task>);
-		if (rv != OK) {
+		if (rv !== OK) {
 			return rv;
 		}
 		return new TaskBootSource(source.id as unknown as Id<TaskBootSource>);
@@ -87,7 +87,7 @@ export class TaskBootSource extends Task {
 
 		let containerPos = getFromCacheSpec(containerPositionCache, `${this.id}.containerPos`, this.source.pos);
 		let rv = containerPos ? containerPos.createConstructionSite(STRUCTURE_CONTAINER) : ERR_NOT_FOUND;
-		if (rv != OK) {
+		if (rv !== OK) {
 			log.e(`Failed to create STRUCTURE_CONTAINER at [${containerPos}] with error [${errorCodeToString(rv)}]`);
 		}
 	}

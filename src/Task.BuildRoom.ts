@@ -50,7 +50,7 @@ export class TaskBuildRoom extends Task {
 		everyN(50, () => {
 			for (let pos of nextExtensionPos(this.room)) {
 				let rv = requestConstruction(pos, STRUCTURE_EXTENSION, BuildQueuePriority.EXTENSION);
-				if (rv != OK && rv != ERR_NAME_EXISTS) {
+				if (rv !== OK && rv != ERR_NAME_EXISTS) {
 					log.e(`Failed to request STRUCTURE_EXTENSION at [${pos}]`);
 				}
 			}
@@ -84,7 +84,7 @@ export class TaskBuildRoom extends Task {
 
 	static create(roomName: string) {
 		let rv = Task.createBase(TaskBuildRoom, roomName as Id<Task>);
-		if (rv != OK) {
+		if (rv !== OK) {
 			return rv;
 		}
 		return new TaskBuildRoom(roomName as Id<TaskBuildRoom>);

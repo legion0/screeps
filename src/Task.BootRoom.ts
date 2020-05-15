@@ -40,7 +40,7 @@ export class TaskBootRoom extends Task {
 
 	static create(roomName: string) {
 		let rv = Task.createBase(TaskBootRoom, roomName as Id<Task>);
-		if (rv != OK) {
+		if (rv !== OK) {
 			return rv;
 		}
 		return new TaskBootRoom(roomName as Id<TaskBootRoom>);

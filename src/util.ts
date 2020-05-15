@@ -24,4 +24,3 @@ export function notUndefined<T> (val: T | undefined): val is T {
 	return val !== undefined;
 }
 /* eslint-enable jsdoc/valid-types */
- 

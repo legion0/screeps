@@ -1,12 +1,11 @@
-import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE } from "./constants";
-import { Highway } from "./Highway";
-import { log } from "./Logger";
-import { MemInit } from "./Memory";
-import { getRecyclePos, isRoomSync, RoomSync } from "./Room";
-import { fromMemoryWorld, lookNear, RoomPositionMemory, toMemoryRoom, toMemoryWorld } from "./RoomPosition";
-import { hasFreeCapacity, hasUsedCapacity, getFreeCapacity } from "./Store";
-import { isDamaged, isSpawn } from "./Structure";
-import { memoryCache } from "./MemoryCache";
+import {BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE} from './constants';
+import {fromMemoryWorld, lookNear, RoomPositionMemory, toMemoryRoom, toMemoryWorld} from './RoomPosition';
+import {getFreeCapacity, hasFreeCapacity, hasUsedCapacity} from './Store';
+import {isDamaged, isSpawn} from './Structure';
+import {getRecyclePos} from './Room';
+import {Highway} from './Highway';
+import {log} from './Logger';
+import {memInit} from './Memory';
 
 declare global {
 	interface CreepMemory {
@@ -47,72 +46,86 @@ export enum ActionType {
 	DROP,
 }
 
-// let ORDER1 = [ActionType.HARVEST, ActionType.ATTACK, ActionType.BUILD, ActionType.REPAIR, ActionType.DISMANTLE, ActionType.ATTACK_CONTROLLER, ActionType.RANGED_HEAL, ActionType.HEAL];
-// let ORDER2 = [ActionType.RANGED_ATTACK, ActionType.RANGED_MASS_ATTACK, ActionType.BUILD, ActionType.RANGED_HEAL];
-// // Only when not enough energy to do everything:
-// let ORDER3 = [ActionType.UPGRADE_CONTROLLER, ActionType.BUILD, ActionType.REPAIR, ActionType.WITHDRAW, ActionType.TRANSFER, ActionType.DROP];
+
+const ORDER1 = [ActionType.HARVEST, ActionType.ATTACK, ActionType.BUILD, ActionType.REPAIR, ActionType.DISMANTLE, ActionType.ATTACK_CONTROLLER, ActionType.RANGED_HEAL, ActionType.HEAL];
+const ORDER2 = [ActionType.RANGED_ATTACK, ActionType.RANGED_MASS_ATTACK, ActionType.BUILD, ActionType.RANGED_HEAL];
+// Only when not enough energy to do everything:
+const ORDER3 = [ActionType.UPGRADE_CONTROLLER, ActionType.BUILD, ActionType.REPAIR, ActionType.WITHDRAW, ActionType.TRANSFER, ActionType.DROP];
+
+
+const CREEP_STUCK_INTERVAL = 3;
 
 // TODO: move to tick end calculation, this code is not executed if creep if fatigued
-function creepIsStuck(creep: Creep) {
-	let lastPos = MemInit(creep.memory, 'lastPos', { pos: toMemoryRoom(creep.pos), since: Game.time });
-	if (lastPos.pos != toMemoryRoom(creep.pos)) {
+function creepIsStuck (creep: Creep) {
+	const lastPos = memInit(creep.memory, 'lastPos', {
+		'pos': toMemoryRoom(creep.pos),
+		'since': Game.time,
+	});
+	if (lastPos.pos !== toMemoryRoom(creep.pos)) {
 		lastPos.pos = toMemoryRoom(creep.pos);
 		lastPos.since = Game.time;
 		return false;
 	}
-	return lastPos.since + 3 < Game.time;
+	return lastPos.since + CREEP_STUCK_INTERVAL < Game.time;
 }
 
-function getFrom(creep: Creep, to: RoomPosition) {
+const HIGHWAY_RANGE = 3;
+
+function getFrom (creep: Creep, to: RoomPosition): RoomPosition | undefined {
 	if (!creep.memory.highway) {
 		log.e(`getFrom requires highway`);
-		return null;
+		return undefined;
 	}
-	if (creep.pos.getRangeTo(to) <= 4) {
+	if (creep.pos.getRangeTo(to) <= HIGHWAY_RANGE) {
 		creep.memory.highway.from = toMemoryWorld(to);
-		return null;
+		return undefined;
 	} else if (!creep.memory.highway.from) {
-		return null;
+		return undefined;
 	}
 	let from = fromMemoryWorld(creep.memory.highway.from);
 	if (from.isEqualTo(to)) {
-		// turned around (e.g. out of energy building highway on path to target)
-		let from = Highway.findHighway(creep.pos, to);
+		// Turned around (e.g. out of energy building highway on path to target)
+		from = Highway.findHighway(creep.pos, to);
 		if (from) {
 			creep.memory.highway.from = toMemoryWorld(from);
 			return from;
 		}
-		// if (creep.pos.getRangeTo(to) > 4) {
-		// 	log.e(`Creep [${creep}] is at [${creep.pos}] and from [${from}] is equal to destination!`);
-		// }
-		return null;
+		return undefined;
 	}
 	return from;
 }
 
-function buildHighway(creep: Creep, from: RoomPosition, to: RoomPosition) {
+function buildHighway (creep: Creep, from: RoomPosition, to: RoomPosition) {
 	if (Memory.highwayDebugVisuals) {
-		creep.room.visual.line(from.x, from.y, to.x, to.y, { color: 'blue' });
-		creep.room.visual.line(from.x, from.y, creep.pos.x, creep.pos.y, { color: 'blue' });
-		creep.room.visual.line(creep.pos.x, creep.pos.y, to.x, to.y, { color: 'blue' });
+		creep.room.visual.line(from.x, from.y, to.x, to.y, {
+			'color': 'blue',
+		});
+		creep.room.visual.line(from.x, from.y, creep.pos.x, creep.pos.y, {
+			'color': 'blue',
+		});
+		creep.room.visual.line(creep.pos.x, creep.pos.y, to.x, to.y, {
+			'color': 'blue',
+		});
 	}
-	let highway = new Highway(from, to).build();
+	const highway = new Highway(
+		from,
+		to
+	).build();
+
 	if (highway instanceof Highway) {
 		highway.buildRoad();
+
 		return highway;
-	} else {
-		log.e(`[${creep.name}] failed to build highway [${from}]->[${to}] with error [${errorCodeToString(highway)}]`);
 	}
+	log.e(`[${creep.name}] failed to build highway [${from}]->[${to}] with error [${errorCodeToString(highway)}]`);
+
+
 	return null;
 }
 
-function getNextHighwayWaypoint(creep: Creep, to: RoomPosition): RoomPosition | ScreepsReturnCode {
-	MemInit(creep.memory, 'highway', { path: [] });
-
+function getNextHighwayWaypoint (creep: Creep, to: RoomPosition): RoomPosition | ScreepsReturnCode {
+	memInit(creep.memory, 'highway', {'path': []});
 	let fakeCurrent = creep.pos;
-
-	// let highway = buildHighway(creep, from, to);
-
 	let path = creep.memory.highway!.path.map(fromMemoryWorld);
 	if (path.length && path[0].isEqualTo(creep.pos)) {
 		path.shift();
@@ -123,11 +136,10 @@ function getNextHighwayWaypoint(creep: Creep, to: RoomPosition): RoomPosition | 
 		fakeCurrent = path.shift()!;
 		creep.memory.highway!.path.shift();
 	}
-
 	if (!path.length) {
-		let from = getFrom(creep, to);
+		const from = getFrom(creep, to);
 		if (from && from.getRangeTo(to) >= 10) {
-			let highway = buildHighway(creep, from, to);
+			const highway = buildHighway(creep, from, to);
 			if (highway) {
 				path = highway.nextSegment(fakeCurrent, to);
 				creep.memory.highway!.path = path.map(toMemoryWorld);
@@ -136,28 +148,26 @@ function getNextHighwayWaypoint(creep: Creep, to: RoomPosition): RoomPosition | 
 			return OK;
 		}
 	}
-
 	if (!path.length) {
 		return creep.pos.getRangeTo(to) < 4 ? ERR_NO_PATH : OK;
 	}
-
 	if (Memory.highwayDebugVisuals) {
-		creep.room.visual.poly(path, { stroke: 'red' });
-		creep.room.visual.circle(path[0].x, path[0].y, { fill: 'red' });
+		creep.room.visual.poly(path, {'stroke': 'red'});
+		creep.room.visual.circle(path[0].x, path[0].y, {'fill': 'red'});
 	}
 	return path[0];
 }
 
-export function moveTo(creep: Creep, to: RoomPosition, highway: boolean, range: number) {
+export function moveTo (creep: Creep, to: RoomPosition, highway: boolean, range: number) {
 	if (creep.fatigue) {
 		return OK;
 	}
 	let rv: ScreepsReturnCode = OK;
 	if (highway) {
-		let nextHighwayWaypoint = getNextHighwayWaypoint(creep, to);
+		const nextHighwayWaypoint = getNextHighwayWaypoint(creep, to);
 		if (nextHighwayWaypoint instanceof RoomPosition) {
 			to = nextHighwayWaypoint;
-		} else if (nextHighwayWaypoint != OK) {
+		} else if (nextHighwayWaypoint !== OK) {
 			log.e(`Creep [${creep}] at [${creep.pos}] failed to walk highway from [${creep.memory.highway?.from}] to [${to}] with error [${errorCodeToString(nextHighwayWaypoint)}]`);
 		}
 	}
@@ -166,22 +176,30 @@ export function moveTo(creep: Creep, to: RoomPosition, highway: boolean, range: 
 	} else {
 		rv = creep.moveTo(to);
 	}
-	if (rv != OK) {
+	if (rv !== OK) {
 		log.e(`[${creep.name}] failed to moveTo [${to}] [${creep.pos}]->[${to}] with error [${errorCodeToString(rv)}]`);
 	}
+
 	return rv;
 }
 
-export function recycle(creep: Creep) {
-	let recyclePos = getRecyclePos(creep.room);
+export function recycle (creep: Creep) {
+	const recyclePos = getRecyclePos(creep.room);
+
 	if (!recyclePos) {
 		return;
 	}
 	if (creep.pos.isNearTo(recyclePos)) {
-		let spawn = lookNear(recyclePos, LOOK_STRUCTURES, isSpawn)[0] as StructureSpawn;
+		const spawn = lookNear(
+			recyclePos,
+			LOOK_STRUCTURES,
+			isSpawn
+		)[0] as StructureSpawn;
+
 		if (spawn) {
-			let rv = spawn.recycleCreep(creep);
-			if (rv != OK) {
+			const rv = spawn.recycleCreep(creep);
+
+			if (rv !== OK) {
 				log.e(`[${creep.name}] failed to be recycled by [${spawn}] at [${creep.pos}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
@@ -194,11 +212,14 @@ export function recycle(creep: Creep) {
 
 abstract class Action<ContextType> {
 	readonly actionType: ActionType;
-	/*readonly*/ persist: boolean = false;
-	/*readonly*/ highway: boolean = false;
-	/*readonly*/ callback: (context: ContextType) => any = _.identity;
 
-	constructor(actionType: ActionType) {
+	/* Readonly*/ persist: boolean = false;
+
+	/* Readonly*/ highway: boolean = false;
+
+	/* Readonly*/ callback: (context: ContextType) => any = _.identity;
+
+	constructor (actionType: ActionType) {
 		this.actionType = actionType;
 	}
 
@@ -206,31 +227,42 @@ abstract class Action<ContextType> {
 
 	abstract do(creep: Creep, target: any): ScreepsReturnCode;
 
-	// set a callback to execute on context when running sequence.
-	// If multiple targets are involved this lets you pick the correct one for
-	// the relevant action.
-	setArgs(callback: (context: ContextType) => any) {
+	/*
+	 * Set a callback to execute on context when running sequence.
+	 * If multiple targets are involved this lets you pick the correct one for
+	 * the relevant action.
+	 */
+	setArgs (callback: (context: ContextType) => any) {
 		this.callback = callback;
+
 		return this;
 	}
 
-	getArgs(context: ContextType) {
+	getArgs (context: ContextType) {
 		return this.callback(context);
 	}
 
-	setHighway() {
+	setHighway () {
 		this.highway = true;
+
 		return this;
 	}
 
-	setPersist() {
+	setPersist () {
 		this.persist = true;
+
 		return this;
 	}
 }
 
-export type TransferTarget = StructureSpawn | StructureExtension | StructureContainer | StructureTower | StructureStorage;
-export function isTransferTarget(o: any): o is TransferTarget {
+export type TransferTarget = StructureSpawn |
+	StructureExtension |
+	StructureContainer |
+	StructureTower |
+	StructureStorage;
+
+
+export function isTransferTarget (o: any): o is TransferTarget {
 	return o instanceof StructureSpawn ||
 		o instanceof StructureExtension ||
 		o instanceof StructureContainer ||
@@ -239,143 +271,197 @@ export function isTransferTarget(o: any): o is TransferTarget {
 }
 
 export class Transfer<ContextType> extends Action<ContextType> {
-	constructor() {
+	constructor () {
 		super(ActionType.TRANSFER);
 	}
 
-	test(creep: Creep, target: any) {
+	test (creep: Creep, target: any) {
 		return isTransferTarget(target) &&
 			hasFreeCapacity(target) && hasUsedCapacity(creep);
 	}
 
-	do(creep: Creep, target: TransferTarget) {
+	do (creep: Creep, target: TransferTarget) {
 		let rv: ScreepsReturnCode = OK;
+
 		if (creep.pos.isNearTo(target)) {
-			rv = creep.transfer(target, RESOURCE_ENERGY, Math.min(creep.store.energy, getFreeCapacity(target)));
-			if (rv != OK) {
+			rv = creep.transfer(
+				target,
+				RESOURCE_ENERGY,
+				Math.min(
+					creep.store.energy,
+					getFreeCapacity(target)
+				)
+			);
+			if (rv !== OK) {
 				log.e(`[${creep.name}] failed to transfer to [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(creep, target.pos, this.highway, 1);
+			rv = moveTo(
+				creep,
+				target.pos,
+				this.highway,
+				1
+			);
 		}
+
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => TransferTarget | undefined) {
+	setArgs (callback: (context: ContextType) => TransferTarget | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
 export class Build<ContextType> extends Action<ContextType> {
-	constructor() {
+	constructor () {
 		super(ActionType.BUILD);
 	}
 
-	test(creep: Creep, target: any) {
+	test (creep: Creep, target: any) {
 		return target instanceof ConstructionSite && hasUsedCapacity(creep);
 	}
 
-	do(creep: Creep, target: ConstructionSite) {
+	do (creep: Creep, target: ConstructionSite) {
 		let rv: ScreepsReturnCode = OK;
-		if (creep.pos.inRangeTo(target.pos, BUILD_RANGE)) {
+
+		if (creep.pos.inRangeTo(
+			target.pos,
+			BUILD_RANGE
+		)) {
 			rv = creep.build(target);
-			if (rv != OK) {
+			if (rv !== OK) {
 				log.e(`[${creep.name}] failed to build [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(creep, target.pos, this.highway, BUILD_RANGE);
+			rv = moveTo(
+				creep,
+				target.pos,
+				this.highway,
+				BUILD_RANGE
+			);
 		}
+
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => ConstructionSite | undefined) {
+	setArgs (callback: (context: ContextType) => ConstructionSite | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
 export class Repair<ContextType> extends Action<ContextType> {
-	constructor() {
+	constructor () {
 		super(ActionType.REPAIR);
 	}
 
-	test(creep: Creep, target: any) {
-		return (target instanceof Structure && isDamaged(target)) && hasUsedCapacity(creep);
+	test (creep: Creep, target: any) {
+		return target instanceof Structure && isDamaged(target) && hasUsedCapacity(creep);
 	}
 
-	do(creep: Creep, target: Structure) {
+	do (creep: Creep, target: Structure) {
 		let rv: ScreepsReturnCode = OK;
-		if (creep.pos.inRangeTo(target.pos, REPAIR_RANGE)) {
+
+		if (creep.pos.inRangeTo(
+			target.pos,
+			REPAIR_RANGE
+		)) {
 			rv = creep.repair(target);
-			if (rv != OK) {
+			if (rv !== OK) {
 				log.e(`[${creep.name}] failed to repair [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(creep, target.pos, this.highway, REPAIR_RANGE);
+			rv = moveTo(
+				creep,
+				target.pos,
+				this.highway,
+				REPAIR_RANGE
+			);
 		}
+
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => Structure | undefined) {
+	setArgs (callback: (context: ContextType) => Structure | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
 export type PickupTarget = Resource;
-export function isPickupTarget(o: any): o is PickupTarget {
+
+export function isPickupTarget (o: any): o is PickupTarget {
 	return o instanceof Resource;
 }
 
 export class Pickup<ContextType> extends Action<ContextType> {
-	constructor() {
+	constructor () {
 		super(ActionType.PICKUP);
 	}
 
-	test(creep: Creep, target: any) {
+	test (creep: Creep, target: any) {
 		return isPickupTarget(target) && hasFreeCapacity(creep);
 	}
 
-	do(creep: Creep, target: PickupTarget) {
-		let rv = creep.pickup(target);
-		if (rv != OK) {
+	do (creep: Creep, target: PickupTarget) {
+		const rv = creep.pickup(target);
+
+		if (rv !== OK) {
 			log.e(`[${creep.name}] failed to pickup [${target}] with error [${errorCodeToString(rv)}]`);
 		}
+
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => PickupTarget | undefined) {
+	setArgs (callback: (context: ContextType) => PickupTarget | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
 export class UpgradeController<ContextType> extends Action<ContextType> {
-	constructor() {
+	constructor () {
 		super(ActionType.UPGRADE_CONTROLLER);
 	}
 
-	test(creep: Creep, target: any) {
+	test (creep: Creep, target: any) {
 		return target instanceof StructureController && hasUsedCapacity(creep);
 	}
 
-	do(creep: Creep, target: StructureController) {
+	do (creep: Creep, target: StructureController) {
 		let rv: ScreepsReturnCode = OK;
-		if (creep.pos.inRangeTo(target.pos, UPGRADE_RANGE)) {
+
+		if (creep.pos.inRangeTo(
+			target.pos,
+			UPGRADE_RANGE
+		)) {
 			rv = creep.upgradeController(target);
-			if (rv != OK) {
+			if (rv !== OK) {
 				log.e(`[${creep.name}] failed to upgradeController [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(creep, target.pos, this.highway, UPGRADE_RANGE);
+			rv = moveTo(
+				creep,
+				target.pos,
+				this.highway,
+				UPGRADE_RANGE
+			);
 		}
+
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => StructureController | undefined) {
+	setArgs (callback: (context: ContextType) => StructureController | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
-export type WithdrawTarget = Tombstone | Ruin | StructureContainer | StructureSpawn | StructureExtension | StructureTower | StructureStorage;
-export function isWithdrawTarget(o: any): o is WithdrawTarget {
+export type WithdrawTarget = Tombstone |
+	Ruin |
+	StructureContainer |
+	StructureSpawn |
+	StructureExtension |
+	StructureTower |
+	StructureStorage;
+
+export function isWithdrawTarget (o: any): o is WithdrawTarget {
 	return o instanceof Tombstone ||
 		o instanceof Ruin ||
 		o instanceof StructureContainer ||
@@ -386,75 +472,88 @@ export function isWithdrawTarget(o: any): o is WithdrawTarget {
 }
 
 export class Withdraw<ContextType> extends Action<ContextType> {
-	constructor() {
+	constructor () {
 		super(ActionType.WITHDRAW);
 	}
 
-	test(creep: Creep, target: any): boolean {
+	test (creep: Creep, target: any): boolean {
 		return isWithdrawTarget(target) && hasFreeCapacity(creep) && hasUsedCapacity(target);
 	}
 
-	do(creep: Creep, target: WithdrawTarget): ScreepsReturnCode {
+	do (creep: Creep, target: WithdrawTarget): ScreepsReturnCode {
 		let rv: ScreepsReturnCode = OK;
+
 		if (creep.pos.isNearTo(target.pos)) {
-			rv = creep.withdraw(target, RESOURCE_ENERGY);
-			if (rv != OK) {
+			rv = creep.withdraw(
+				target,
+				RESOURCE_ENERGY
+			);
+			if (rv !== OK) {
 				log.e(`[${creep.name}] failed to withdraw from [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(creep, target.pos, this.highway, 1);
+			rv = moveTo(
+				creep,
+				target.pos,
+				this.highway,
+				1
+			);
 		}
+
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => WithdrawTarget | undefined) {
+	setArgs (callback: (context: ContextType) => WithdrawTarget | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
 export class Harvest<ContextType> extends Action<ContextType> {
-	constructor() {
+	constructor () {
 		super(ActionType.HARVEST);
 	}
 
-	test(creep: Creep, target: any) {
+	test (creep: Creep, target: any) {
 		if (target instanceof Mineral || target instanceof Deposit) {
 			throw new Error('Harvest of Mineral/Deposit not implemented.');
 		}
-		return (target instanceof Source/* || target instanceof Mineral || target instanceof Deposit*/) && hasFreeCapacity(creep) && hasUsedCapacity(target);
+		// || target instanceof Mineral || target instanceof Deposit
+		return target instanceof Source && hasFreeCapacity(creep) && hasUsedCapacity(target);
 	}
 
-	do(creep: Creep, target: Source | Mineral | Deposit): ScreepsReturnCode {
+	do (creep: Creep, target: Source | Mineral | Deposit): ScreepsReturnCode {
 		let rv: ScreepsReturnCode = OK;
+
 		if (creep.pos.isNearTo(target.pos)) {
 			rv = creep.harvest(target);
-			if (rv != OK) {
+			if (rv !== OK) {
 				log.e(`[${creep.name}] failed to harvest from [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
 			rv = moveTo(creep, target.pos, this.highway, 1);
 		}
+
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => Source | Mineral | Deposit | undefined) {
+	setArgs (callback: (context: ContextType) => Source | Mineral | Deposit | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
-export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any) {
+export function runSequence<T> (sequence: Action<T>[], creep: Creep, context: any) {
 	if (creep.spawning) {
 		return;
 	}
-	let chosenAction: Action<T> | null = null;
+	let chosenAction: Action<T> | undefined;
 	let chosenTarget: any = null;
-	// first try to find the persistent action we started last round and see if its still applicable
+	// First try to find the persistent action we started last round and see if its still applicable
 	if (creep.memory.lastAction) {
-		const lastAction = creep.memory.lastAction;
+		const {lastAction} = creep.memory;
 		delete creep.memory.lastAction;
-		for (let action of sequence) {
-			if (action.persist && action.actionType == lastAction) {
-				let target = action.getArgs(context);
+		for (const action of sequence) {
+			if (action.persist && action.actionType === lastAction) {
+				const target = action.getArgs(context);
 				if (action.test(creep, target)) {
 					chosenAction = action;
 					chosenTarget = target;
@@ -463,10 +562,10 @@ export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any
 			}
 		}
 	}
-	// next try regular actions
-	if (chosenAction == null) {
-		for (let action of sequence) {
-			let target = action.getArgs(context);
+	// Next try regular actions
+	if (chosenAction === undefined) {
+		for (const action of sequence) {
+			const target = action.getArgs(context);
 			if (action.test(creep, target)) {
 				chosenAction = action;
 				chosenTarget = target;
@@ -474,7 +573,7 @@ export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any
 			}
 		}
 	}
-	// run the action
+	// Run the action
 	if (chosenAction) {
 		chosenAction.do(creep, chosenTarget);
 		if (chosenAction.persist) {

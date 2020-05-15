@@ -62,7 +62,7 @@ export class TaskUpgradeController extends Task {
 
 	static create(roomName: string) {
 		let rv = Task.createBase(TaskUpgradeController, roomName as Id<Task>);
-		if (rv != OK) {
+		if (rv !== OK) {
 			return rv;
 		}
 		return new TaskUpgradeController(roomName as Id<TaskUpgradeController>);

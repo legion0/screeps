@@ -1,6 +1,6 @@
-import { CacheService, ObjectCacheService } from "./Cache";
-import { MemInit } from "./Memory";
-import { events, EventEnum } from "./Events";
+import {CacheService, ObjectCacheService} from './Cache';
+import {memInit} from './Memory';
+import {EventEnum, events} from './Events';
 
 export type MemoryCachable = string | number | string[] | number[];
 
@@ -13,23 +13,25 @@ declare global {
 class MemoryCache implements CacheService<MemoryCachable> {
 	private cache: ObjectCacheService<MemoryCachable>;
 
-	get(id: string): MemoryCachable | undefined {
+	get (id: string): MemoryCachable | undefined {
 		return this.cache.get(id);
 	}
-	set(id: string, value: MemoryCachable, ttl: number): void {
+
+	set (id: string, value: MemoryCachable, ttl: number): void {
 		return this.cache.set(id, value, ttl);
 	}
-	clear(id: string): void {
+
+	clear (id: string): void {
 		return this.cache.clear(id);
 	}
 
-	static updateStore() {
+	static updateStore () {
 		memoryCache.cache = new ObjectCacheService<MemoryCachable>(Memory.cache);
 	}
 }
 
-MemInit(Memory, 'cache', {});
+memInit(Memory, 'cache', {});
 
-export let memoryCache = new MemoryCache();
+export const memoryCache = new MemoryCache();
 
 events.listen(EventEnum.EVENT_TICK_START, MemoryCache.updateStore);
