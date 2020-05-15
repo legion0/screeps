@@ -1,16 +1,16 @@
-import {findMaxBy, findMinBy} from './Array';
-import {CacheEntrySpec, CacheService, getFromCacheSpec, tickCacheService} from './Cache';
-import {errorCodeToString} from './constants';
-import {EventEnum, events} from './Events';
-import {log} from './Logger';
-import {PriorityQueue} from './PriorityQueue';
-import {fromMemoryWorld, lookForStructureAt, posKey, posNear, RoomPositionMemory, toMemoryWorld} from './RoomPosition';
-import {filterStructureType, isConcreteStructure, isExtension, isSpawn, isSpawnOrExtension, isWalkableStructure} from './Structure';
-import {everyN} from './Tick';
-import {sortById} from './util';
-import {memInit} from './Memory';
-import {getUsedCapacity, hasFreeCapacity, hasUsedCapacity} from './Store';
-import {objectServerCache} from './ServerCache';
+import { findMaxBy, findMinBy } from './Array';
+import { CacheEntrySpec, CacheService, getFromCacheSpec, tickCacheService } from './Cache';
+import { errorCodeToString } from './constants';
+import { EventEnum, events } from './Events';
+import { log } from './Logger';
+import { memInit } from './Memory';
+import { PriorityQueue } from './PriorityQueue';
+import { fromMemoryWorld, lookForStructureAt, posKey, posNear, RoomPositionMemory, toMemoryWorld } from './RoomPosition';
+import { objectServerCache } from './ServerCache';
+import { getUsedCapacity, hasUsedCapacity } from './Store';
+import { filterStructureType, isExtension, isSpawn, isSpawnOrExtension, isWalkableStructure } from './Structure';
+import { everyN } from './Tick';
+import { sortById } from './util';
 
 declare global {
 	interface RoomMemory {
@@ -52,25 +52,21 @@ interface RoomMemory {
 	spawnQueue: PriorityQueue<SpawnQueueItem>;
 }
 
-function spawnQueueCompareFunc (lhs: SpawnQueueItem, rhs: SpawnQueueItem): boolean {
+function spawnQueueCompareFunc(lhs: SpawnQueueItem, rhs: SpawnQueueItem): boolean {
 	return lhs.priority < rhs.priority;
 }
 
-function spawnQueueKeyFunc (item: SpawnQueueItem): string {
+function spawnQueueKeyFunc(item: SpawnQueueItem): string {
 	return item.name;
 }
 
-/**
- * @param room
- * @param name
- * @param callback
- * @example
- */
-export function requestCreepSpawn (room: Room, name: string, callback: (room?: Room, name?: string) => SpawnQueueItem) {
+export function requestCreepSpawn(room: Room, name: string, callback: (room?: Room, name?: string) => SpawnQueueItem) {
 	if (Game.creeps[name]) {
 		return ERR_NAME_EXISTS;
 	}
-	const queue = PriorityQueue.loadOrCreate(Memory.rooms[room.name], 'spawnQueue', spawnQueueCompareFunc, spawnQueueKeyFunc);
+	const queue = PriorityQueue.loadOrCreate(
+		Memory.rooms[room.name], 'spawnQueue', spawnQueueCompareFunc, spawnQueueKeyFunc
+	);
 	if (queue.hasItem(name)) {
 		return ERR_NAME_EXISTS;
 	}
@@ -78,22 +74,20 @@ export function requestCreepSpawn (room: Room, name: string, callback: (room?: R
 	return OK;
 }
 
-function buildQueueCompareFunc (lhs: BuildQueueItem, rhs: BuildQueueItem): boolean {
+function buildQueueCompareFunc(lhs: BuildQueueItem, rhs: BuildQueueItem): boolean {
 	return lhs.priority < rhs.priority;
 }
 
-function buildQueueKeyFunc (item: BuildQueueItem): string {
+function buildQueueKeyFunc(item: BuildQueueItem): string {
 	return item.name;
 }
 
-/**
- * @param pos
- * @param structureType
- * @param priority
- * @example
- */
-export function requestConstruction (pos: RoomPosition, structureType: BuildableStructureConstant, priority: BuildQueuePriority) {
-	const queue = PriorityQueue.loadOrCreate(Memory.rooms[pos.roomName], 'buildQueue', buildQueueCompareFunc, buildQueueKeyFunc);
+export function requestConstruction(
+	pos: RoomPosition, structureType: BuildableStructureConstant, priority: BuildQueuePriority
+) {
+	const queue = PriorityQueue.loadOrCreate(
+		Memory.rooms[pos.roomName], 'buildQueue', buildQueueCompareFunc, buildQueueKeyFunc
+	);
 	const name = `${posKey(pos)}_${structureType}`;
 	if (queue.hasItem(name)) {
 		return ERR_NAME_EXISTS;
@@ -102,7 +96,7 @@ export function requestConstruction (pos: RoomPosition, structureType: Buildable
 		return ERR_FULL;
 	}
 	queue.push({
-		'pos': toMemoryWorld(pos),
+		pos: toMemoryWorld(pos),
 		structureType,
 		priority,
 		name,
@@ -112,16 +106,14 @@ export function requestConstruction (pos: RoomPosition, structureType: Buildable
 	return OK;
 }
 
-/**
- * @param roomName
- * @example
- */
-export function currentConstruction (roomName: string): ConstructionSite | null {
+export function currentConstruction(roomName: string): ConstructionSite | null {
 	let constructionSite = tickCacheService.get(`${roomName}.currentConstruction`) as ConstructionSite | null | undefined;
 	if (constructionSite !== undefined) {
 		return constructionSite;
 	}
-	const queue = PriorityQueue.loadOrCreate(Memory.rooms[roomName], 'buildQueue', buildQueueCompareFunc, buildQueueKeyFunc);
+	const queue = PriorityQueue.loadOrCreate(
+		Memory.rooms[roomName], 'buildQueue', buildQueueCompareFunc, buildQueueKeyFunc
+	);
 	if (queue.isEmpty()) {
 		tickCacheService.set(`${roomName}.currentConstruction`, null);
 		return null;
@@ -129,11 +121,13 @@ export function currentConstruction (roomName: string): ConstructionSite | null 
 	while (!queue.isEmpty()) {
 		const item = queue.peek();
 		const pos = fromMemoryWorld(item.pos);
-		constructionSite = pos.lookFor(LOOK_CONSTRUCTION_SITES).find((s) => s.my && s.structureType == item.structureType);
+		constructionSite = pos.lookFor(LOOK_CONSTRUCTION_SITES)
+			.find((s) => s.my && s.structureType === item.structureType);
 		if (constructionSite) {
 			break;
 		}
-		const finishedConstruction = _.find(pos.lookFor(LOOK_STRUCTURES), (s) => s.structureType == item.structureType);
+		const finishedConstruction = _.find(pos.lookFor(LOOK_STRUCTURES),
+			(s) => s.structureType === item.structureType);
 		if (!finishedConstruction) {
 			const rv = pos.createConstructionSite(item.structureType);
 			if (rv !== OK) {
@@ -141,8 +135,10 @@ export function currentConstruction (roomName: string): ConstructionSite | null 
 			}
 
 			/*
-			 * TODO: work out better planning to have the construction site placed before the previous one is fully done.
-			 * e.g. save the current out of the queue and always place the queue peek on so we have the current and next (still better then all).
+			 * TODO: work out better planning to have the construction site placed
+			 * before the previous one is fully done.
+			 * e.g. save the current out of the queue and always place the queue
+			 * peek on so we have the current and next (still better then all).
 			 */
 			constructionSite = null;
 			break;
@@ -156,11 +152,7 @@ export function currentConstruction (roomName: string): ConstructionSite | null 
 	return constructionSite;
 }
 
-/**
- * @param roomName
- * @example
- */
-export function constructionQueueSize (roomName: string): number {
+export function constructionQueueSize(roomName: string): number {
 	return memInit(Memory.rooms[roomName], 'constructionQueueSize', 0);
 }
 
@@ -177,101 +169,62 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 			const rv = spawns.pop()!.spawnCreep(request.body, request.name, request.opts);
 			if (rv !== OK) {
 				log.e(`Failed to spawn new creep with error [${errorCodeToString(rv)}]`);
-			} else {
-				// Room.energyAvailable -= request.cost;
 			}
 		}
 	}
 });
 
-/**
- * @param room
- * @example
- */
-export function findSources (room: Room): Source[] {
+export function findSources(room: Room): Source[] {
 	return sortById(room.find(FIND_SOURCES));
 }
 
-/**
- * @param room
- * @example
- */
-export function findMySpawns (room: Room): StructureSpawn[] {
+export function findMySpawns(room: Room): StructureSpawn[] {
 	return sortById(room.find(FIND_MY_SPAWNS));
 }
 
-/**
- * @param room
- * @example
- */
-export function findMySpawnsOrExtensions (room: Room): (StructureSpawn | StructureExtension)[] {
+export function findMySpawnsOrExtensions(room: Room): (StructureSpawn | StructureExtension)[] {
 	return sortById(room.find(FIND_MY_STRUCTURES).filter(isSpawnOrExtension));
 }
 
-/**
- * @param room
- * @example
- */
-export function findMyExtensions (room: Room): StructureExtension[] {
+export function findMyExtensions(room: Room): StructureExtension[] {
 	return sortById(room.find(FIND_MY_STRUCTURES).filter(isExtension)) as StructureExtension[];
 }
 
-/**
- * @param room
- * @example
- */
-export function findMyConstructionSites (room: Room): ConstructionSite[] {
+export function findMyConstructionSites(room: Room): ConstructionSite[] {
 	return sortById(room.find(FIND_MY_CONSTRUCTION_SITES));
 }
 
-/**
- * @param room
- * @example
- */
-export function findMyStructures (room: Room): AnyOwnedStructure[] {
+export function findMyStructures(room: Room): AnyOwnedStructure[] {
 	return sortById(room.find(FIND_MY_STRUCTURES));
 }
 
-/**
- * @param room
- * @example
- */
-export function findStructures (room: Room): AnyStructure[] {
+export function findStructures(room: Room): AnyStructure[] {
 	return sortById(room.find(FIND_STRUCTURES));
 }
 
-/**
- * @param room
- * @param type
- * @example
- */
-export function findStructuresByType<T extends StructureConstant> (room: Room, type: T): ConcreteStructure<T>[] {
+export function findStructuresByType<T extends StructureConstant>(room: Room, type: T): ConcreteStructure<T>[] {
 	return room ? filterStructureType(room.find(FIND_STRUCTURES), type) : [];
 }
 
 export type RoomSource = Resource<RESOURCE_ENERGY> | Tombstone | StructureContainer | Source;
 
-/**
- * @param s
- * @example
- */
-export function isRoomSource (s: any): s is RoomSource {
+export function isRoomSource(s: any): s is RoomSource {
 	return s instanceof StructureContainer ||
 		s instanceof Source ||
-		s instanceof Resource && s.resourceType == RESOURCE_ENERGY ||
+		s instanceof Resource && s.resourceType === RESOURCE_ENERGY ||
 		s instanceof Tombstone && s.store.energy > 0;
 }
 
 const findRoomSourceCache: CacheEntrySpec<RoomSource, Room> = {
-	'cache': objectServerCache as CacheService<RoomSource | null>,
-	'ttl': 50,
-	'callback': (room: Room): RoomSource | null => {
+	cache: objectServerCache as CacheService<RoomSource | null>,
+	ttl: 50,
+	callback: (room: Room): RoomSource | null => {
 		const structures = findStructures(room);
 
 		let roomSource: RoomSource | null = null;
-		const toombStone = getRecyclePos(room)?.lookFor(LOOK_TOMBSTONES).find((t) => t.store.energy);
-		if (toombStone) {
-			roomSource = toombStone;
+		const tombStone = getRecyclePos(room)?.lookFor(LOOK_TOMBSTONES).find((t) => t.store.energy);
+		if (tombStone) {
+			roomSource = tombStone;
 		}
 
 		if (!roomSource) {
@@ -298,32 +251,18 @@ const findRoomSourceCache: CacheEntrySpec<RoomSource, Room> = {
 
 		return roomSource;
 	},
-	'test': (roomSource: RoomSource): boolean => hasUsedCapacity(roomSource),
+	test: (roomSource: RoomSource): boolean => hasUsedCapacity(roomSource),
 };
 
-/**
- * @param room
- * @example
- */
-export function findRoomSource (room: Room): RoomSource | undefined {
+export function findRoomSource(room: Room): RoomSource | undefined {
 	return getFromCacheSpec(findRoomSourceCache, `${room.name}.roomSource`, room) ?? undefined;
 }
 
 export type RoomSync = StructureSpawn | StructureExtension | StructureContainer;
-
-/**
- * @param s
- * @example
- */
-export function isRoomSync (s: any): s is RoomSync {
+export function isRoomSync(s: any): s is RoomSync {
 	return s instanceof StructureSpawn || s instanceof StructureExtension || s instanceof StructureContainer;
 }
-
-/**
- * @param room
- * @example
- */
-export function findRoomSync (room: Room): RoomSync | undefined {
+export function findRoomSync(room: Room): RoomSync | undefined {
 	const structures = findStructures(room);
 	let sync: RoomSync | undefined;
 
@@ -337,26 +276,25 @@ export function findRoomSync (room: Room): RoomSync | undefined {
 		sync = ext;
 	}
 
-	const container = findMinBy(filterStructureType(structures, STRUCTURE_CONTAINER).filter((s) => s.store.getFreeCapacity(RESOURCE_ENERGY)), (s) => s.store.energy);
+	const container = findMinBy(
+		filterStructureType(structures, STRUCTURE_CONTAINER).filter((s) => s.store.getFreeCapacity(RESOURCE_ENERGY)),
+		(s) => s.store.energy
+	);
 	if (!sync && container) {
 		sync = container;
 	}
 	return sync;
 }
 
-/**
- * @param room
- * @example
- */
-export function getRecyclePos (room: Room): RoomPosition | undefined {
+export function getRecyclePos(room: Room): RoomPosition | undefined {
 	const spawns = findMySpawns(room);
 	const pos = posNear(spawns[0].pos, false).find(isGoodRecyclePos) ?? undefined;
 	if (pos) {
-		Game.rooms[pos.roomName].visual.circle(pos.x, pos.y, {'fill': 'blue'});
+		Game.rooms[pos.roomName].visual.circle(pos.x, pos.y, { fill: 'blue' });
 	}
 	return pos;
 }
 
-function isGoodRecyclePos (pos: RoomPosition): boolean {
+function isGoodRecyclePos(pos: RoomPosition): boolean {
 	return pos.lookFor(LOOK_STRUCTURES).every((s) => isWalkableStructure(s));
 }

@@ -1,14 +1,14 @@
 import * as A from './Action';
-import {isPickupTarget, isWithdrawTarget, PickupTarget, TransferTarget, WithdrawTarget} from './Action';
-import {createBodySpec, getBodyForRoom} from './BodySpec';
-import {getActiveCreepTtl, getLiveCreeps, isActiveCreepSpawning} from './Creep';
-import {EventEnum, events} from './Events';
-import {memInit} from './Memory';
-import {findMySpawnsOrExtensions, findRoomSource} from './Room';
-import {findNearbyEnergy} from './RoomPosition';
-import {SpawnQueue, SpawnQueuePriority, SpawnRequest} from './SpawnQueue';
-import {getFreeCapacity} from './Store';
-import {everyN} from './Tick';
+import { isPickupTarget, isWithdrawTarget, PickupTarget, TransferTarget, WithdrawTarget } from './Action';
+import { createBodySpec, getBodyForRoom } from './BodySpec';
+import { getActiveCreepTtl, getLiveCreeps, isActiveCreepSpawning } from './Creep';
+import { EventEnum, events } from './Events';
+import { memInit } from './Memory';
+import { findMySpawnsOrExtensions, findRoomSource } from './Room';
+import { findNearbyEnergy } from './RoomPosition';
+import { SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
+import { getFreeCapacity } from './Store';
+import { everyN } from './Tick';
 
 declare global {
 	interface Memory {
@@ -45,27 +45,16 @@ const webHaulCreepActions = [
 ];
 
 class EnergyWeb {
-	put (request: EnergyRequest) {
+	put(request: EnergyRequest) {
 		Memory.energyWeb.put[request.dest] = request;
 	}
 
-	take (request: EnergyRequest) {
+	take(request: EnergyRequest) {
 		Memory.energyWeb.take[request.dest] = request;
 	}
 
-	run () {
-		Object.values(Game.rooms).forEach((room) => {
-			if (room.energyAvailable < room.energyCapacityAvailable) {
-				findMySpawnsOrExtensions(room).filter((t) => t.energy < t.energyCapacity).
-					forEach((t) => {
-						this.take({
-							'dest': t.id,
-							'amount': t.energyCapacity - t.energy,
-							'priority': EnergyTransferPriority.URGENT,
-						});
-					});
-			}
-		});
+	run() {
+		this.placeTakeOrdersForSpawns();
 
 		const haulerAssignments: { [key: string]: Partial<SequenceContext> } = {};
 
@@ -76,23 +65,39 @@ class EnergyWeb {
 				continue;
 			}
 			const freeCapacity = getFreeCapacity(dest);
-			if (freeCapacity == 0) {
+			if (freeCapacity === 0) {
 				delete Memory.energyWeb.take[key];
 				continue;
 			}
 
-			haulerAssignments[`${dest.pos.roomName}.hauler`] = {
-				'transfer': dest,
-			};
+			haulerAssignments[`${dest.pos.roomName}.hauler`] = { transfer: dest };
 			break;
 		}
 
-		// Run creeps
+		this.runCreeps(haulerAssignments);
+		this.spawnHaulers();
+	}
+
+	private placeTakeOrdersForSpawns() {
+		Object.values(Game.rooms).forEach((room) => {
+			if (room.energyAvailable < room.energyCapacityAvailable) {
+				findMySpawnsOrExtensions(room)
+					.filter((t) => t.energy < t.energyCapacity)
+					.forEach((t) => {
+						this.take({
+							dest: t.id,
+							amount: t.energyCapacity - t.energy,
+							priority: EnergyTransferPriority.URGENT,
+						});
+					});
+			}
+		});
+	}
+
+	private runCreeps(haulerAssignments: { [key: string]: Partial<SequenceContext>; }) {
 		for (const name of Object.keys(Game.rooms).map((roomName) => `${roomName}.hauler`)) {
 			for (const creep of getLiveCreeps(name)) {
-				creep.room.visual.circle(creep.pos.x, creep.pos.y, {'stroke': 'red',
-					'radius': 1,
-					'fill': 'transparent'});
+				creep.room.visual.circle(creep.pos.x, creep.pos.y, { stroke: 'red', radius: 1, fill: 'transparent' });
 				const sequenceContext = haulerAssignments[name] || {};
 				sequenceContext.creep = creep;
 				const room = Game.rooms[creep.pos.roomName];
@@ -100,47 +105,44 @@ class EnergyWeb {
 				source = source instanceof Source ? undefined : source;
 				sequenceContext.pickup = isPickupTarget(source) ? source : undefined;
 				sequenceContext.withdraw = isWithdrawTarget(source) ? source : undefined;
-
 				A.runSequence(webHaulCreepActions, creep, sequenceContext);
 			}
 		}
+	}
 
-		// Maintain creep fleet
+	private spawnHaulers() {
 		everyN(20, () => {
-			for (const room of Object.values(Game.rooms).filter((room) => room.controller?.my)) {
+			for (const room of Object.values(Game.rooms).filter((r) => r.controller?.my)) {
 				const name = `${room.name}.hauler`;
 				if (getActiveCreepTtl(name) > 50 || isActiveCreepSpawning(name)) {
 					continue;
 				}
 				const queue = SpawnQueue.getSpawnQueue();
-
-				console.log('getActiveCreepTtl(name)', getActiveCreepTtl(name), 'queue.has(name)', queue.has(name));
-
-				queue.has(name) || queue.push(buildWebHaulerSpawnRequest(room, name));
+				queue.has(name) || queue.push(buildSpawnRequest(room, name));
 			}
 		});
 	}
 }
 
-const webHaulerBodySpec = createBodySpec([
+const bodySpec = createBodySpec([
 	[CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
 	[CARRY, CARRY, MOVE, MOVE],
 ]);
 
-function buildWebHaulerSpawnRequest (room: Room, name: string): SpawnRequest {
+function buildSpawnRequest(room: Room, name: string): SpawnRequest {
 	return {
 		name,
-		'body': getBodyForRoom(room, webHaulerBodySpec),
-		'priority': SpawnQueuePriority.BUILDER,
-		'time': Game.time + getActiveCreepTtl(name),
-		'pos': new RoomPosition(25, 25, room.name),
+		body: getBodyForRoom(room, bodySpec),
+		priority: SpawnQueuePriority.HAULER,
+		time: Game.time + getActiveCreepTtl(name),
+		pos: room.controller.pos,
 	};
 }
 
-function initMemory (forced = false) {
+function initMemory(forced = false) {
 	memInit(Memory, 'energyWeb', {
-		'put': {},
-		'take': {},
+		put: {},
+		take: {},
 	}, forced);
 }
 

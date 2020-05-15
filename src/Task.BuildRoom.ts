@@ -1,32 +1,42 @@
 import * as A from './Action';
 import { isWithdrawTarget, WithdrawTarget } from './Action';
-import { log } from "./Logger";
-import { nextExtensionPos } from "./Planning";
-import { BuildQueuePriority, constructionQueueSize, currentConstruction, findRoomSource, requestConstruction, requestCreepSpawn, SpawnQueuePriority } from "./Room";
+import { createBodySpec, getBodyForRoom } from './BodySpec';
+import { GENERIC_WORKER } from './constants';
+import { getActiveCreepTtl, getLiveCreepsAll, isActiveCreepSpawning } from './Creep';
+import { log } from './Logger';
+import { nextExtensionPos } from './Planning';
+import { BuildQueuePriority, constructionQueueSize, currentConstruction, findRoomSource, requestConstruction, SpawnQueuePriority } from './Room';
 import { findNearbyEnergy } from './RoomPosition';
-import { Task } from "./Task";
-import { everyN } from "./Tick";
-import { rawServerCache, elapsed } from './ServerCache';
+import { elapsed } from './ServerCache';
+import { SpawnQueue, SpawnRequest } from './SpawnQueue';
+import { Task } from './Task';
+import { everyN } from './Tick';
 
 interface SequenceContext {
 	creep: Creep;
 	task: TaskBuildRoom;
 }
 
-const buildCreepActions = [
-	new A.Build<SequenceContext>().setArgs(c => c.task.constructionSite),
-	new A.Pickup<SequenceContext>().setArgs(c => findNearbyEnergy(c.creep.pos)),
-	new A.Withdraw<SequenceContext>().setArgs(c => c.task.withdrawTarget),
-	new A.Harvest<SequenceContext>().setArgs(c => c.task.harvestTarget).setPersist(),
+const sequence = [
+	new A.Build<SequenceContext>().setArgs((c) => c.task.constructionSite),
+	new A.Pickup<SequenceContext>().setArgs((c) => findNearbyEnergy(c.creep.pos)),
+	new A.Withdraw<SequenceContext>().setArgs((c) => c.task.withdrawTarget),
+	new A.Harvest<SequenceContext>().setArgs((c) => c.task.harvestTarget).setPersist(),
 ];
 
 export class TaskBuildRoom extends Task {
 	static readonly className = 'BuildRoom' as Id<typeof Task>;
+
 	readonly roomName: string;
+
 	readonly room: Room;
+
 	readonly constructionSite?: ConstructionSite;
+
 	private constructionQueueSize: number;
+
 	readonly withdrawTarget?: WithdrawTarget;
+
 	readonly harvestTarget?: Source;
 
 	constructor(roomName: Id<TaskBuildRoom>) {
@@ -36,7 +46,7 @@ export class TaskBuildRoom extends Task {
 		this.constructionSite = currentConstruction(this.room.name) ?? undefined;
 		this.constructionQueueSize = constructionQueueSize(this.room.name);
 		if (this.constructionSite) {
-			let roomSource = findRoomSource(this.room);
+			const roomSource = findRoomSource(this.room);
 			if (isWithdrawTarget(roomSource)) {
 				this.withdrawTarget = roomSource;
 			} else if (roomSource instanceof Source) {
@@ -46,49 +56,65 @@ export class TaskBuildRoom extends Task {
 	}
 
 	protected run() {
-		// create new extensions
+		// Create new extensions
 		everyN(50, () => {
-			for (let pos of nextExtensionPos(this.room)) {
-				let rv = requestConstruction(pos, STRUCTURE_EXTENSION, BuildQueuePriority.EXTENSION);
-				if (rv !== OK && rv != ERR_NAME_EXISTS) {
+			for (const pos of nextExtensionPos(this.room)) {
+				const rv = requestConstruction(pos, STRUCTURE_EXTENSION, BuildQueuePriority.EXTENSION);
+				if (rv !== OK && rv !== ERR_NAME_EXISTS) {
 					log.e(`Failed to request STRUCTURE_EXTENSION at [${pos}]`);
 				}
 			}
 		});
 
-		let noMoreBuilding = elapsed(`${this.id}.lastBuild`, 10, this.constructionSite ? true : false);
-
-		// run builders
-		let numCreeps = Math.min(Math.ceil(this.constructionQueueSize / 5000), 3);
-		for (let i = 0; i < 3; i++) {
-			let name = `${this.id}.${i}`;
-			let creep = Game.creeps[name];
-			if (creep) {
-				if (noMoreBuilding) {
-					A.recycle(creep);
-				} else {
-					A.runSequence(buildCreepActions, creep, { creep: creep, task: this });
+		const numCreeps = Math.min(Math.ceil(this.constructionQueueSize / 5000), 3);
+		// Spawn builders
+		everyN(20, () => {
+			for (const name of this.creepNames(numCreeps)) {
+				if (getActiveCreepTtl(name) > 50 || isActiveCreepSpawning(name)) {
+					continue;
 				}
-			} else if (i < numCreeps) {
-				everyN(20, () => {
-					requestCreepSpawn(this.room, name, () => ({
-						priority: SpawnQueuePriority.BUILDER,
-						name: name,
-						body: [MOVE, MOVE, CARRY, WORK],
-						cost: BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK],
-					}));
-				});
+				const queue = SpawnQueue.getSpawnQueue();
+				queue.has(name) || queue.push(buildSpawnRequest(this.room, name));
+			}
+		});
+
+		// Run builders
+		const noMoreBuilding = elapsed(`${this.id}.lastBuild`, 10, Boolean(this.constructionSite));
+		for (const creep of getLiveCreepsAll(this.creepNames())) {
+			if (noMoreBuilding) {
+				A.recycle(creep);
+			} else {
+				A.runSequence(sequence, creep, { creep, task: this });
 			}
 		}
 	}
 
+	private creepNames(numCreeps = 3): string[] {
+		return _.range(0, numCreeps).map((i) => `${this.id}.${i}`);
+	}
+
 	static create(roomName: string) {
-		let rv = Task.createBase(TaskBuildRoom, roomName as Id<Task>);
+		const rv = Task.createBase(TaskBuildRoom, roomName as Id<Task>);
 		if (rv !== OK) {
 			return rv;
 		}
 		return new TaskBuildRoom(roomName as Id<TaskBuildRoom>);
 	}
+}
+
+const bodySpec = createBodySpec([
+	[WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE],
+	GENERIC_WORKER,
+]);
+
+function buildSpawnRequest(room: Room, name: string): SpawnRequest {
+	return {
+		name,
+		body: getBodyForRoom(room, bodySpec),
+		priority: SpawnQueuePriority.BUILDER,
+		time: Game.time + getActiveCreepTtl(name),
+		pos: room.controller.pos,
+	};
 }
 
 Task.register.registerTaskClass(TaskBuildRoom);

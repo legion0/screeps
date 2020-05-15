@@ -3,14 +3,16 @@
 	"editor.formatOnSave": true,
 	"cSpell.words": [
 		"BODYPART",
+		"Buildable",
+		"Cacheable",
 		"Respawn",
+		"UPGRADER",
 		"Waypoint",
 		"multiline",
 		"readonly",
 		"screeps"
 	],
 	"editor.tabSize": 2,
-	"javascript.format.enable": false,
 	"eslint.format.enable": true,
 	"eslint.lintTask.enable": true,
 	"eslint.probe": [
@@ -21,4 +23,12 @@
 	"typescript.preferences.quoteStyle": "single",
 	"typescript.format.semicolons": "insert",
 	"typescript.locale": "en",
+	"javascript.suggest.completeFunctionCalls": true,
+	"typescript.suggest.completeFunctionCalls": true,
+	"typescript.referencesCodeLens.showOnAllFunctions": true,
+	"javascript.referencesCodeLens.showOnAllFunctions": true,
+	"javascript.referencesCodeLens.enabled": true,
+	"files.exclude": {
+		"**/node_modules": true
+	},
 }

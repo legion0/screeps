@@ -1,4 +1,4 @@
-export function findMinBy<T> (arr: T[], predicate: (element: T) => number): T | null {
+export function findMinBy<T>(arr: T[], predicate: (element: T) => number): T | null {
 	if (!arr.length) {
 		return null;
 	}
@@ -12,7 +12,7 @@ export function findMinBy<T> (arr: T[], predicate: (element: T) => number): T | 
 	return min[0];
 }
 
-export function findMaxBy<T> (arr: T[], predicate: (element: T) => number): T | null {
+export function findMaxBy<T>(arr: T[], predicate: (element: T) => number): T | null {
 	if (!arr.length) {
 		return null;
 	}
@@ -26,7 +26,7 @@ export function findMaxBy<T> (arr: T[], predicate: (element: T) => number): T | 
 	return max[0];
 }
 
-export function findMinIndexBy<T> (arr: T[], predicate: (element: T) => number): number | -1 {
+export function findMinIndexBy<T>(arr: T[], predicate: (element: T) => number): number | -1 {
 	if (!arr.length) {
 		return -1;
 	}
@@ -41,6 +41,6 @@ export function findMinIndexBy<T> (arr: T[], predicate: (element: T) => number):
 }
 
 export type NonEmptyArray<T> = [T, ...T[]];
-export function isNonEmptyArray<T> (arr: T[]): arr is NonEmptyArray<T> {
+export function isNonEmptyArray<T>(arr: T[]): arr is NonEmptyArray<T> {
 	return arr.length > 0;
 }

@@ -1,7 +1,6 @@
 // TODO: move trim operations to event tick end
 
-import { getFullStack, log } from "./Logger";
-import { threadId } from "worker_threads";
+import { getFullStack, log } from './Logger';
 
 export interface CacheService<T> {
 	get(id: string, ttlOut?: [number]): T | undefined;
@@ -18,9 +17,9 @@ export class ObjectCacheService<T> implements CacheService<T> {
 	}
 
 	get(id: string, ttlOut?: [number]): T | undefined {
-		let entry = this.cache[id];
+		const entry = this.cache[id];
 		if (entry) {
-			let ttl = entry.ttl - (Game.time - entry.insertTime);
+			const ttl = entry.ttl - (Game.time - entry.insertTime);
 			if (ttlOut) {
 				ttlOut[0] = ttl;
 			}
@@ -30,7 +29,7 @@ export class ObjectCacheService<T> implements CacheService<T> {
 	}
 
 	clear(id: string): void {
-		delete this.cache[id];;
+		delete this.cache[id];
 	}
 
 	set(id: string, value: T, ttl: number): void {
@@ -39,23 +38,23 @@ export class ObjectCacheService<T> implements CacheService<T> {
 			return;
 		}
 		this.trim();
-		let entry = this.cache[id];
-		if (!entry) {
-			entry = this.cache[id] = {
-				insertTime: Game.time,
-				value: value,
-				ttl: ttl,
-			};
-		} else {
+		const entry = this.cache[id];
+		if (entry) {
 			entry.insertTime = Game.time;
 			entry.value = value;
 			entry.ttl = ttl;
+		} else {
+			this.cache[id] = {
+				insertTime: Game.time,
+				value,
+				ttl,
+			};
 		}
 	}
 
 	private trim() {
-		if (Game.time % 50 == 0) {
-			for (let [key, entry] of Object.entries(this.cache)) {
+		if (Game.time % 50 === 0) {
+			for (const [key, entry] of Object.entries(this.cache)) {
 				if (Game.time - entry.insertTime > entry.ttl) {
 					delete this.cache[key];
 				}
@@ -66,6 +65,7 @@ export class ObjectCacheService<T> implements CacheService<T> {
 
 export class TickCacheService<T> implements CacheService<T> {
 	private time: number = 0;
+
 	private cache: { [key: number]: { [key: string]: T } } = {};
 
 	get(id: string): T | undefined {
@@ -86,10 +86,10 @@ export class TickCacheService<T> implements CacheService<T> {
 	}
 
 	private trim() {
-		if (Game.time != this.time) {
+		if (Game.time !== this.time) {
 			this.time = Game.time;
-			for (let time in this.cache) {
-				if (Number(time) != this.time) {
+			for (const time in this.cache) {
+				if (Number(time) !== this.time) {
 					delete this.cache[time];
 				}
 			}
@@ -98,11 +98,13 @@ export class TickCacheService<T> implements CacheService<T> {
 	}
 }
 
-export let tickCacheService = new TickCacheService<any>();
+export const tickCacheService = new TickCacheService<any>();
 
 export class MutatingCacheService<T, W> implements CacheService<T> {
 	cache: CacheService<W>;
+
 	private reader: (arg0: W) => T;
+
 	private writer: (arg0: T) => W;
 
 	constructor(cache: CacheService<W>, reader: (arg0: W) => T, writer: (arg0: T) => W) {
@@ -112,8 +114,8 @@ export class MutatingCacheService<T, W> implements CacheService<T> {
 	}
 
 	get(id: string, ttlOut?: [number]): T | undefined {
-		let value = this.cache.get(id, ttlOut);
-		return value !== undefined ? this.reader(value) : undefined;
+		const value = this.cache.get(id, ttlOut);
+		return value === undefined ? undefined : this.reader(value);
 	}
 
 	clear(id: string): void {
@@ -132,18 +134,23 @@ export class MutatingCacheService<T, W> implements CacheService<T> {
 export interface CacheEntrySpec<T, ContextType> {
 	cache: CacheService<T | null>;
 	ttl: number;
-	// callback to find the value if its not in the cache or no longer valid.
-	// null return values are cached, undefined return values are not cached.
+
+	/*
+	 * Callback to find the value if its not in the cache or no longer valid.
+	 * null return values are cached, undefined return values are not cached.
+	 */
 	callback: (context?: ContextType) => T | null | undefined;
-	// test function to test whether the value is valid or not.
+	// Test function to test whether the value is valid or not.
 	test?: (value: T) => boolean;
 }
 
-export function getFromCacheSpec<T, ContextType>(spec: CacheEntrySpec<T, ContextType>, id: string, context?: ContextType): T | null | undefined {
+export function getFromCacheSpec<T, ContextType>(
+	spec: CacheEntrySpec<T, ContextType>, id: string, context?: ContextType
+): T | null | undefined {
 	let value = spec.cache.get(id) as T | null | undefined;
-	if (value === undefined || (value != null && spec.test && !spec.test(value))) {
+	if (value === undefined || value !== null && spec.test && !spec.test(value)) {
 		value = spec.callback(context);
-		// log.d(`Got value [${value}] from callback for id [${id}]`);
+		// Log.d(`Got value [${value}] from callback for id [${id}]`);
 		if (value !== undefined) {
 			spec.cache.set(id, value, spec.ttl);
 		}

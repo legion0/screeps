@@ -1,11 +1,11 @@
-import {BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE} from './constants';
-import {fromMemoryWorld, lookNear, RoomPositionMemory, toMemoryRoom, toMemoryWorld} from './RoomPosition';
-import {getFreeCapacity, hasFreeCapacity, hasUsedCapacity} from './Store';
-import {isDamaged, isSpawn} from './Structure';
-import {getRecyclePos} from './Room';
-import {Highway} from './Highway';
-import {log} from './Logger';
-import {memInit} from './Memory';
+import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE } from './constants';
+import { Highway } from './Highway';
+import { log } from './Logger';
+import { memInit } from './Memory';
+import { getRecyclePos } from './Room';
+import { fromMemoryWorld, lookNear, RoomPositionMemory, toMemoryRoom, toMemoryWorld } from './RoomPosition';
+import { getFreeCapacity, hasFreeCapacity, hasUsedCapacity } from './Store';
+import { isDamaged, isSpawn } from './Structure';
 
 declare global {
 	interface CreepMemory {
@@ -47,19 +47,40 @@ export enum ActionType {
 }
 
 
-const ORDER1 = [ActionType.HARVEST, ActionType.ATTACK, ActionType.BUILD, ActionType.REPAIR, ActionType.DISMANTLE, ActionType.ATTACK_CONTROLLER, ActionType.RANGED_HEAL, ActionType.HEAL];
-const ORDER2 = [ActionType.RANGED_ATTACK, ActionType.RANGED_MASS_ATTACK, ActionType.BUILD, ActionType.RANGED_HEAL];
+const ORDER1 = [
+	ActionType.HARVEST,
+	ActionType.ATTACK,
+	ActionType.BUILD,
+	ActionType.REPAIR,
+	ActionType.DISMANTLE,
+	ActionType.ATTACK_CONTROLLER,
+	ActionType.RANGED_HEAL,
+	ActionType.HEAL,
+];
+const ORDER2 = [
+	ActionType.RANGED_ATTACK,
+	ActionType.RANGED_MASS_ATTACK,
+	ActionType.BUILD,
+	ActionType.RANGED_HEAL,
+];
 // Only when not enough energy to do everything:
-const ORDER3 = [ActionType.UPGRADE_CONTROLLER, ActionType.BUILD, ActionType.REPAIR, ActionType.WITHDRAW, ActionType.TRANSFER, ActionType.DROP];
+const ORDER3 = [
+	ActionType.UPGRADE_CONTROLLER,
+	ActionType.BUILD,
+	ActionType.REPAIR,
+	ActionType.WITHDRAW,
+	ActionType.TRANSFER,
+	ActionType.DROP,
+];
 
 
 const CREEP_STUCK_INTERVAL = 3;
 
 // TODO: move to tick end calculation, this code is not executed if creep if fatigued
-function creepIsStuck (creep: Creep) {
+function creepIsStuck(creep: Creep) {
 	const lastPos = memInit(creep.memory, 'lastPos', {
-		'pos': toMemoryRoom(creep.pos),
-		'since': Game.time,
+		pos: toMemoryRoom(creep.pos),
+		since: Game.time,
 	});
 	if (lastPos.pos !== toMemoryRoom(creep.pos)) {
 		lastPos.pos = toMemoryRoom(creep.pos);
@@ -71,7 +92,7 @@ function creepIsStuck (creep: Creep) {
 
 const HIGHWAY_RANGE = 3;
 
-function getFrom (creep: Creep, to: RoomPosition): RoomPosition | undefined {
+function getFrom(creep: Creep, to: RoomPosition): RoomPosition | undefined {
 	if (!creep.memory.highway) {
 		log.e(`getFrom requires highway`);
 		return undefined;
@@ -95,16 +116,16 @@ function getFrom (creep: Creep, to: RoomPosition): RoomPosition | undefined {
 	return from;
 }
 
-function buildHighway (creep: Creep, from: RoomPosition, to: RoomPosition) {
+function buildHighway(creep: Creep, from: RoomPosition, to: RoomPosition) {
 	if (Memory.highwayDebugVisuals) {
 		creep.room.visual.line(from.x, from.y, to.x, to.y, {
-			'color': 'blue',
+			color: 'blue',
 		});
 		creep.room.visual.line(from.x, from.y, creep.pos.x, creep.pos.y, {
-			'color': 'blue',
+			color: 'blue',
 		});
 		creep.room.visual.line(creep.pos.x, creep.pos.y, to.x, to.y, {
-			'color': 'blue',
+			color: 'blue',
 		});
 	}
 	const highway = new Highway(
@@ -123,8 +144,8 @@ function buildHighway (creep: Creep, from: RoomPosition, to: RoomPosition) {
 	return null;
 }
 
-function getNextHighwayWaypoint (creep: Creep, to: RoomPosition): RoomPosition | ScreepsReturnCode {
-	memInit(creep.memory, 'highway', {'path': []});
+function getNextHighwayWaypoint(creep: Creep, to: RoomPosition): RoomPosition | ScreepsReturnCode {
+	memInit(creep.memory, 'highway', { path: [] });
 	let fakeCurrent = creep.pos;
 	let path = creep.memory.highway!.path.map(fromMemoryWorld);
 	if (path.length && path[0].isEqualTo(creep.pos)) {
@@ -152,13 +173,13 @@ function getNextHighwayWaypoint (creep: Creep, to: RoomPosition): RoomPosition |
 		return creep.pos.getRangeTo(to) < 4 ? ERR_NO_PATH : OK;
 	}
 	if (Memory.highwayDebugVisuals) {
-		creep.room.visual.poly(path, {'stroke': 'red'});
-		creep.room.visual.circle(path[0].x, path[0].y, {'fill': 'red'});
+		creep.room.visual.poly(path, { stroke: 'red' });
+		creep.room.visual.circle(path[0].x, path[0].y, { fill: 'red' });
 	}
 	return path[0];
 }
 
-export function moveTo (creep: Creep, to: RoomPosition, highway: boolean, range: number) {
+export function moveTo(creep: Creep, to: RoomPosition, highway: boolean, range: number) {
 	if (creep.fatigue) {
 		return OK;
 	}
@@ -183,7 +204,7 @@ export function moveTo (creep: Creep, to: RoomPosition, highway: boolean, range:
 	return rv;
 }
 
-export function recycle (creep: Creep) {
+export function recycle(creep: Creep) {
 	const recyclePos = getRecyclePos(creep.room);
 
 	if (!recyclePos) {
@@ -219,7 +240,7 @@ abstract class Action<ContextType> {
 
 	/* Readonly*/ callback: (context: ContextType) => any = _.identity;
 
-	constructor (actionType: ActionType) {
+	constructor(actionType: ActionType) {
 		this.actionType = actionType;
 	}
 
@@ -232,23 +253,23 @@ abstract class Action<ContextType> {
 	 * If multiple targets are involved this lets you pick the correct one for
 	 * the relevant action.
 	 */
-	setArgs (callback: (context: ContextType) => any) {
+	setArgs(callback: (context: ContextType) => any) {
 		this.callback = callback;
 
 		return this;
 	}
 
-	getArgs (context: ContextType) {
+	getArgs(context: ContextType) {
 		return this.callback(context);
 	}
 
-	setHighway () {
+	setHighway() {
 		this.highway = true;
 
 		return this;
 	}
 
-	setPersist () {
+	setPersist() {
 		this.persist = true;
 
 		return this;
@@ -262,7 +283,7 @@ export type TransferTarget = StructureSpawn |
 	StructureStorage;
 
 
-export function isTransferTarget (o: any): o is TransferTarget {
+export function isTransferTarget(o: any): o is TransferTarget {
 	return o instanceof StructureSpawn ||
 		o instanceof StructureExtension ||
 		o instanceof StructureContainer ||
@@ -271,16 +292,16 @@ export function isTransferTarget (o: any): o is TransferTarget {
 }
 
 export class Transfer<ContextType> extends Action<ContextType> {
-	constructor () {
+	constructor() {
 		super(ActionType.TRANSFER);
 	}
 
-	test (creep: Creep, target: any) {
+	test(creep: Creep, target: any) {
 		return isTransferTarget(target) &&
 			hasFreeCapacity(target) && hasUsedCapacity(creep);
 	}
 
-	do (creep: Creep, target: TransferTarget) {
+	do(creep: Creep, target: TransferTarget) {
 		let rv: ScreepsReturnCode = OK;
 
 		if (creep.pos.isNearTo(target)) {
@@ -307,21 +328,21 @@ export class Transfer<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs (callback: (context: ContextType) => TransferTarget | undefined) {
+	setArgs(callback: (context: ContextType) => TransferTarget | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
 export class Build<ContextType> extends Action<ContextType> {
-	constructor () {
+	constructor() {
 		super(ActionType.BUILD);
 	}
 
-	test (creep: Creep, target: any) {
+	test(creep: Creep, target: any) {
 		return target instanceof ConstructionSite && hasUsedCapacity(creep);
 	}
 
-	do (creep: Creep, target: ConstructionSite) {
+	do(creep: Creep, target: ConstructionSite) {
 		let rv: ScreepsReturnCode = OK;
 
 		if (creep.pos.inRangeTo(
@@ -344,21 +365,21 @@ export class Build<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs (callback: (context: ContextType) => ConstructionSite | undefined) {
+	setArgs(callback: (context: ContextType) => ConstructionSite | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
 export class Repair<ContextType> extends Action<ContextType> {
-	constructor () {
+	constructor() {
 		super(ActionType.REPAIR);
 	}
 
-	test (creep: Creep, target: any) {
+	test(creep: Creep, target: any) {
 		return target instanceof Structure && isDamaged(target) && hasUsedCapacity(creep);
 	}
 
-	do (creep: Creep, target: Structure) {
+	do(creep: Creep, target: Structure) {
 		let rv: ScreepsReturnCode = OK;
 
 		if (creep.pos.inRangeTo(
@@ -381,27 +402,27 @@ export class Repair<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs (callback: (context: ContextType) => Structure | undefined) {
+	setArgs(callback: (context: ContextType) => Structure | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
 export type PickupTarget = Resource;
 
-export function isPickupTarget (o: any): o is PickupTarget {
+export function isPickupTarget(o: any): o is PickupTarget {
 	return o instanceof Resource;
 }
 
 export class Pickup<ContextType> extends Action<ContextType> {
-	constructor () {
+	constructor() {
 		super(ActionType.PICKUP);
 	}
 
-	test (creep: Creep, target: any) {
+	test(creep: Creep, target: any) {
 		return isPickupTarget(target) && hasFreeCapacity(creep);
 	}
 
-	do (creep: Creep, target: PickupTarget) {
+	do(creep: Creep, target: PickupTarget) {
 		const rv = creep.pickup(target);
 
 		if (rv !== OK) {
@@ -411,21 +432,21 @@ export class Pickup<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs (callback: (context: ContextType) => PickupTarget | undefined) {
+	setArgs(callback: (context: ContextType) => PickupTarget | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
 export class UpgradeController<ContextType> extends Action<ContextType> {
-	constructor () {
+	constructor() {
 		super(ActionType.UPGRADE_CONTROLLER);
 	}
 
-	test (creep: Creep, target: any) {
+	test(creep: Creep, target: any) {
 		return target instanceof StructureController && hasUsedCapacity(creep);
 	}
 
-	do (creep: Creep, target: StructureController) {
+	do(creep: Creep, target: StructureController) {
 		let rv: ScreepsReturnCode = OK;
 
 		if (creep.pos.inRangeTo(
@@ -448,7 +469,7 @@ export class UpgradeController<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs (callback: (context: ContextType) => StructureController | undefined) {
+	setArgs(callback: (context: ContextType) => StructureController | undefined) {
 		return super.setArgs(callback);
 	}
 }
@@ -461,7 +482,7 @@ export type WithdrawTarget = Tombstone |
 	StructureTower |
 	StructureStorage;
 
-export function isWithdrawTarget (o: any): o is WithdrawTarget {
+export function isWithdrawTarget(o: any): o is WithdrawTarget {
 	return o instanceof Tombstone ||
 		o instanceof Ruin ||
 		o instanceof StructureContainer ||
@@ -472,15 +493,15 @@ export function isWithdrawTarget (o: any): o is WithdrawTarget {
 }
 
 export class Withdraw<ContextType> extends Action<ContextType> {
-	constructor () {
+	constructor() {
 		super(ActionType.WITHDRAW);
 	}
 
-	test (creep: Creep, target: any): boolean {
+	test(creep: Creep, target: any): boolean {
 		return isWithdrawTarget(target) && hasFreeCapacity(creep) && hasUsedCapacity(target);
 	}
 
-	do (creep: Creep, target: WithdrawTarget): ScreepsReturnCode {
+	do(creep: Creep, target: WithdrawTarget): ScreepsReturnCode {
 		let rv: ScreepsReturnCode = OK;
 
 		if (creep.pos.isNearTo(target.pos)) {
@@ -503,17 +524,17 @@ export class Withdraw<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs (callback: (context: ContextType) => WithdrawTarget | undefined) {
+	setArgs(callback: (context: ContextType) => WithdrawTarget | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
 export class Harvest<ContextType> extends Action<ContextType> {
-	constructor () {
+	constructor() {
 		super(ActionType.HARVEST);
 	}
 
-	test (creep: Creep, target: any) {
+	test(creep: Creep, target: any) {
 		if (target instanceof Mineral || target instanceof Deposit) {
 			throw new Error('Harvest of Mineral/Deposit not implemented.');
 		}
@@ -521,7 +542,7 @@ export class Harvest<ContextType> extends Action<ContextType> {
 		return target instanceof Source && hasFreeCapacity(creep) && hasUsedCapacity(target);
 	}
 
-	do (creep: Creep, target: Source | Mineral | Deposit): ScreepsReturnCode {
+	do(creep: Creep, target: Source | Mineral | Deposit): ScreepsReturnCode {
 		let rv: ScreepsReturnCode = OK;
 
 		if (creep.pos.isNearTo(target.pos)) {
@@ -536,12 +557,12 @@ export class Harvest<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs (callback: (context: ContextType) => Source | Mineral | Deposit | undefined) {
+	setArgs(callback: (context: ContextType) => Source | Mineral | Deposit | undefined) {
 		return super.setArgs(callback);
 	}
 }
 
-export function runSequence<T> (sequence: Action<T>[], creep: Creep, context: any) {
+export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any) {
 	if (creep.spawning) {
 		return;
 	}
@@ -549,7 +570,7 @@ export function runSequence<T> (sequence: Action<T>[], creep: Creep, context: an
 	let chosenTarget: any = null;
 	// First try to find the persistent action we started last round and see if its still applicable
 	if (creep.memory.lastAction) {
-		const {lastAction} = creep.memory;
+		const { lastAction } = creep.memory;
 		delete creep.memory.lastAction;
 		for (const action of sequence) {
 			if (action.persist && action.actionType === lastAction) {

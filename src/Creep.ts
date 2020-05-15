@@ -1,55 +1,41 @@
-import * as assert from "./assert";
-// import { Highway } from "./Highway";
-
-import { notUndefined } from "./util";
-
-// import { MemInit } from "./Memory";
-// import { fromMemoryWorld } from "./RoomPosition";
-// import { Highway } from "./Highway";
-// import { moveTo } from "./Action";
-
-// interface HighwayCreepMemory {
-// 	path: RoomPosition[];
-// }
-
-// declare global {
-// 	interface CreepMemory {
-// 		highway: HighwayCreepMemory;
-// 	}
-// }
+import * as assert from './assert';
+import { notUndefined } from './util';
 
 export function hasTicksToLive(creep: Creep | undefined): creep is HasProperty<Creep, 'ticksToLive'> {
-	return creep != null && (creep as any).ticksToLive != null;
+	return notUndefined(creep?.ticksToLive);
 }
 
 export function getActiveCreep(baseCreepName: string): [Creep | undefined, Creep | undefined] {
-	let main = Game.creeps[baseCreepName];
-	let alt = Game.creeps[baseCreepName + '_alt'];
+	const main = Game.creeps[baseCreepName];
+	const alt = Game.creeps[`${baseCreepName}_alt`];
 	if (hasTicksToLive(alt) && hasTicksToLive(main) && alt.ticksToLive > main.ticksToLive) {
 		return [alt, main];
-	}
-	else if (hasTicksToLive(alt) && hasTicksToLive(main)) {
+	} else if (hasTicksToLive(alt) && hasTicksToLive(main)) {
 		return [alt, main];
 	}
 	return [main, alt];
 }
 
 export function getCreepSpawnName(baseCreepName: string): string {
-	let main = Game.creeps[baseCreepName];
+	const main = Game.creeps[baseCreepName];
 	if (!main) {
 		return baseCreepName;
 	}
 	assert.ok(!main.spawning);
-	return baseCreepName + '_alt';
+	return `${baseCreepName}_alt`;
 }
 
 export function getLiveCreeps(baseCreepName: string): Creep[] {
 	return getActiveCreep(baseCreepName).filter(notUndefined);
 }
 
+export function getLiveCreepsAll(names: string[]): Creep[] {
+	return _.flatten(names.map(getLiveCreeps));
+}
+
 export function getActiveCreepTtl(baseCreepName: string): number {
-	let main = Game.creeps[baseCreepName];
-	let alt = Game.creeps[baseCreepName + '_alt'];
+	const main = Game.creeps[baseCreepName];
+	const alt = Game.creeps[`${baseCreepName}_alt`];
 	if (hasTicksToLive(main) && hasTicksToLive(alt)) {
 		return Math.max(main.ticksToLive, alt.ticksToLive);
 	} else if (hasTicksToLive(main)) {
@@ -61,7 +47,7 @@ export function getActiveCreepTtl(baseCreepName: string): number {
 }
 
 export function isActiveCreepSpawning(baseCreepName: string): boolean {
-	let main = Game.creeps[baseCreepName];
-	let alt = Game.creeps[baseCreepName + '_alt'];
-	return (main && main.spawning) || (alt && alt.spawning);
+	const main = Game.creeps[baseCreepName];
+	const alt = Game.creeps[`${baseCreepName}_alt`];
+	return main && main.spawning || alt && alt.spawning;
 }

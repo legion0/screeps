@@ -8,7 +8,7 @@
  * {callback} was not executed.
  * @example everyN(5, () => doX())
  */
-export function everyN<T> (ticks: number, callback: () => T): T | undefined {
+export function everyN<T>(ticks: number, callback: () => T): T | undefined {
 	// eslint-disable-next-line no-magic-numbers
 	if (Game.time % ticks === 0) {
 		return callback();

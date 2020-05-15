@@ -1,14 +1,14 @@
-import {checkServerCache, serverId} from './ServerCache';
-import {EventEnum, events} from './Events';
+import { energyWeb } from './EnergyWeb';
+import { EventEnum, events } from './Events';
+import { log } from './Logger';
+import { memInit } from './Memory';
+import { detectRespawn } from './reset';
+import { checkServerCache, serverId } from './ServerCache';
+import { SpawnQueue } from './SpawnQueue';
+import { Task } from './Task';
+import { TaskBootRoom } from './Task.BootRoom';
+import { TaskUpgradeController } from './Task.UpgradeController';
 
-import {detectRespawn} from './reset';
-import {energyWeb} from './EnergyWeb';
-import {log} from './Logger';
-import {memInit} from './Memory';
-import {SpawnQueue} from './SpawnQueue';
-import {Task} from './Task';
-import {TaskBootRoom} from './Task.BootRoom';
-import {TaskUpgradeController} from './Task.UpgradeController';
 
 declare global {
 	interface Memory {
@@ -23,7 +23,7 @@ declare global {
 
 log.d(`Reloading on server [${serverId}]`);
 
-function mainLoop () {
+function mainLoop() {
 	const discoveredRooms = memInit(Memory, 'discoveredRooms', {});
 	for (const room of Object.values(Game.rooms)) {
 		if (!(room.name in discoveredRooms)) {
@@ -40,7 +40,7 @@ function mainLoop () {
 	SpawnQueue.getSpawnQueue().run();
 }
 
-module.exports.loop = function loop () {
+module.exports.loop = function loop() {
 	try {
 		if (Memory.hardReset || detectRespawn()) {
 			log.w('Respawn detected! Initiating hard reset!');
@@ -63,7 +63,7 @@ module.exports.loop = function loop () {
 	}
 };
 
-function updateCpuEma () {
+function updateCpuEma() {
 	const prevCpuEma = memInit(Memory, 'cpuEma', 0);
 	const CPU_EMA_ALPHA = 2 / (memInit(Memory, 'cpuEmaWindowSize', 10000) + 1);
 	Memory.cpuEma = CPU_EMA_ALPHA * Game.cpu.getUsed() + (1 - CPU_EMA_ALPHA) * prevCpuEma;

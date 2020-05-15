@@ -1,15 +1,17 @@
-import * as assert from "./assert";
-import { findSources } from "./Room";
-import { Task } from "./Task";
-import { TaskBootSource } from "./Task.BootSource";
+import * as assert from './assert';
+import { findSources } from './Room';
+import { Task } from './Task';
+import { TaskBootSource } from './Task.BootSource';
 import './Task.BuildRoom';
 import { TaskBuildRoom } from './Task.BuildRoom';
-import { TaskHarvestSource } from "./Task.HarvestSource";
-import { everyN } from "./Tick";
+import { TaskHarvestSource } from './Task.HarvestSource';
+import { everyN } from './Tick';
 
 export class TaskBootRoom extends Task {
 	static readonly className = 'BootRoom' as Id<typeof Task>;
+
 	readonly roomName: string;
+
 	readonly room: Room;
 
 	constructor(roomName: Id<TaskBootRoom>) {
@@ -23,12 +25,14 @@ export class TaskBootRoom extends Task {
 	}
 
 	protected run() {
-		// boot sources
+		// Boot sources
 		everyN(10, () => {
-			findSources(this.room).forEach(source => {
-				if (!assert.hasProperty(source.room, 'controller')) return;
+			findSources(this.room).forEach((source) => {
+				if (!assert.hasProperty(source.room, 'controller')) {
+					return;
+				}
 				if (source.room.controller.level < 2) {
-					TaskBootSource.create(source)
+					TaskBootSource.create(source);
 				} else {
 					TaskHarvestSource.create(source);
 					TaskBootSource.remove(source);
@@ -39,7 +43,7 @@ export class TaskBootRoom extends Task {
 	}
 
 	static create(roomName: string) {
-		let rv = Task.createBase(TaskBootRoom, roomName as Id<Task>);
+		const rv = Task.createBase(TaskBootRoom, roomName as Id<Task>);
 		if (rv !== OK) {
 			return rv;
 		}

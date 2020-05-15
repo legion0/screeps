@@ -1,9 +1,9 @@
-import {memInit} from './Memory';
+import { memInit } from './Memory';
 
 declare global {
 	interface Memory {
 		logger: {
-			print_level: LogLevel;
+			printLevel: LogLevel;
 		};
 	}
 }
@@ -31,7 +31,8 @@ const LogLevelColor: string[] = [
 	'gray',
 ];
 
-const getSourcePositionRegEx = /\s*at\s(([^\s]+)\s)?\(?(\s\()?([^:]+):(\d+):(\d+)/;
+// eslint-disable-next-line prefer-named-capture-group
+const getSourcePositionRegEx = /\s*at\s(([^\s]+)\s)?\(?(\s\()?([^:]+):(\d+):(\d+)/u;
 
 interface SourcePosition {
 	function: string;
@@ -40,10 +41,7 @@ interface SourcePosition {
 	col: string;
 }
 
-/**
- * @example
- */
-export function getFullStack () {
+export function getFullStack() {
 	let error: Error;
 	try {
 		throw Error('');
@@ -53,11 +51,7 @@ export function getFullStack () {
 	return error.stack;
 }
 
-/**
- * @param skipFrames
- * @example
- */
-export function getSourcePosition (skipFrames?: number): SourcePosition {
+export function getSourcePosition(skipFrames?: number): SourcePosition {
 	let error: Error;
 	try {
 		throw Error('');
@@ -71,102 +65,103 @@ export function getSourcePosition (skipFrames?: number): SourcePosition {
 		throw new Error(`Failed to parse call stack line [${callerLine}] at getSourcePosition`);
 	}
 	return {
-		'function': match[2],
-		'file': match[4],
-		'line': match[5],
-		'col': match[6],
+		function: match[2],
+		file: match[4],
+		line: match[5],
+		col: match[6],
 	};
 }
 
-function formatSourcePosition (sourcePosition: SourcePosition) {
+function formatSourcePosition(sourcePosition: SourcePosition) {
 	return `[${sourcePosition.function} ${sourcePosition.file}:${sourcePosition.line}:${sourcePosition.col}]`;
 }
 
 class Logger {
 	private memory: typeof Memory.logger;
 
-	static _instance: Logger;
+	private static instance: Logger;
 
-	constructor () {
-		memInit(Memory, 'logger', {'print_level': LogLevel.INFO});
+	constructor() {
+		memInit(Memory, 'logger', { printLevel: LogLevel.INFO });
 		this.memory = Memory.logger;
 	}
 
-	f (...args: any[]) {
-		this._log(LogLevel.FATAL, args, 1);
+	f(...args: any[]) {
+		this.log(LogLevel.FATAL, args, 1);
 		throw new Error('Fatal Error !!!');
 	}
 
-	e (...args: any[]) {
-		this._log(LogLevel.ERROR, args, 1);
+	e(...args: any[]) {
+		this.log(LogLevel.ERROR, args, 1);
 	}
 
-	w (...args: any[]) {
-		this._log(LogLevel.WARN, args, 1);
+	w(...args: any[]) {
+		this.log(LogLevel.WARN, args, 1);
 	}
 
-	i (...args: any[]) {
-		this._log(LogLevel.INFO, args, 1);
+	i(...args: any[]) {
+		this.log(LogLevel.INFO, args, 1);
 	}
 
-	v (...args: any[]) {
-		this._log(LogLevel.VERBOSE, args, 1);
+	v(...args: any[]) {
+		this.log(LogLevel.VERBOSE, args, 1);
 	}
 
-	d (...args: any[]) {
-		this._log(LogLevel.DEBUG, args, 1);
+	d(...args: any[]) {
+		this.log(LogLevel.DEBUG, args, 1);
 	}
 
-	d2 (...args: any[]) {
-		this._log(LogLevel.DEBUG2, args, 1);
+	d2(...args: any[]) {
+		this.log(LogLevel.DEBUG2, args, 1);
 	}
 
-	d3 (...args: any[]) {
-		this._log(LogLevel.DEBUG3, args, 1);
+	d3(...args: any[]) {
+		this.log(LogLevel.DEBUG3, args, 1);
 	}
 
-	logEveryN (interval: number, log_level: LogLevel, ...args: any[]) {
-		if (Game.time % interval == 0) {
-			this._log(log_level, args, 1);
+	logEveryN(interval: number, logLevel: LogLevel, ...args: any[]) {
+		if (Game.time % interval === 0) {
+			this.log(logLevel, args, 1);
 		}
 	}
 
-	_log (log_level: LogLevel, log_args: any[], skipFrames: number) {
-		const {print_level} = this.memory;
-		if (log_level > print_level) {
+	private log(logLevel: LogLevel, logArgs: any[], skipFrames: number) {
+		const { printLevel } = this.memory;
+		if (logLevel > printLevel) {
 			return;
 		}
 		const args: string[] = [];
-		if (log_level <= LogLevel.WARN || print_level >= LogLevel.DEBUG) {
-			let padded_str = `${LogLevel[log_level]}   `;
-			padded_str = padded_str.substr(0, 7);
-			const colored_str = `<font color="${LogLevelColor[log_level]}">${padded_str}</font>`;
-			args.push(colored_str);
+		if (logLevel <= LogLevel.WARN || printLevel >= LogLevel.DEBUG) {
+			let paddedStr = `${LogLevel[logLevel]}   `;
+			paddedStr = paddedStr.substr(0, 7);
+			const coloredStr = `<font color="${LogLevelColor[logLevel]}">${paddedStr}</font>`;
+			args.push(coloredStr);
 		}
 		args.push(`${Game.time}`);
-		for (let i = 0; i < log_args.length; ++i) {
-			const arg_value = log_args[i];
-			let arg_repr;
-			if (typeof arg_value === 'string') {
-				arg_repr = arg_value;
-			} else if (arg_value && typeof arg_value.toString2 === 'function') {
-				arg_repr = arg_value.toString2();
-			} else if (arg_value && typeof arg_value.toString === 'function' && arg_value.toString() != '[object Object]') {
-				arg_repr = arg_value.toString();
+		for (let i = 0; i < logArgs.length; ++i) {
+			const argValue = logArgs[i];
+			let argRepr;
+			if (typeof argValue === 'string') {
+				argRepr = argValue;
+			} else if (argValue && typeof argValue.toString2 === 'function') {
+				argRepr = argValue.toString2();
+			} else if (argValue && typeof argValue.toString === 'function' && argValue.toString() !== '[object Object]') {
+				argRepr = argValue.toString();
 			} else {
-				arg_repr = JSON.stringify(arg_value);
+				argRepr = JSON.stringify(argValue);
 			}
-			args.push(arg_repr);
+			args.push(argRepr);
 		}
 		args.push(formatSourcePosition(getSourcePosition(skipFrames + 1)));
+		// eslint-disable-next-line no-console
 		console.log.apply(null, args);
 	}
 
-	static getInstance () {
-		if (!Logger._instance) {
-			Logger._instance = new Logger();
+	static getInstance() {
+		if (!Logger.instance) {
+			Logger.instance = new Logger();
 		}
-		return Logger._instance;
+		return Logger.instance;
 	}
 }
 

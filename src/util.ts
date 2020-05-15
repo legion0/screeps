@@ -7,7 +7,7 @@
  * @returns {T[]} A sorted shallow copy of the original array.
  * @example const sortedArr = sortById(arr);
  */
-export function sortById<T extends ObjectWithId<T>> (arr: T[]): T[] {
+export function sortById<T extends ObjectWithId<T>>(arr: T[]): T[] {
 	return arr.sort((lhs: T, rhs: T) => lhs.id.localeCompare(rhs.id));
 }
 
@@ -20,7 +20,7 @@ export function sortById<T extends ObjectWithId<T>> (arr: T[]): T[] {
  * @returns {val is T} Returns true iff value is not undefined.
  * @example if (notUndefined(val)) doSomethingWith(val.someProperty)
  */
-export function notUndefined<T> (val: T | undefined): val is T {
+export function notUndefined<T>(val: T | undefined): val is T {
 	return val !== undefined;
 }
 /* eslint-enable jsdoc/valid-types */

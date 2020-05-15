@@ -1,32 +1,33 @@
-import {CacheService, ObjectCacheService} from './Cache';
-import {memInit} from './Memory';
-import {EventEnum, events} from './Events';
+import { CacheService, ObjectCacheService } from './Cache';
+import { EventEnum, events } from './Events';
+import { memInit } from './Memory';
 
-export type MemoryCachable = string | number | string[] | number[];
+export type MemoryCacheable = string | number | string[] | number[];
 
 declare global {
 	interface Memory {
-		cache: { [key: string]: MemoryCachable };
+		cache: { [key: string]: MemoryCacheable };
 	}
 }
 
-class MemoryCache implements CacheService<MemoryCachable> {
-	private cache: ObjectCacheService<MemoryCachable>;
+class MemoryCache implements CacheService<MemoryCacheable> {
+	private cache: ObjectCacheService<MemoryCacheable>;
 
-	get (id: string): MemoryCachable | undefined {
+	get(id: string): MemoryCacheable | undefined {
 		return this.cache.get(id);
 	}
 
-	set (id: string, value: MemoryCachable, ttl: number): void {
+	set(id: string, value: MemoryCacheable, ttl: number): void {
 		return this.cache.set(id, value, ttl);
 	}
 
-	clear (id: string): void {
+	clear(id: string): void {
 		return this.cache.clear(id);
 	}
 
-	static updateStore () {
-		memoryCache.cache = new ObjectCacheService<MemoryCachable>(Memory.cache);
+	static updateStore() {
+		// eslint-disable-next-line @typescript-eslint/no-use-before-define
+		memoryCache.cache = new ObjectCacheService<MemoryCacheable>(Memory.cache);
 	}
 }
 

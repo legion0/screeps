@@ -1,16 +1,16 @@
-import {findMinBy} from './Array';
-import {CacheService} from './Cache';
-import {BODY_PART_SPAWN_TIME, errorCodeToString} from './constants';
-import {log} from './Logger';
-import {SpawnQueuePriority} from './Room';
-import {rawServerCache} from './ServerCache';
-import {sortById} from './util';
-import {fromMemoryWorld, RoomPositionMemory, toMemoryWorld} from './RoomPosition';
-import {EventEnum, events} from './Events';
-import {memInit} from './Memory';
-import {getCreepSpawnName} from './Creep';
+import { findMinBy } from './Array';
+import { CacheService } from './Cache';
+import { BODY_PART_SPAWN_TIME, errorCodeToString } from './constants';
+import { getCreepSpawnName } from './Creep';
+import { EventEnum, events } from './Events';
+import { log } from './Logger';
+import { memInit } from './Memory';
+import { SpawnQueuePriority } from './Room';
+import { fromMemoryWorld, RoomPositionMemory, toMemoryWorld } from './RoomPosition';
+import { rawServerCache } from './ServerCache';
+import { sortById } from './util';
 
-export {SpawnQueuePriority};
+export { SpawnQueuePriority };
 
 declare global {
 	interface Memory {
@@ -26,7 +26,8 @@ interface SpawnQueueMemory {
 export interface SpawnRequest {
 
 	/*
-	 * The base creep name, may have _alt appended to it in cases where the new creep is spawned before the old one dies.
+	 * The base creep name, may have _alt appended to it in cases where the new
+	 * creep is spawned before the old one dies.
 	 * use `getActiveCreep` to get the main and secondary creeps.
 	 */
 	name: string;
@@ -54,20 +55,20 @@ interface SpawnRequestMemory {
 export class SpawnQueue {
 	private memory: SpawnQueueMemory;
 
-	push (request: SpawnRequest): void {
+	push(request: SpawnRequest): void {
 		if (request.name in this.memory.index) {
 			throw new Error(`Trying to re-queue [${request.name}]`);
 		}
 		const duration = request.body.length * BODY_PART_SPAWN_TIME;
 
 		const r: SpawnRequestMemory = {
-			'name': request.name,
-			'body': request.body,
-			'pos': toMemoryWorld(request.pos),
-			'priority': request.priority,
-			'opts': request.opts,
-			'startTime': request.time - duration,
-			'endTime': request.time,
+			name: request.name,
+			body: request.body,
+			pos: toMemoryWorld(request.pos),
+			priority: request.priority,
+			opts: request.opts,
+			startTime: request.time - duration,
+			endTime: request.time,
 		};
 
 		log.d(`Pushing new request for [${request.name}]`);
@@ -76,36 +77,30 @@ export class SpawnQueue {
 		this.bubbleUpR(this.memory.array.length - 1);
 	}
 
-	/*
-	 * Private size(): number {
-	 * 	return this.memory.array.length;
-	 * }
-	 */
-
-	has (name: string): boolean {
+	has(name: string): boolean {
 		return name in this.memory.index;
 	}
 
-	private isEmpty (): boolean {
+	private isEmpty(): boolean {
 		return !(this.memory.array.length > 0);
 	}
 
-	private peek (): SpawnRequestMemory | undefined {
+	private peek(): SpawnRequestMemory | undefined {
 		return this.memory.array[0];
 	}
 
-	private pop (): SpawnRequestMemory | undefined {
-		if (this.memory.array.length == 0) {
+	private pop(): SpawnRequestMemory | undefined {
+		if (this.memory.array.length === 0) {
 			return undefined;
 		}
-		const item = this.memory.array.splice(0, 1)[0];
+		const [item] = this.memory.array.splice(0, 1);
 		delete this.memory.index[item.name];
 		return item;
 	}
 
 	// Move element at position index to its correct position
-	private bubbleUpR (index: number): void {
-		if (index == 0) {
+	private bubbleUpR(index: number): void {
+		if (index === 0) {
 			return;
 		}
 		const current = this.memory.array[index];
@@ -116,14 +111,16 @@ export class SpawnQueue {
 			return;
 		}
 
-		if (isLater(previous, current) || current.priority > previous.priority || current.priority == previous.priority && current.startTime < previous.startTime) {
+		if (isLater(previous, current) ||
+		current.priority > previous.priority ||
+		current.priority === previous.priority && current.startTime < previous.startTime) {
 			this.memory.array[index] = previous;
 			this.memory.array[index - 1] = current;
 			this.bubbleUpR(index - 1);
 		}
 	}
 
-	run () {
+	run() {
 		if (this.isEmpty() || this.peek()!.startTime > Game.time) {
 			return;
 		}
@@ -136,7 +133,7 @@ export class SpawnQueue {
 			this.pop();
 			const newName = getCreepSpawnName(request.name);
 			const rv = spawn.spawnCreep(request.body, newName, request.opts);
-			if (rv == OK) {
+			if (rv === OK) {
 				log.v(`[${spawn}] spawning [${request.name}]`);
 			} else {
 				log.e(`[${spawn}] failed to spawn [${JSON.stringify(request)}] with error [${errorCodeToString(rv)}]`);
@@ -144,10 +141,10 @@ export class SpawnQueue {
 		}
 	}
 
-	static getSpawnQueue (): SpawnQueue {
+	static getSpawnQueue(): SpawnQueue {
 		const cache = rawServerCache as CacheService<SpawnQueue>;
 		let queue = cache.get('spawnQueue');
-		if (queue == null) {
+		if (!queue) {
 			queue = new SpawnQueue();
 			cache.set('spawnQueue', queue, 10000);
 		}
@@ -156,28 +153,17 @@ export class SpawnQueue {
 	}
 }
 
-/**
- * @example
- */
-export function findAllSpawns (): StructureSpawn[] {
+export function findAllSpawns(): StructureSpawn[] {
 	return sortById(_.flatten(Object.values(Game.rooms).map((room) => room.find(FIND_MY_SPAWNS))));
 }
 
-/*
- * Function hasOverlap(lhs: SpawnRequestMemory, rhs: SpawnRequestMemory) {
- * 	// return !(lhs.endTime <= rhs.startTime || rhs.endTime <= lhs.startTime);
- * 	return lhs.endTime > rhs.startTime && rhs.endTime > lhs.startTime;
- * }
- */
-
-// Return true iff lhs comes after rhs
-function isLater (lhs: SpawnRequestMemory, rhs: SpawnRequestMemory) {
+function isLater(lhs: SpawnRequestMemory, rhs: SpawnRequestMemory) {
 	return lhs.startTime >= rhs.endTime;
 }
 
-function initMemory (): SpawnQueueMemory {
-	return memInit(Memory, 'spawnQueue', {'array': [],
-		'index': {}});
+function initMemory(): SpawnQueueMemory {
+	return memInit(Memory, 'spawnQueue', { array: [],
+		index: {} });
 }
 
 events.listen(EventEnum.HARD_RESET, () => {
