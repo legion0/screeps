@@ -1,17 +1,26 @@
 {
+	"compileOnSave": true,
 	"compilerOptions": {
 		"target": "ES6",
 		"moduleResolution": "node",
 		"outDir": "dist/js",
-		"strictNullChecks": true
+		"types": [
+			"node",
+			"lodash",
+			"screeps",
+		]
 	},
+	"forceConsistentCasingInFileNames": true,
+	"noImplicitReturns": true,
+	"strict": true,
+	"noUnusedLocals": true,
 	"rootDir": "src",
 	"include": [
-		"./src/*.ts"
+		"./src/*.ts",
 	],
 	"exclude": [
-		"./src/*.spec.ts"
+		"./src/*.spec.ts",
 	],
 	"emitDecoratorMetadata": true,
-	"esModuleInterop": true
+	"esModuleInterop": true,
 }

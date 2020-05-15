@@ -1,6 +1,6 @@
-declare namespace NodeJS {
-	interface Global {
-		_: any;
-		MemInit(o: object, name: string, value: any): void;
-	}
+export {};
+
+declare global {
+	// eslint-disable-next-line id-length,init-declarations
+  const _: _.LoDashStatic;
 }

@@ -229,8 +229,8 @@ abstract class Action<ContextType> {
 	}
 }
 
-export type TrasferTarget = StructureSpawn | StructureExtension | StructureContainer | StructureTower | StructureStorage;
-export function isTrasferTarget(o: any): o is TrasferTarget {
+export type TransferTarget = StructureSpawn | StructureExtension | StructureContainer | StructureTower | StructureStorage;
+export function isTransferTarget(o: any): o is TransferTarget {
 	return o instanceof StructureSpawn ||
 		o instanceof StructureExtension ||
 		o instanceof StructureContainer ||
@@ -244,11 +244,11 @@ export class Transfer<ContextType> extends Action<ContextType> {
 	}
 
 	test(creep: Creep, target: any) {
-		return isTrasferTarget(target) &&
+		return isTransferTarget(target) &&
 			hasFreeCapacity(target) && hasUsedCapacity(creep);
 	}
 
-	do(creep: Creep, target: TrasferTarget) {
+	do(creep: Creep, target: TransferTarget) {
 		let rv: ScreepsReturnCode = OK;
 		if (creep.pos.isNearTo(target)) {
 			rv = creep.transfer(target, RESOURCE_ENERGY, Math.min(creep.store.energy, getFreeCapacity(target)));
@@ -261,7 +261,7 @@ export class Transfer<ContextType> extends Action<ContextType> {
 		return rv;
 	}
 
-	setArgs(callback: (context: ContextType) => TrasferTarget | undefined) {
+	setArgs(callback: (context: ContextType) => TransferTarget | undefined) {
 		return super.setArgs(callback);
 	}
 }

@@ -39,3 +39,8 @@ export function findMinIndexBy<T>(arr: T[], predicate: (element: T) => number): 
 	}
 	return min[2];
 }
+
+export type NonEmptyArray<T> = [T, ...T[]];
+export function isNonEmptyArray<T>(arr: T[]): arr is NonEmptyArray<T> {
+	return arr.length > 0;
+}

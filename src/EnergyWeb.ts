@@ -1,12 +1,14 @@
 import * as A from "./Action";
-import { isPickupTarget, isWithdrawTarget, PickupTarget, TrasferTarget, WithdrawTarget } from "./Action";
-import { getActiveCreepTtl, getActiveCreep, getLiveCreeps, isActiveCreepSpawning } from "./Creep";
+import { isPickupTarget, isWithdrawTarget, PickupTarget, TransferTarget, WithdrawTarget } from "./Action";
+import { createBodySpec, getBodyForRoom } from "./BodySpec";
+import { getActiveCreepTtl, getLiveCreeps, isActiveCreepSpawning } from "./Creep";
+import { EventEnum, events } from "./Events";
 import { MemInit } from "./Memory";
-import { findMySpawnsOrExtensions, findRoomSource, SpawnQueueItem } from "./Room";
-import { SpawnQueue, SpawnQueuePriority } from "./SpawnQueue";
+import { findMySpawnsOrExtensions, findRoomSource } from "./Room";
+import { findNearbyEnergy } from "./RoomPosition";
+import { SpawnQueue, SpawnQueuePriority, SpawnRequest } from "./SpawnQueue";
 import { getFreeCapacity } from "./Store";
 import { everyN } from "./Tick";
-import { findNearbyEnergy } from "./RoomPosition";
 
 declare global {
 	interface Memory {
@@ -23,14 +25,14 @@ enum EnergyTransferPriority {
 }
 
 interface EnergyRequest {
-	dest: Id<TrasferTarget>;
+	dest: Id<TransferTarget>;
 	amount: number;
 	priority: EnergyTransferPriority;
 }
 
 interface SequenceContext {
 	creep: Creep;
-	transfer?: TrasferTarget;
+	transfer?: TransferTarget;
 	pickup?: PickupTarget;
 	withdraw?: WithdrawTarget;
 }
@@ -67,7 +69,11 @@ class EnergyWeb {
 		let haulerAssignments: { [key: string]: Partial<SequenceContext> } = {};
 
 		for (let [key, request] of Object.entries(Memory.energyWeb.take)) {
-			let dest = Game.getObjectById(request.dest) as TrasferTarget;
+			let dest = Game.getObjectById(request.dest);
+			if (!dest) {
+				delete Memory.energyWeb.take[key];
+				continue;
+			}
 			let freeCapacity = getFreeCapacity(dest);
 			if (freeCapacity == 0) {
 				delete Memory.energyWeb.take[key];
@@ -107,38 +113,38 @@ class EnergyWeb {
 
 				console.log('getActiveCreepTtl(name)', getActiveCreepTtl(name), 'queue.has(name)', queue.has(name));
 
-				queue.has(name) || queue.push({
-					name: name,
-					body: [CARRY, CARRY, MOVE, MOVE],
-					priority: SpawnQueuePriority.BUILDER,
-					time: Game.time + getActiveCreepTtl(name),
-					pos: new RoomPosition(25, 25, room.name),
-				});
+				queue.has(name) || queue.push(buildWebHaulerSpawnRequest(room, name));
 			}
 		});
 	}
 }
 
-function webHaulerSpawnCallback(room: Room, name: string): SpawnQueueItem {
-	let body: BodyPartConstant[] = [];
-	// if (room.energyCapacityAvailable >= 550) {
-	// body = [CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE];
-	// } else {
-	body = [CARRY, CARRY, MOVE, MOVE];
-	// }
+const webHaulerBodySpec = createBodySpec([
+	[CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
+	[CARRY, CARRY, MOVE, MOVE],
+]);
 
-	let cost = _.sum(body, part => BODYPART_COST[part]);
+function buildWebHaulerSpawnRequest(room: Room, name: string): SpawnRequest {
 	return {
-		priority: SpawnQueuePriority.HAULER,
 		name: name,
-		body: body,
-		cost: cost,
+		body: getBodyForRoom(room, webHaulerBodySpec),
+		priority: SpawnQueuePriority.BUILDER,
+		time: Game.time + getActiveCreepTtl(name),
+		pos: new RoomPosition(25, 25, room.name),
 	};
 }
 
-MemInit(Memory, 'energyWeb', {
-	put: {},
-	take: {},
+function initMemory(forced = false) {
+	MemInit(Memory, 'energyWeb', {
+		put: {},
+		take: {},
+	}, forced);
+}
+
+initMemory();
+
+events.listen(EventEnum.HARD_RESET, () => {
+	initMemory(true);
 });
 
 export let energyWeb = new EnergyWeb();
