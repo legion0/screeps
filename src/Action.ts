@@ -122,52 +122,49 @@ function getFrom(creep: Creep, to: RoomPosition): RoomPosition | undefined {
 
 function buildHighway(creep: Creep, from: RoomPosition, to: RoomPosition) {
 	if (Memory.highwayDebugVisuals) {
-		creep.room.visual.line(from.x, from.y, to.x, to.y, {
-			color: 'blue',
-		});
-		creep.room.visual.line(from.x, from.y, creep.pos.x, creep.pos.y, {
-			color: 'blue',
-		});
-		creep.room.visual.line(creep.pos.x, creep.pos.y, to.x, to.y, {
-			color: 'blue',
-		});
+		creep.room.visual.line(from.x, from.y, to.x, to.y, { color: 'blue' });
+		creep.room.visual.line(from.x, from.y, creep.pos.x, creep.pos.y, { color: 'blue' });
+		creep.room.visual.line(creep.pos.x, creep.pos.y, to.x, to.y, { color: 'blue' });
 	}
-	const highway = new Highway(from, to).build();
+	return new Highway(from, to).build();
+}
 
-	if (highway instanceof Highway) {
-		highway.buildRoad();
-
+function getNextHighwaySegment(
+	creep: Creep, current: RoomPosition, to: RoomPosition
+): RoomPosition[] | ScreepsReturnCode {
+	const from = getFrom(creep, to);
+	if (from && from.getRangeTo(to) >= 10) {
+		const highway = buildHighway(creep, from, to);
+		if (highway instanceof Highway) {
+			const path = highway.buildRoad().nextSegment(current, to);
+			creep.memory.highway!.path = path.map(toMemoryWorld);
+			return path;
+		}
+		log.e(`[${creep.name}] failed to build highway [${from}]->[${to}] with error [${errorCodeToString(highway)}]`);
 		return highway;
 	}
-	log.e(`[${creep.name}] failed to build highway [${from}]->[${to}] with error [${errorCodeToString(highway)}]`);
-
-
-	return null;
+	return OK;
 }
 
 function getNextHighwayWaypoint(creep: Creep, to: RoomPosition): RoomPosition | ScreepsReturnCode {
 	memInit(creep.memory, 'highway', { path: [] });
-	let fakeCurrent = creep.pos;
+	let current = creep.pos;
 	let path = creep.memory.highway!.path.map(fromMemoryWorld);
+	if (path.length && creepStuckDuration(creep) > CREEP_STUCK_INTERVAL) {
+		// Log.w(`Creep [${creep}] stuck, moving to next highway position`);
+		current = path.shift()!;
+		creep.memory.highway!.path.shift();
+	}
 	if (path.length && path[0].isEqualTo(creep.pos)) {
 		path.shift();
 		creep.memory.highway!.path.shift();
 	}
-	if (path.length && creepStuckDuration(creep) > CREEP_STUCK_INTERVAL) {
-		// Log.w(`Creep [${creep}] stuck, moving to next highway position`);
-		fakeCurrent = path.shift()!;
-		creep.memory.highway!.path.shift();
-	}
 	if (!path.length) {
-		const from = getFrom(creep, to);
-		if (from && from.getRangeTo(to) >= 10) {
-			const highway = buildHighway(creep, from, to);
-			if (highway) {
-				path = highway.nextSegment(fakeCurrent, to);
-				creep.memory.highway!.path = path.map(toMemoryWorld);
-			}
+		const nextSegment = getNextHighwaySegment(creep, current, to);
+		if (nextSegment instanceof Array) {
+			path = nextSegment;
 		} else {
-			return OK;
+			return nextSegment;
 		}
 	}
 	if (!path.length) {
@@ -200,10 +197,14 @@ export function moveTo(creep: Creep, to: RoomPosition, highway: boolean, range: 
 	} else {
 		rv = creep.moveTo(nextWaypoint);
 	}
-	if (rv !== OK) {
-		if (!(rv === ERR_NO_PATH && creepStuckDuration(creep) < CREEP_STUCK_INTERVAL)) {
-			log.e(`[${creep.name}] failed to moveTo [${to}] via [${nextHighwayWaypoint}] step: [${creep.pos}]->[${nextWaypoint}] with error [${errorCodeToString(rv)}]`);
-		}
+	if (rv !== OK && (rv !== ERR_NO_PATH || Game.time % 50 === 0)) {
+		// need to figure out why am i trying to move to my current position via a highway waypoint
+		// idea: it might be the next point in the stored highway?
+		// ERROR   127376 [UpgradeController.W7N7.1] failed to moveTo
+		// [[room W7N7 pos 15,10]] via [[room W7N7 pos 4,12]]
+		// step: [[room W7N7 pos 4,12]]->[[room W7N7 pos 4,12]]
+		// with error [ERR_INVALID_ARGS] [moveTo main:1517:13]
+		log.e(`[${creep.name}] failed to moveTo [${to}] via [${nextHighwayWaypoint}] step: [${creep.pos}]->[${nextWaypoint}] with error [${errorCodeToString(rv)}]`);
 	}
 
 	return rv;
