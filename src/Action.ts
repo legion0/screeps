@@ -3,9 +3,10 @@ import { Highway } from './Highway';
 import { log } from './Logger';
 import { memInit } from './Memory';
 import { getRecyclePos } from './Room';
-import { fromMemoryWorld, lookNear, RoomPositionMemory, toMemoryRoom, toMemoryWorld } from './RoomPosition';
+import { fromMemoryWorld, lookNear, RoomPositionMemory, toMemoryRoom, toMemoryWorld, fromMemoryRoom } from './RoomPosition';
 import { getFreeCapacity, hasFreeCapacity, hasUsedCapacity } from './Store';
 import { isDamaged, isSpawn } from './Structure';
+import { events, EventEnum } from './Events';
 
 declare global {
 	interface CreepMemory {
@@ -21,7 +22,6 @@ declare global {
 	}
 	interface Memory {
 		creepSayAction?: boolean;
-		creepSayIdle?: boolean;
 		highwayDebugVisuals?: boolean;
 	}
 }
@@ -47,47 +47,51 @@ export enum ActionType {
 }
 
 
-const ORDER1 = [
-	ActionType.HARVEST,
-	ActionType.ATTACK,
-	ActionType.BUILD,
-	ActionType.REPAIR,
-	ActionType.DISMANTLE,
-	ActionType.ATTACK_CONTROLLER,
-	ActionType.RANGED_HEAL,
-	ActionType.HEAL,
-];
-const ORDER2 = [
-	ActionType.RANGED_ATTACK,
-	ActionType.RANGED_MASS_ATTACK,
-	ActionType.BUILD,
-	ActionType.RANGED_HEAL,
-];
-// Only when not enough energy to do everything:
-const ORDER3 = [
-	ActionType.UPGRADE_CONTROLLER,
-	ActionType.BUILD,
-	ActionType.REPAIR,
-	ActionType.WITHDRAW,
-	ActionType.TRANSFER,
-	ActionType.DROP,
-];
+// const ORDER1 = [
+// 	ActionType.HARVEST,
+// 	ActionType.ATTACK,
+// 	ActionType.BUILD,
+// 	ActionType.REPAIR,
+// 	ActionType.DISMANTLE,
+// 	ActionType.ATTACK_CONTROLLER,
+// 	ActionType.RANGED_HEAL,
+// 	ActionType.HEAL,
+// ];
+// const ORDER2 = [
+// 	ActionType.RANGED_ATTACK,
+// 	ActionType.RANGED_MASS_ATTACK,
+// 	ActionType.BUILD,
+// 	ActionType.RANGED_HEAL,
+// ];
+// // Only when not enough energy to do everything:
+// const ORDER3 = [
+// 	ActionType.UPGRADE_CONTROLLER,
+// 	ActionType.BUILD,
+// 	ActionType.REPAIR,
+// 	ActionType.WITHDRAW,
+// 	ActionType.TRANSFER,
+// 	ActionType.DROP,
+// ];
 
 
 const CREEP_STUCK_INTERVAL = 3;
 
-// TODO: move to tick end calculation, this code is not executed if creep if fatigued
-function creepIsStuck(creep: Creep) {
+function creepUpdateMoveTicker(creep: Creep) {
+	if (creep.memory.lastPos && creep.fatigue) {
+		creep.memory.lastPos.since = Game.time;
+	} else	if (creep.memory.lastPos &&
+		!creep.pos.isEqualTo(fromMemoryRoom(creep.memory.lastPos.pos, creep.pos.roomName))) {
+		creep.memory.lastPos.pos = toMemoryRoom(creep.pos);
+		creep.memory.lastPos.since = Game.time;
+	}
+}
+
+function creepStuckDuration(creep: Creep) {
 	const lastPos = memInit(creep.memory, 'lastPos', {
 		pos: toMemoryRoom(creep.pos),
 		since: Game.time,
 	});
-	if (lastPos.pos !== toMemoryRoom(creep.pos)) {
-		lastPos.pos = toMemoryRoom(creep.pos);
-		lastPos.since = Game.time;
-		return false;
-	}
-	return lastPos.since + CREEP_STUCK_INTERVAL < Game.time;
+	return Game.time - lastPos.since;
 }
 
 const HIGHWAY_RANGE = 3;
@@ -128,10 +132,7 @@ function buildHighway(creep: Creep, from: RoomPosition, to: RoomPosition) {
 			color: 'blue',
 		});
 	}
-	const highway = new Highway(
-		from,
-		to
-	).build();
+	const highway = new Highway(from, to).build();
 
 	if (highway instanceof Highway) {
 		highway.buildRoad();
@@ -152,8 +153,8 @@ function getNextHighwayWaypoint(creep: Creep, to: RoomPosition): RoomPosition | 
 		path.shift();
 		creep.memory.highway!.path.shift();
 	}
-	if (path.length && creepIsStuck(creep)) {
-		log.w(`Creep [${creep}] stuck, moving to next highway position`);
+	if (path.length && creepStuckDuration(creep) > CREEP_STUCK_INTERVAL) {
+		// Log.w(`Creep [${creep}] stuck, moving to next highway position`);
 		fakeCurrent = path.shift()!;
 		creep.memory.highway!.path.shift();
 	}
@@ -184,21 +185,25 @@ export function moveTo(creep: Creep, to: RoomPosition, highway: boolean, range: 
 		return OK;
 	}
 	let rv: ScreepsReturnCode = OK;
+	let nextHighwayWaypoint: RoomPosition | undefined;
 	if (highway) {
-		const nextHighwayWaypoint = getNextHighwayWaypoint(creep, to);
-		if (nextHighwayWaypoint instanceof RoomPosition) {
-			to = nextHighwayWaypoint;
-		} else if (nextHighwayWaypoint !== OK) {
-			log.e(`Creep [${creep}] at [${creep.pos}] failed to walk highway from [${creep.memory.highway?.from}] to [${to}] with error [${errorCodeToString(nextHighwayWaypoint)}]`);
+		const highwayRv = getNextHighwayWaypoint(creep, to);
+		if (highwayRv instanceof RoomPosition) {
+			nextHighwayWaypoint = highwayRv;
+		} else if (highwayRv !== OK) {
+			log.e(`Creep [${creep}] at [${creep.pos}] failed to walk highway from [${creep.memory.highway?.from}] to [${to}] with error [${errorCodeToString(highwayRv)}]`);
 		}
 	}
-	if (creep.pos.isNearTo(to)) {
-		rv = creep.move(creep.pos.getDirectionTo(to));
+	const nextWaypoint = nextHighwayWaypoint ? nextHighwayWaypoint : to;
+	if (creep.pos.isNearTo(nextWaypoint)) {
+		rv = creep.move(creep.pos.getDirectionTo(nextWaypoint));
 	} else {
-		rv = creep.moveTo(to);
+		rv = creep.moveTo(nextWaypoint);
 	}
 	if (rv !== OK) {
-		log.e(`[${creep.name}] failed to moveTo [${to}] [${creep.pos}]->[${to}] with error [${errorCodeToString(rv)}]`);
+		if (!(rv === ERR_NO_PATH && creepStuckDuration(creep) < CREEP_STUCK_INTERVAL)) {
+			log.e(`[${creep.name}] failed to moveTo [${to}] via [${nextHighwayWaypoint}] step: [${creep.pos}]->[${nextWaypoint}] with error [${errorCodeToString(rv)}]`);
+		}
 	}
 
 	return rv;
@@ -210,7 +215,7 @@ export function recycle(creep: Creep) {
 	if (!recyclePos) {
 		return;
 	}
-	if (creep.pos.isNearTo(recyclePos)) {
+	if (creep.pos.isEqualTo(recyclePos)) {
 		const spawn = lookNear(
 			recyclePos,
 			LOOK_STRUCTURES,
@@ -248,11 +253,9 @@ abstract class Action<ContextType> {
 
 	abstract do(creep: Creep, target: any): ScreepsReturnCode;
 
-	/*
-	 * Set a callback to execute on context when running sequence.
-	 * If multiple targets are involved this lets you pick the correct one for
-	 * the relevant action.
-	 */
+	// Set a callback to execute on context when running sequence.
+	// If multiple targets are involved this lets you pick the correct one for
+	// the relevant action.
 	setArgs(callback: (context: ContextType) => any) {
 		this.callback = callback;
 
@@ -317,12 +320,7 @@ export class Transfer<ContextType> extends Action<ContextType> {
 				log.e(`[${creep.name}] failed to transfer to [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(
-				creep,
-				target.pos,
-				this.highway,
-				1
-			);
+			rv = moveTo(creep, target.pos, this.highway, 1);
 		}
 
 		return rv;
@@ -345,21 +343,13 @@ export class Build<ContextType> extends Action<ContextType> {
 	do(creep: Creep, target: ConstructionSite) {
 		let rv: ScreepsReturnCode = OK;
 
-		if (creep.pos.inRangeTo(
-			target.pos,
-			BUILD_RANGE
-		)) {
+		if (creep.pos.inRangeTo(target.pos, BUILD_RANGE)) {
 			rv = creep.build(target);
 			if (rv !== OK) {
 				log.e(`[${creep.name}] failed to build [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(
-				creep,
-				target.pos,
-				this.highway,
-				BUILD_RANGE
-			);
+			rv = moveTo(creep, target.pos, this.highway, BUILD_RANGE);
 		}
 
 		return rv;
@@ -381,24 +371,14 @@ export class Repair<ContextType> extends Action<ContextType> {
 
 	do(creep: Creep, target: Structure) {
 		let rv: ScreepsReturnCode = OK;
-
-		if (creep.pos.inRangeTo(
-			target.pos,
-			REPAIR_RANGE
-		)) {
+		if (creep.pos.inRangeTo(target.pos, REPAIR_RANGE)) {
 			rv = creep.repair(target);
 			if (rv !== OK) {
 				log.e(`[${creep.name}] failed to repair [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(
-				creep,
-				target.pos,
-				this.highway,
-				REPAIR_RANGE
-			);
+			rv = moveTo(creep, target.pos, this.highway, REPAIR_RANGE);
 		}
-
 		return rv;
 	}
 
@@ -423,12 +403,15 @@ export class Pickup<ContextType> extends Action<ContextType> {
 	}
 
 	do(creep: Creep, target: PickupTarget) {
-		const rv = creep.pickup(target);
-
-		if (rv !== OK) {
-			log.e(`[${creep.name}] failed to pickup [${target}] with error [${errorCodeToString(rv)}]`);
+		let rv: ScreepsReturnCode = OK;
+		if (creep.pos.isNearTo(target)) {
+			rv = creep.pickup(target);
+			if (rv !== OK) {
+				log.e(`[${creep.name}] failed to pickup [${target}] with error [${errorCodeToString(rv)}]`);
+			}
+		} else {
+			rv = moveTo(creep, target.pos, this.highway, 1);
 		}
-
 		return rv;
 	}
 
@@ -448,24 +431,14 @@ export class UpgradeController<ContextType> extends Action<ContextType> {
 
 	do(creep: Creep, target: StructureController) {
 		let rv: ScreepsReturnCode = OK;
-
-		if (creep.pos.inRangeTo(
-			target.pos,
-			UPGRADE_RANGE
-		)) {
+		if (creep.pos.inRangeTo(target.pos, UPGRADE_RANGE)) {
 			rv = creep.upgradeController(target);
 			if (rv !== OK) {
 				log.e(`[${creep.name}] failed to upgradeController [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(
-				creep,
-				target.pos,
-				this.highway,
-				UPGRADE_RANGE
-			);
+			rv = moveTo(creep, target.pos, this.highway, UPGRADE_RANGE);
 		}
-
 		return rv;
 	}
 
@@ -505,20 +478,12 @@ export class Withdraw<ContextType> extends Action<ContextType> {
 		let rv: ScreepsReturnCode = OK;
 
 		if (creep.pos.isNearTo(target.pos)) {
-			rv = creep.withdraw(
-				target,
-				RESOURCE_ENERGY
-			);
+			rv = creep.withdraw(target, RESOURCE_ENERGY);
 			if (rv !== OK) {
 				log.e(`[${creep.name}] failed to withdraw from [${target}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			rv = moveTo(
-				creep,
-				target.pos,
-				this.highway,
-				1
-			);
+			rv = moveTo(creep, target.pos, this.highway, 1);
 		}
 
 		return rv;
@@ -603,7 +568,11 @@ export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any
 		if (Memory.creepSayAction) {
 			creep.say(ActionType[chosenAction.actionType]);
 		}
-	} else if (Memory.creepSayIdle) {
-		creep.say('idle');
+	} else if (Memory.creepSayAction) {
+		creep.say('.');
 	}
 }
+
+events.listen(EventEnum.EVENT_TICK_START, () => {
+	Object.values(Game.creeps).forEach((c) => creepUpdateMoveTicker(c));
+});

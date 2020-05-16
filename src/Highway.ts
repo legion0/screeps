@@ -8,6 +8,8 @@ import { isRoad, isWalkableStructure } from './Structure';
 import { everyN } from './Tick';
 
 interface HighwayMemory {
+	from: RoomPositionMemory;
+	to: RoomPositionMemory;
 	path: RoomPositionMemory[];
 	lastUsed?: number;
 }
@@ -46,11 +48,16 @@ export class Highway {
 		if (this.from.getRangeTo(this.to) < 10) {
 			return ERR_FULL;
 		}
-		this.memory = memInit(Memory.highways, this.name, { path: [] });
+		this.memory = memInit(Memory.highways, this.name, {
+			path: [],
+			from: toMemoryWorld(this.from),
+			to: toMemoryWorld(this.to),
+		});
 		this.memory.lastUsed = Game.time;
 		if (this.memory.path.length) {
 			return this;
 		}
+		log.d(`Attempting to build highway from [${this.from}] to [${this.to}]`);
 		const rv = PathFinder.search(this.from, { pos: this.to,
 			range: 1 }, {
 			plainCost: 1,
@@ -112,13 +119,13 @@ export class Highway {
 	static findHighway(current: RoomPosition, to: RoomPosition) {
 		const range = current.getRangeTo(to);
 		const candidates = Object.values(Memory.highways).filter(
-			(memory) => fromMemoryWorld(memory.path[0]).getRangeTo(to) <= 5 ||
-			fromMemoryWorld(memory.path[memory.path.length - 1]).getRangeTo(to) <= 5
+			(memory) => fromMemoryWorld(memory.from).getRangeTo(to) <= 5 ||
+			fromMemoryWorld(memory.to).getRangeTo(to) <= 5
 		);
 
 		for (const memory of candidates) {
-			const start = fromMemoryWorld(memory.path[0]);
-			const end = fromMemoryWorld(memory.path[memory.path.length - 1]);
+			const start = fromMemoryWorld(memory.from);
+			const end = fromMemoryWorld(memory.to);
 			const onRamp = findMinBy(memory.path.map(fromMemoryWorld),
 				(pos) => pos.getRangeTo(current) + pos.getRangeTo(to) / range)!;
 			if (onRamp.getRangeTo(current) > 5) {
@@ -183,11 +190,6 @@ export class Highway {
 
 // eslint-disable-next-line max-lines-per-function
 events.listen(EventEnum.EVENT_TICK_END, () => {
-	if (Game.flags.highway_begin && Game.flags.highway_end) {
-		new Highway(Game.flags.highway_begin.pos, Game.flags.highway_end.pos).build();
-		Game.flags.highway_begin.remove();
-		Game.flags.highway_end.remove();
-	}
 	// Cleanup old unused highways
 	everyN(500, () => {
 		for (const name of Object.keys(Memory.highways)) {
@@ -202,14 +204,6 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 		}
 	});
 
-	if (Memory.showHighways) {
-		for (const highway of Object.values(Memory.highways)) {
-			const path = highway.path.map(fromMemoryWorld);
-			const room = Game.rooms[path[0].roomName];
-			room.visual.poly(path, { stroke: 'yellow' });
-		}
-	}
-
 	if (Memory.clearHighways) {
 		log.w(`Clearing all highways!`);
 		delete Memory.clearHighways;
@@ -221,21 +215,39 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 			delete Memory.creeps[name].highway;
 		}
 	}
+
+	if (Memory.showHighways) {
+		for (const highway of Object.values(Memory.highways)) {
+			const path = highway.path.map(fromMemoryWorld);
+			const from = fromMemoryWorld(highway.from);
+			const to = fromMemoryWorld(highway.to);
+
+			// TODO: support multi room highway display
+			const room = Game.rooms[from.roomName];
+			room.visual.poly(path, { stroke: 'yellow' });
+			room.visual.line(from.x, from.y, path[0].x, path[0].y, { color: 'yellow' });
+			room.visual.line(to.x, to.y, path[path.length - 1].x, path[path.length - 1].y, { color: 'yellow' });
+		}
+	}
 });
 
 function removeRoads(pos: RoomPosition) {
-	pos.lookFor(LOOK_CONSTRUCTION_SITES)
-		.filter((s) => s.structureType === STRUCTURE_ROAD)
-		.forEach((s) => s.remove());
+	if (Game.rooms[pos.roomName]) {
+		pos.lookFor(LOOK_CONSTRUCTION_SITES)
+			.filter((s) => s.structureType === STRUCTURE_ROAD)
+			.forEach((s) => s.remove());
+	}
 }
 
 function removeRoadAtMem(posMem: RoomPositionMemory) {
 	const pos = fromMemoryWorld(posMem);
-	const road = lookForStructureAt(STRUCTURE_ROAD, pos);
-	if (road instanceof ConstructionSite) {
-		road.remove();
-	} else if (road instanceof StructureRoad) {
-		road.destroy();
+	if (Game.rooms[pos.roomName]) {
+		const road = lookForStructureAt(STRUCTURE_ROAD, pos);
+		if (road instanceof ConstructionSite) {
+			road.remove();
+		} else if (road instanceof StructureRoad) {
+			road.destroy();
+		}
 	}
 }
 

@@ -5,12 +5,13 @@ import { GENERIC_WORKER } from './constants';
 import { getActiveCreepTtl, getLiveCreepsAll, isActiveCreepSpawning } from './Creep';
 import { log } from './Logger';
 import { nextExtensionPos } from './Planning';
-import { BuildQueuePriority, constructionQueueSize, currentConstruction, findRoomSource, requestConstruction, SpawnQueuePriority } from './Room';
-import { findNearbyEnergy } from './RoomPosition';
+import { BuildQueuePriority, constructionQueueSize, currentConstruction, findRoomSource, requestConstruction, findMyConstructionSites } from './Room';
+import { findNearbyEnergy, toMemoryRoom } from './RoomPosition';
 import { elapsed } from './ServerCache';
-import { SpawnQueue, SpawnRequest } from './SpawnQueue';
+import { SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { Task } from './Task';
 import { everyN } from './Tick';
+import { findMinBy } from './Array';
 
 interface SequenceContext {
 	creep: Creep;
@@ -29,7 +30,7 @@ export class TaskBuildRoom extends Task {
 
 	readonly roomName: string;
 
-	readonly room: Room;
+	readonly room?: Room;
 
 	readonly constructionSite?: ConstructionSite;
 
@@ -43,21 +44,19 @@ export class TaskBuildRoom extends Task {
 		super(TaskBuildRoom, roomName);
 		this.roomName = roomName;
 		this.room = Game.rooms[roomName];
-		this.constructionSite = currentConstruction(this.room.name) ?? undefined;
+		this.constructionSite = currentConstruction(this.room.name) ?? findMinBy(findMyConstructionSites(this.room), (s: ConstructionSite) => toMemoryRoom(s.pos));
 		this.constructionQueueSize = constructionQueueSize(this.room.name);
-		if (this.constructionSite) {
-			const roomSource = findRoomSource(this.room);
-			if (isWithdrawTarget(roomSource)) {
-				this.withdrawTarget = roomSource;
-			} else if (roomSource instanceof Source) {
-				this.harvestTarget = roomSource;
-			}
+		const roomSource = findRoomSource(this.room);
+		if (isWithdrawTarget(roomSource)) {
+			this.withdrawTarget = roomSource;
+		} else if (roomSource instanceof Source) {
+			this.harvestTarget = roomSource;
 		}
 	}
 
 	protected run() {
 		// Create new extensions
-		everyN(50, () => {
+		everyN(5, () => {
 			for (const pos of nextExtensionPos(this.room)) {
 				const rv = requestConstruction(pos, STRUCTURE_EXTENSION, BuildQueuePriority.EXTENSION);
 				if (rv !== OK && rv !== ERR_NAME_EXISTS) {
@@ -83,9 +82,8 @@ export class TaskBuildRoom extends Task {
 		for (const creep of getLiveCreepsAll(this.creepNames())) {
 			if (noMoreBuilding) {
 				A.recycle(creep);
-			} else {
-				A.runSequence(sequence, creep, { creep, task: this });
 			}
+			A.runSequence(sequence, creep, { creep, task: this });
 		}
 	}
 

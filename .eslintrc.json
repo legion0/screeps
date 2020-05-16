@@ -68,13 +68,7 @@
 		"brace-style": "error",
 		"callback-return": "off",
 		"camelcase": "error",
-		"capitalized-comments": [
-			"error",
-			"always",
-			{
-				"ignoreInlineComments": true
-			}
-		],
+		"capitalized-comments": "off",
 		"class-methods-use-this": "off",
 		"comma-dangle": [
 			"error",
@@ -162,7 +156,10 @@
 			}
 		],
 		"max-statements-per-line": "error",
-		"multiline-comment-style": "error",
+		"multiline-comment-style": [
+			"error",
+			"separate-lines"
+		],
 		"multiline-ternary": [
 			"error",
 			"always-multiline"
@@ -192,13 +189,6 @@
 		"no-extra-bind": "error",
 		"no-extra-label": "error",
 		"no-extra-parens": "off",
-		"@typescript-eslint/no-extra-parens": [
-			"error",
-			"all",
-			{
-				"enforceForArrowConditionals": false
-			}
-		],
 		"no-floating-decimal": "error",
 		"no-implicit-coercion": "error",
 		"no-implicit-globals": "error",
@@ -210,7 +200,7 @@
 		"no-labels": "error",
 		"no-lone-blocks": "error",
 		"no-lonely-if": "error",
-		"no-loop-func": "error",
+		"no-loop-func": "off",
 		"no-magic-numbers": "off",
 		"no-mixed-operators": "off",
 		"no-mixed-requires": "error",
@@ -252,12 +242,7 @@
 		"no-sequences": "error",
 		"no-shadow": "error",
 		"no-spaced-func": "error",
-		"no-tabs": [
-			"error",
-			{
-				"allowIndentationTabs": true
-			}
-		],
+		"no-tabs": "off",
 		"no-template-curly-in-string": "error",
 		"no-ternary": "off",
 		"no-throw-literal": "error",

@@ -5,7 +5,7 @@ import { EventEnum, events } from './Events';
 import { log } from './Logger';
 import { memInit } from './Memory';
 import { PriorityQueue } from './PriorityQueue';
-import { fromMemoryWorld, lookForStructureAt, posKey, posNear, RoomPositionMemory, toMemoryWorld } from './RoomPosition';
+import { fromMemoryWorld, lookForStructureAt, posKey, posNear, RoomPositionMemory, toMemoryWorld, getClearance } from './RoomPosition';
 import { objectServerCache } from './ServerCache';
 import { getUsedCapacity, hasUsedCapacity } from './Store';
 import { filterStructureType, isExtension, isSpawn, isSpawnOrExtension, isWalkableStructure } from './Structure';
@@ -14,17 +14,8 @@ import { sortById } from './util';
 
 declare global {
 	interface RoomMemory {
-		constructionQueueSize: number;
+		constructionQueueSize?: number;
 	}
-}
-
-export enum SpawnQueuePriority {
-	UNKNOWN,
-	WORKER,
-	HAULER,
-	HARVESTER,
-	BUILDER,
-	UPGRADER,
 }
 
 export enum BuildQueuePriority {
@@ -60,20 +51,6 @@ function spawnQueueKeyFunc(item: SpawnQueueItem): string {
 	return item.name;
 }
 
-export function requestCreepSpawn(room: Room, name: string, callback: (room?: Room, name?: string) => SpawnQueueItem) {
-	if (Game.creeps[name]) {
-		return ERR_NAME_EXISTS;
-	}
-	const queue = PriorityQueue.loadOrCreate(
-		Memory.rooms[room.name], 'spawnQueue', spawnQueueCompareFunc, spawnQueueKeyFunc
-	);
-	if (queue.hasItem(name)) {
-		return ERR_NAME_EXISTS;
-	}
-	queue.push(callback(room, name));
-	return OK;
-}
-
 function buildQueueCompareFunc(lhs: BuildQueueItem, rhs: BuildQueueItem): boolean {
 	return lhs.priority < rhs.priority;
 }
@@ -101,6 +78,7 @@ export function requestConstruction(
 		priority,
 		name,
 	});
+	memInit(Memory.rooms, pos.roomName, {});
 	memInit(Memory.rooms[pos.roomName], 'constructionQueueSize', 0);
 	Memory.rooms[pos.roomName].constructionQueueSize += CONSTRUCTION_COST[structureType];
 	return OK;
@@ -112,7 +90,7 @@ export function currentConstruction(roomName: string): ConstructionSite | null {
 		return constructionSite;
 	}
 	const queue = PriorityQueue.loadOrCreate(
-		Memory.rooms[roomName], 'buildQueue', buildQueueCompareFunc, buildQueueKeyFunc
+		memInit(Memory.rooms, roomName, {}), 'buildQueue', buildQueueCompareFunc, buildQueueKeyFunc
 	);
 	if (queue.isEmpty()) {
 		tickCacheService.set(`${roomName}.currentConstruction`, null);
@@ -121,6 +99,8 @@ export function currentConstruction(roomName: string): ConstructionSite | null {
 	while (!queue.isEmpty()) {
 		const item = queue.peek();
 		const pos = fromMemoryWorld(item.pos);
+		// log.d2(`Next Construction is at [${pos}] from`, item);
+		// log.d2(toMemoryWorld(new RoomPosition(7, 12, 'W7N7')));
 		constructionSite = pos.lookFor(LOOK_CONSTRUCTION_SITES)
 			.find((s) => s.my && s.structureType === item.structureType);
 		if (constructionSite) {
@@ -134,12 +114,10 @@ export function currentConstruction(roomName: string): ConstructionSite | null {
 				log.e(`Failed to create construction [${item.structureType}] at [${pos}]`);
 			}
 
-			/*
-			 * TODO: work out better planning to have the construction site placed
-			 * before the previous one is fully done.
-			 * e.g. save the current out of the queue and always place the queue
-			 * peek on so we have the current and next (still better then all).
-			 */
+			// TODO: work out better planning to have the construction site placed
+			// before the previous one is fully done.
+			// e.g. save the current out of the queue and always place the queue
+			// peek on so we have the current and next (still better then all).
 			constructionSite = null;
 			break;
 		}
@@ -153,7 +131,16 @@ export function currentConstruction(roomName: string): ConstructionSite | null {
 }
 
 export function constructionQueueSize(roomName: string): number {
-	return memInit(Memory.rooms[roomName], 'constructionQueueSize', 0);
+	let currentSize = memInit(Memory.rooms[roomName], 'constructionQueueSize', 0);
+	if (currentSize > 0) {
+		const queue = PriorityQueue.loadOrCreate(
+			Memory.rooms[roomName], 'buildQueue', buildQueueCompareFunc, buildQueueKeyFunc
+		);
+		if (queue.isEmpty()) {
+			currentSize = Memory.rooms[roomName].constructionQueueSize = 0;
+		}
+	}
+	return currentSize;
 }
 
 events.listen(EventEnum.EVENT_TICK_END, () => {
@@ -243,7 +230,7 @@ const findRoomSourceCache: CacheEntrySpec<RoomSource, Room> = {
 		}
 
 		if (!roomSource) {
-			const source = findSources(room).filter((s) => hasUsedCapacity(s))[0] as Source;
+			const source = findSources(room).filter((s) => hasUsedCapacity(s) && getClearance(s.pos) > 1)[0] as Source;
 			if (source) {
 				roomSource = source;
 			}
@@ -288,6 +275,9 @@ export function findRoomSync(room: Room): RoomSync | undefined {
 
 export function getRecyclePos(room: Room): RoomPosition | undefined {
 	const spawns = findMySpawns(room);
+	if (spawns.length === 0) {
+		return undefined;
+	}
 	const pos = posNear(spawns[0].pos, false).find(isGoodRecyclePos) ?? undefined;
 	if (pos) {
 		Game.rooms[pos.roomName].visual.circle(pos.x, pos.y, { fill: 'blue' });

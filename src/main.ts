@@ -7,7 +7,6 @@ import { checkServerCache, serverId } from './ServerCache';
 import { SpawnQueue } from './SpawnQueue';
 import { Task } from './Task';
 import { TaskBootRoom } from './Task.BootRoom';
-import { TaskUpgradeController } from './Task.UpgradeController';
 
 
 declare global {
@@ -32,7 +31,6 @@ function mainLoop() {
 		}
 		if (room.controller && room.controller.my) {
 			TaskBootRoom.create(room.name);
-			TaskUpgradeController.create(room.name);
 		}
 	}
 	Task.runAll();

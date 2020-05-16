@@ -1,9 +1,9 @@
 import * as A from './Action';
 import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { getActiveCreepTtl, isActiveCreepSpawning, getLiveCreepsAll } from './Creep';
-import { findRoomSource, RoomSource, SpawnQueuePriority } from './Room';
+import { findRoomSource, RoomSource } from './Room';
 import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
-import { SpawnQueue, SpawnRequest } from './SpawnQueue';
+import { SpawnQueue, SpawnRequest, SpawnQueuePriority } from './SpawnQueue';
 import { Task } from './Task';
 import { everyN } from './Tick';
 import { GENERIC_WORKER } from './constants';
@@ -19,6 +19,7 @@ const upgradeControllerActions = [
 	new A.Repair<SequenceContext>().setArgs((c) => lookForStructureAt(STRUCTURE_ROAD, c.creep.pos)),
 	new A.UpgradeController<SequenceContext>().setArgs((c) => c.task.controller).setHighway(),
 	new A.Pickup<SequenceContext>().setArgs((c) => findNearbyEnergy(c.creep.pos)),
+	new A.Pickup<SequenceContext>().setArgs((c) => c.task.pickupTarget),
 	new A.Withdraw<SequenceContext>().setArgs((c) => c.task.withdrawTarget).setHighway(),
 	new A.Harvest<SequenceContext>().setArgs((c) => c.task.harvestTarget).setPersist(),
 ];
@@ -34,6 +35,8 @@ export class TaskUpgradeController extends Task {
 
 	readonly withdrawTarget?: A.WithdrawTarget;
 
+	readonly pickupTarget?: A.PickupTarget;
+
 	readonly harvestTarget?: Source;
 
 	constructor(roomName: Id<TaskUpgradeController>) {
@@ -44,7 +47,9 @@ export class TaskUpgradeController extends Task {
 		}
 		this.controller = this.room?.controller;
 		const roomSource = findRoomSource(this.room);
-		if (A.isWithdrawTarget(roomSource)) {
+		if (A.isPickupTarget(roomSource)) {
+			this.pickupTarget = roomSource;
+		} else if (A.isWithdrawTarget(roomSource)) {
 			this.withdrawTarget = roomSource;
 		} else if (roomSource instanceof Source) {
 			this.harvestTarget = roomSource;

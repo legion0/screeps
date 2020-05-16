@@ -88,10 +88,7 @@ export interface TaskClass<SubClass> extends Registerable<typeof Task> {
 }
 
 events.listen(EventEnum.HARD_RESET, () => {
-	delete Memory.tasks;
-	memInit(Memory, 'tasks', {
-	});
+	memInit(Memory, 'tasks', {}, true);
 });
 
-memInit(Memory, 'tasks', {
-});
+memInit(Memory, 'tasks', {});

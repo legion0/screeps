@@ -5,17 +5,26 @@ import { getCreepSpawnName } from './Creep';
 import { EventEnum, events } from './Events';
 import { log } from './Logger';
 import { memInit } from './Memory';
-import { SpawnQueuePriority } from './Room';
 import { fromMemoryWorld, RoomPositionMemory, toMemoryWorld } from './RoomPosition';
 import { rawServerCache } from './ServerCache';
 import { sortById } from './util';
+import { everyN } from './Tick';
 
-export { SpawnQueuePriority };
 
 declare global {
 	interface Memory {
 		spawnQueue: SpawnQueueMemory | undefined;
+		clearSpawnQueue?: boolean;
 	}
+}
+
+export enum SpawnQueuePriority {
+  UNKNOWN,
+	WORKER,
+	HAULER,
+	HARVESTER,
+	BUILDER,
+	UPGRADER,
 }
 
 interface SpawnQueueMemory {
@@ -45,6 +54,7 @@ export interface SpawnRequest {
 interface SpawnRequestMemory {
 	name: string;
 	body: BodyPartConstant[];
+	cost: number;
 	pos: RoomPositionMemory;
 	startTime: number;
 	endTime: number;
@@ -64,6 +74,7 @@ export class SpawnQueue {
 		const r: SpawnRequestMemory = {
 			name: request.name,
 			body: request.body,
+			cost: _.sum(request.body, (part) => BODYPART_COST[part]),
 			pos: toMemoryWorld(request.pos),
 			priority: request.priority,
 			opts: request.opts,
@@ -112,7 +123,7 @@ export class SpawnQueue {
 		}
 
 		if (isLater(previous, current) ||
-		current.priority > previous.priority ||
+		current.priority < previous.priority ||
 		current.priority === previous.priority && current.startTime < previous.startTime) {
 			this.memory.array[index] = previous;
 			this.memory.array[index - 1] = current;
@@ -125,10 +136,26 @@ export class SpawnQueue {
 			return;
 		}
 
-		const request = this.peek()!;
+		let request: SpawnRequestMemory;
+		let validSpawns: StructureSpawn[];
+		while (!this.isEmpty()) {
+			request = this.peek()!;
+			validSpawns = findAllSpawns()
+				.filter((s) => s.room.energyCapacityAvailable >= request.cost);
+			if (validSpawns.length) {
+				break;
+			}
+			log.e('Discarding invalid request', request);
+			this.pop();
+		}
+		if (this.isEmpty()) {
+			return;
+		}
+
 		const requestPos = fromMemoryWorld(request.pos);
-		const spawns = findAllSpawns().filter((s) => !s.spawning);
-		const spawn = findMinBy(spawns, (s) => s.pos.getRangeTo(requestPos));
+		const availableSpawns = validSpawns.filter((s) => !s.spawning)
+			.filter((s) => s.room.energyAvailable >= request.cost);
+		const spawn = findMinBy(availableSpawns, (s) => s.pos.getRangeTo(requestPos));
 		if (spawn) {
 			this.pop();
 			const newName = getCreepSpawnName(request.name);
@@ -138,6 +165,8 @@ export class SpawnQueue {
 			} else {
 				log.e(`[${spawn}] failed to spawn [${JSON.stringify(request)}] with error [${errorCodeToString(rv)}]`);
 			}
+		} else {
+			everyN(50, () => log.w(`Not enough energy for spawning next request [${request.name}] with cost [${request.cost}]`));
 		}
 	}
 
@@ -169,4 +198,13 @@ function initMemory(): SpawnQueueMemory {
 events.listen(EventEnum.HARD_RESET, () => {
 	Memory.spawnQueue = undefined;
 	initMemory();
+});
+
+events.listen(EventEnum.EVENT_TICK_END, () => {
+	if (Memory.clearSpawnQueue) {
+		log.w('Clearing spawn queue!');
+		delete Memory.clearSpawnQueue;
+		Memory.spawnQueue = undefined;
+		initMemory();
+	}
 });

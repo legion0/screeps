@@ -17,5 +17,5 @@ export function createBodySpec(bodyOptions: BodyPartConstant[][]): BodySpec[] {
 
 export function getBodyForRoom(room: Room, specs: BodySpec[]) {
 	assert.ok(specs.length > 0);
-	return findMaxBy(specs, (spec) => (spec.cost <= room.energyAvailable ? spec.cost : 0))!.body;
+	return findMaxBy(specs, (spec) => (spec.cost <= room.energyCapacityAvailable ? spec.cost : 0))!.body;
 }

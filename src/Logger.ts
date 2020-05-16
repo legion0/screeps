@@ -59,7 +59,7 @@ export function getSourcePosition(skipFrames?: number): SourcePosition {
 		error = err;
 	}
 	// Console.log(error.stack);
-	const callerLine = error.stack!.split('\n')[skipFrames ?? 0 + 2];
+	const callerLine = error.stack!.split('\n')[(skipFrames ?? 0) + 2];
 	const match = getSourcePositionRegEx.exec(callerLine);
 	if (!match) {
 		throw new Error(`Failed to parse call stack line [${callerLine}] at getSourcePosition`);

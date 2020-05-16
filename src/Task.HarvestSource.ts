@@ -1,14 +1,14 @@
 import * as A from './Action';
 import { createBodySpec, getBodyForRoom } from './BodySpec';
-import { CacheEntrySpec, CacheService, getFromCacheSpec, MutatingCacheService, ObjectCacheService } from './Cache';
+import { CacheEntrySpec, CacheService, getFromCacheSpec, MutatingCacheService } from './Cache';
 import { errorCodeToString, GENERIC_WORKER, TERRAIN_PLAIN } from './constants';
 import { getActiveCreepTtl, getLiveCreeps, isActiveCreepSpawning } from './Creep';
 import { log } from './Logger';
-import { findRoomSync, RoomSync, SpawnQueuePriority } from './Room';
+import { RoomSync } from './Room';
 import { findNearbyEnergy, fromMemoryWorld, lookNear, posNear, toMemoryWorld } from './RoomPosition';
 import { objectServerCache, rawServerStrongCache } from './ServerCache';
-import { SpawnQueue, SpawnRequest } from './SpawnQueue';
-import { isConcreteStructure, isConstructionSiteForStructure, isContainer } from './Structure';
+import { SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
+import { isConcreteStructure, isConstructionSiteForStructure } from './Structure';
 import { Task } from './Task';
 import { everyN } from './Tick';
 
@@ -63,11 +63,8 @@ export class TaskHarvestSource extends Task {
 
 	readonly roomSync?: RoomSync;
 
-	private readonly cache: ObjectCacheService<any>;
-
 	constructor(sourceId: Id<TaskHarvestSource>) {
 		super(TaskHarvestSource, sourceId);
-		this.cache = new ObjectCacheService<any>(this);
 		const source = Game.getObjectById(sourceId as unknown as Id<Source>);
 
 		if (!source) {
@@ -77,12 +74,10 @@ export class TaskHarvestSource extends Task {
 		this.container = getFromCacheSpec(containerCache, `${this.id}.container`, this.source.pos) ?? undefined;
 		if (!this.container) {
 			this.constructionSite = getFromCacheSpec(constructionSiteCache, `${this.id}.constructionSite`, this.source.pos) ?? undefined;
+			if (!this.constructionSite) {
+				this.placeContainer();
+			}
 		}
-		this.roomSync = findRoomSync(this.source.room) ?? undefined;
-		if (isContainer(this.roomSync)) {
-			this.roomSync = undefined;
-		}
-		this.maybePlaceContainer();
 	}
 
 	protected run() {
@@ -108,10 +103,7 @@ export class TaskHarvestSource extends Task {
 		return new TaskHarvestSource(source.id as unknown as Id<TaskHarvestSource>);
 	}
 
-	private maybePlaceContainer() {
-		if (this.container || this.constructionSite) {
-			return;
-		}
+	private placeContainer() {
 		const containerPos = getFromCacheSpec(
 			containerPositionCache,
 			`${this.id}.containerPos`,
@@ -128,14 +120,14 @@ Task.register.registerTaskClass(TaskHarvestSource);
 
 const bodySpec = createBodySpec([
 	[WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE],
-	GENERIC_WORKER,
+	[WORK, WORK, CARRY, MOVE],
 ]);
 
 function buildSpawnRequest(room: Room, name: string, sourcePos: RoomPosition): SpawnRequest {
 	return {
 		name,
 		body: getBodyForRoom(room, bodySpec),
-		priority: SpawnQueuePriority.UPGRADER,
+		priority: SpawnQueuePriority.HARVESTER,
 		time: Game.time + getActiveCreepTtl(name),
 		pos: sourcePos,
 	};

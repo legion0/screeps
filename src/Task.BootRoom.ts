@@ -1,10 +1,9 @@
-import * as assert from './assert';
 import { findSources } from './Room';
 import { Task } from './Task';
-import { TaskBootSource } from './Task.BootSource';
 import './Task.BuildRoom';
 import { TaskBuildRoom } from './Task.BuildRoom';
 import { TaskHarvestSource } from './Task.HarvestSource';
+import { TaskUpgradeController } from './Task.UpgradeController';
 import { everyN } from './Tick';
 
 export class TaskBootRoom extends Task {
@@ -28,16 +27,9 @@ export class TaskBootRoom extends Task {
 		// Boot sources
 		everyN(10, () => {
 			findSources(this.room).forEach((source) => {
-				if (!assert.hasProperty(source.room, 'controller')) {
-					return;
-				}
-				if (source.room.controller.level < 2) {
-					TaskBootSource.create(source);
-				} else {
-					TaskHarvestSource.create(source);
-					TaskBootSource.remove(source);
-				}
+				TaskHarvestSource.create(source);
 			});
+			TaskUpgradeController.create(this.room.name);
 			TaskBuildRoom.create(this.roomName);
 		});
 	}
