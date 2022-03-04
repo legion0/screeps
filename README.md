@@ -2,7 +2,17 @@
 
 ## Setup
 
-rm -rf node_modules package-lock.json && npm install
+```shell
+sudo apt update
+sudo apt install python2 build-essential
+
+Install NVM: https://github.com/nvm-sh/nvm#installing-and-updating
+# Screeps driver requires node version <= 12
+nvm install v12.22.10 && nvm use v12.22.10
+
+export PYTHON="$(which python2)"
+rm -rf node_modules && npm install
+```
 
 ## testing
 
