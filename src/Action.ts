@@ -22,6 +22,7 @@ declare global {
 	}
 	interface Memory {
 		creepSayAction?: boolean;
+		creepSayName?: boolean;
 		highwayDebugVisuals?: boolean;
 	}
 }
@@ -46,6 +47,42 @@ export enum ActionType {
 	DROP,
 }
 
+export function actionTypeName(actionType: ActionType) {
+	switch (actionType) {
+		case ActionType.MOVE:
+			return "MOVE";
+		case ActionType.DEPOSIT:
+			return "DEPOSIT";
+		case ActionType.REPAIR:
+			return "REPAIR";
+		case ActionType.BUILD:
+			return "BUILD";
+		case ActionType.PICKUP:
+			return "PICKUP";
+		case ActionType.UPGRADE_CONTROLLER:
+			return "UPGRADE_CONTROLLER";
+		case ActionType.WITHDRAW:
+			return "WITHDRAW";
+		case ActionType.HARVEST:
+			return "HARVEST";
+		case ActionType.ATTACK:
+			return "ATTACK";
+		case ActionType.DISMANTLE:
+			return "DISMANTLE";
+		case ActionType.ATTACK_CONTROLLER:
+			return "ATTACK_CONTROLLER";
+		case ActionType.RANGED_HEAL:
+			return "RANGED_HEAL";
+		case ActionType.HEAL:
+			return "HEAL";
+		case ActionType.RANGED_ATTACK:
+			return "RANGED_ATTACK";
+		case ActionType.TRANSFER:
+			return "TRANSFER";
+		case ActionType.DROP:
+			return "DROP";
+	}
+}
 
 // const ORDER1 = [
 // 	ActionType.HARVEST,
@@ -79,7 +116,7 @@ const CREEP_STUCK_INTERVAL = 3;
 function creepUpdateMoveTicker(creep: Creep) {
 	if (creep.memory.lastPos && creep.fatigue) {
 		creep.memory.lastPos.since = Game.time;
-	} else	if (creep.memory.lastPos &&
+	} else if (creep.memory.lastPos &&
 		!creep.pos.isEqualTo(fromMemoryRoom(creep.memory.lastPos.pos, creep.pos.roomName))) {
 		creep.memory.lastPos.pos = toMemoryRoom(creep.pos);
 		creep.memory.lastPos.since = Game.time;
@@ -571,6 +608,9 @@ export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any
 		}
 	} else if (Memory.creepSayAction) {
 		creep.say('.');
+	}
+	if (Memory.creepSayName) {
+		creep.say(creep.name);
 	}
 }
 

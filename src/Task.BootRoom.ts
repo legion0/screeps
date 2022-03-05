@@ -1,6 +1,5 @@
 import { findSources } from './Room';
 import { Task } from './Task';
-import './Task.BuildRoom';
 import { TaskBuildRoom } from './Task.BuildRoom';
 import { TaskHarvestSource } from './Task.HarvestSource';
 import { TaskUpgradeController } from './Task.UpgradeController';

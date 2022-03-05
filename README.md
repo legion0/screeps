@@ -20,17 +20,17 @@ rm -rf node_modules && npm install
 
 system.setTickDuration(4000)
 
-storage.db['rooms.objects'].update({ type: 'constructionSite' }, { $set: { progress: 2995 }})
+storage.db['rooms.objects'].update({ type: 'constructionSite' }, { $set: { progress: 2999 }})
 
-storage.db['rooms.objects'].update({room: 'W7N7', type: 'container'}, {$set: {store: {energy: 0}}})
+storage.db['rooms.objects'].update({room: 'W8N8', type: 'container'}, {$set: {store: {energy: 0}}})
 
-storage.db['rooms.objects'].update({room: 'W7N7', type: 'energy'}, {$set: {energy: 5000}})
+storage.db['rooms.objects'].update({room: 'W8N8', type: 'energy'}, {$set: {energy: 5000}})
 
-storage.db['rooms.objects'].find({room: 'W7N7', type: 'creep', name: 'energyWeb1'})
-storage.db['rooms.objects'].update({room: 'W7N7', type: 'creep', name: 'energyWeb1'}, {$set: {ageTime: 119096 - 1300}})
+storage.db['rooms.objects'].find({room: 'W8N8', type: 'creep', name: 'energyWeb1'})
+storage.db['rooms.objects'].update({room: 'W8N8', type: 'creep', name: 'energyWeb1'}, {$set: {ageTime: 119096 - 1300}})
 
-storage.db['rooms.objects'].find({room: 'W7N7', type: 'spawn'})
-storage.db['rooms.objects'].update({room: 'W7N7', type: 'spawn'}, {$set: {store: {energy: 298}}})
+storage.db['rooms.objects'].find({room: 'W8N8', type: 'spawn'})
+storage.db['rooms.objects'].update({room: 'W8N8', type: 'spawn'}, {$set: {store: {energy: 300}}})
 
 https://wiki.screepspl.us/index.php/Private_Server_Common_Tasks
 https://github.com/techfort/LokiJS/wiki
@@ -38,6 +38,9 @@ https://github.com/techfort/LokiJS/wiki
 ## TODO
 
 ### P0
+
+* Do not build highways until later in the game, e.g. containers + controller level 2
+* Make spawning body dynamic so we can downgrade the body in case the spawn is starved for resources for a prolonged period of time (e.g. all creeps are dead and no one is going to fill the extensions).
 
 * Make highway lookup by finding highway endpoint within range of edges, otherwise it creates multiple different highways for very close together destinations, this will also potentially allow to hick to existing highway from random position without the "from" position.
 * Build energy request system
@@ -58,6 +61,7 @@ https://github.com/techfort/LokiJS/wiki
 ## Console Commands
 
 * `Memory.creepSayAction = true` 
+* `Memory.creepSayName = true` 
 * `Memory.highwayDebugVisuals = true` 
 * `Memory.showHighways = true` 
 * `Memory.clearHighways = true` 

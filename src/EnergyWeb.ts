@@ -1,11 +1,10 @@
-import * as A from './Action';
-import { isPickupTarget, isWithdrawTarget, PickupTarget, TransferTarget, WithdrawTarget } from './Action';
+import { TransferTarget } from './Action';
 import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { getActiveCreepTtl, getLiveCreeps, isActiveCreepSpawning } from './Creep';
+import { getHaulerCreepName, runHaulerCreep } from './creep.Hauler';
 import { EventEnum, events } from './Events';
 import { memInit } from './Memory';
-import { findMySpawnsOrExtensions, findRoomSource } from './Room';
-import { findNearbyEnergy } from './RoomPosition';
+import { findStructuresByType } from './Room';
 import { SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { getFreeCapacity } from './Store';
 import { everyN } from './Tick';
@@ -13,14 +12,14 @@ import { everyN } from './Tick';
 declare global {
 	interface Memory {
 		energyWeb: {
-			put: { [key: string]: EnergyRequest },
-			take: { [key: string]: EnergyRequest },
+			put: { [key: string]: EnergyRequest; },
+			take: { [key: string]: EnergyRequest; },
 		};
 	}
 }
 
-enum EnergyTransferPriority {
-	BASIC,
+export enum EnergyTransferPriority {
+	NORMAL,
 	URGENT,
 }
 
@@ -31,18 +30,8 @@ interface EnergyRequest {
 }
 
 interface SequenceContext {
-	creep: Creep;
-	transfer?: TransferTarget;
-	pickup?: PickupTarget;
-	withdraw?: WithdrawTarget;
+	transferTarget?: TransferTarget;
 }
-
-const webHaulCreepActions = [
-	new A.Pickup<SequenceContext>().setArgs((c) => findNearbyEnergy(c.creep.pos)),
-	new A.Transfer<SequenceContext>().setArgs((c) => c.transfer),
-	new A.Pickup<SequenceContext>().setArgs((c) => c.pickup),
-	new A.Withdraw<SequenceContext>().setArgs((c) => c.withdraw),
-];
 
 class EnergyWeb {
 	put(request: EnergyRequest) {
@@ -54,9 +43,7 @@ class EnergyWeb {
 	}
 
 	run() {
-		this.placeTakeOrdersForSpawns();
-
-		const haulerAssignments: { [key: string]: Partial<SequenceContext> } = {};
+		const haulerAssignments: { [key: string]: Partial<SequenceContext>; } = {};
 
 		for (const [key, request] of Object.entries(Memory.energyWeb.take)) {
 			const dest = Game.getObjectById(request.dest);
@@ -70,57 +57,35 @@ class EnergyWeb {
 				continue;
 			}
 
-			haulerAssignments[`${dest.pos.roomName}.hauler`] = { transfer: dest };
+			haulerAssignments[getHaulerCreepName(Game.rooms[dest.pos.roomName])] = { transferTarget: dest };
 			break;
 		}
 
 		this.runCreeps(haulerAssignments);
-		this.spawnHaulers();
-	}
-
-	private placeTakeOrdersForSpawns() {
-		Object.values(Game.rooms).forEach((room) => {
-			if (room.energyAvailable < room.energyCapacityAvailable) {
-				findMySpawnsOrExtensions(room)
-					.filter((t) => t.energy < t.energyCapacity)
-					.forEach((t) => {
-						this.take({
-							dest: t.id,
-							amount: t.energyCapacity - t.energy,
-							priority: EnergyTransferPriority.URGENT,
-						});
-					});
-			}
-		});
 	}
 
 	private runCreeps(haulerAssignments: { [key: string]: Partial<SequenceContext>; }) {
-		for (const name of Object.keys(Game.rooms).map((roomName) => `${roomName}.hauler`)) {
-			for (const creep of getLiveCreeps(name)) {
-				creep.room.visual.circle(creep.pos.x, creep.pos.y, { stroke: 'red', radius: 1, fill: 'transparent' });
-				const sequenceContext = haulerAssignments[name] || {};
-				sequenceContext.creep = creep;
-				const room = Game.rooms[creep.pos.roomName];
-				let source = findRoomSource(room);
-				source = source instanceof Source ? undefined : source;
-				sequenceContext.pickup = isPickupTarget(source) ? source : undefined;
-				sequenceContext.withdraw = isWithdrawTarget(source) ? source : undefined;
-				A.runSequence(webHaulCreepActions, creep, sequenceContext);
+		for (let room of Object.values(Game.rooms)) {
+			if (!room.controller.my) {
+				continue;
 			}
-		}
-	}
-
-	private spawnHaulers() {
-		everyN(20, () => {
-			for (const room of Object.values(Game.rooms).filter((r) => r.controller?.my)) {
-				const name = `${room.name}.hauler`;
-				if (getActiveCreepTtl(name) > 50 || isActiveCreepSpawning(name)) {
-					continue;
+			// if there is no containers to haul from then we don't need haulers.
+			if (findStructuresByType(room, STRUCTURE_CONTAINER).length == 0) {
+				continue;
+			}
+			const creepName = getHaulerCreepName(room);
+			everyN(20, () => {
+				if (getActiveCreepTtl(creepName) > 50 || isActiveCreepSpawning(creepName)) {
+					return;
 				}
 				const queue = SpawnQueue.getSpawnQueue();
-				queue.has(name) || queue.push(buildSpawnRequest(room, name));
+				// queue.has(creepName) || queue.push(buildSpawnRequest(room, creepName));
+			});
+			for (const creep of getLiveCreeps(creepName)) {
+				room.visual.circle(creep.pos.x, creep.pos.y, { stroke: 'red', radius: 1, fill: 'transparent' });
+				runHaulerCreep(creep, haulerAssignments[creepName]?.transferTarget);
 			}
-		});
+		}
 	}
 }
 

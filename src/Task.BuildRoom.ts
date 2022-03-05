@@ -5,7 +5,7 @@ import { GENERIC_WORKER } from './constants';
 import { getActiveCreepTtl, getLiveCreepsAll, isActiveCreepSpawning } from './Creep';
 import { log } from './Logger';
 import { nextExtensionPos } from './Planning';
-import { BuildQueuePriority, constructionQueueSize, currentConstruction, findRoomSource, requestConstruction, findMyConstructionSites } from './Room';
+import { BuildQueuePriority, constructionQueueSize, currentConstruction, findRoomSource, requestConstruction, findMyConstructionSites, findStructuresByType } from './Room';
 import { findNearbyEnergy, toMemoryRoom } from './RoomPosition';
 import { elapsed } from './ServerCache';
 import { SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
@@ -55,6 +55,11 @@ export class TaskBuildRoom extends Task {
 	}
 
 	protected run() {
+		// use containers as proxy for room age/ability
+		if (findStructuresByType(this.room, STRUCTURE_CONTAINER).length == 0) {
+			return;
+		}
+
 		// Create new extensions
 		everyN(5, () => {
 			for (const pos of nextExtensionPos(this.room)) {

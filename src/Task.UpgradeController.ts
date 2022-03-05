@@ -1,7 +1,7 @@
 import * as A from './Action';
 import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { getActiveCreepTtl, isActiveCreepSpawning, getLiveCreepsAll } from './Creep';
-import { findRoomSource, RoomSource } from './Room';
+import { findRoomSource, findStructuresByType, RoomSource } from './Room';
 import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
 import { SpawnQueue, SpawnRequest, SpawnQueuePriority } from './SpawnQueue';
 import { Task } from './Task';
@@ -73,7 +73,12 @@ export class TaskUpgradeController extends Task {
 	}
 
 	private creepNames(): string[] {
-		return _.range(0, 3).map((i) => `${this.id}.${i}`);
+		let numCreeps = 1;
+		// use containers as proxy for room age/ability
+		if (findStructuresByType(this.room, STRUCTURE_CONTAINER).length > 0) {
+			numCreeps = 3;
+		}
+		return _.range(0, numCreeps).map((i) => `${this.id}.${i}`);
 	}
 
 	static create(roomName: string) {

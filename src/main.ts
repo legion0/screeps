@@ -8,10 +8,13 @@ import { SpawnQueue } from './SpawnQueue';
 import { Task } from './Task';
 import { TaskBootRoom } from './Task.BootRoom';
 
+import './StructureSpawn';
+import { creepActions } from './actions2';
+
 
 declare global {
 	interface Memory {
-		discoveredRooms: { [key: string]: null };
+		discoveredRooms: { [key: string]: null; };
 		hardReset: boolean;
 		cpuEma: number;
 		cpuEmaWindowSize: number;
@@ -36,6 +39,7 @@ function mainLoop() {
 	Task.runAll();
 	energyWeb.run();
 	SpawnQueue.getSpawnQueue().run();
+	creepActions.runActions();
 }
 
 module.exports.loop = function loop() {

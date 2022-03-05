@@ -19,7 +19,7 @@ declare global {
 }
 
 export enum SpawnQueuePriority {
-  UNKNOWN,
+	UNKNOWN,
 	WORKER,
 	HAULER,
 	HARVESTER,
@@ -29,7 +29,7 @@ export enum SpawnQueuePriority {
 
 interface SpawnQueueMemory {
 	array: SpawnRequestMemory[];
-	index: { [key: string]: null };
+	index: { [key: string]: null; };
 }
 
 export interface SpawnRequest {
@@ -123,8 +123,8 @@ export class SpawnQueue {
 		}
 
 		if (isLater(previous, current) ||
-		current.priority < previous.priority ||
-		current.priority === previous.priority && current.startTime < previous.startTime) {
+			current.priority < previous.priority ||
+			current.priority === previous.priority && current.startTime < previous.startTime) {
 			this.memory.array[index] = previous;
 			this.memory.array[index - 1] = current;
 			this.bubbleUpR(index - 1);
@@ -191,8 +191,10 @@ function isLater(lhs: SpawnRequestMemory, rhs: SpawnRequestMemory) {
 }
 
 function initMemory(): SpawnQueueMemory {
-	return memInit(Memory, 'spawnQueue', { array: [],
-		index: {} });
+	return memInit(Memory, 'spawnQueue', {
+		array: [],
+		index: {}
+	});
 }
 
 events.listen(EventEnum.HARD_RESET, () => {
