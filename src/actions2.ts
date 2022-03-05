@@ -1,5 +1,5 @@
 import { ActionType, actionTypeName, moveTo, PickupTarget, TransferTarget, WithdrawTarget } from './Action';
-import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE } from './constants';
+import { BUILD_RANGE, errorCodeToString, RANGED_ATTACK_RANGE, REPAIR_RANGE, UPGRADE_RANGE } from './constants';
 import { log } from './Logger';
 import { findMySpawns } from './Room';
 import { getFreeCapacity } from './Store';
@@ -38,7 +38,7 @@ export function build(creep: Creep, target: ConstructionSite) {
   if (creep.pos.inRangeTo(target.pos, BUILD_RANGE)) {
     return creep.build(target);
   } else {
-    return moveTo(creep, target.pos, /*highway=*/false, /*range=*/BUILD_RANGE);
+    return moveTo(creep, target.pos, /*highway=*/false, BUILD_RANGE);
   }
 }
 
@@ -46,7 +46,7 @@ export function repair(creep: Creep, target: Structure) {
   if (creep.pos.inRangeTo(target.pos, REPAIR_RANGE)) {
     return creep.repair(target);
   } else {
-    return moveTo(creep, target.pos, /*highway=*/false, /*range=*/REPAIR_RANGE);
+    return moveTo(creep, target.pos, /*highway=*/false, REPAIR_RANGE);
   }
 }
 
@@ -58,11 +58,19 @@ export function attack(creep: Creep, target: AnyCreep | Structure) {
   }
 }
 
+export function rangedAttack(creep: Creep, target: AnyCreep | Structure) {
+  if (creep.pos.inRangeTo(target.pos, RANGED_ATTACK_RANGE)) {
+    return creep.attack(target);
+  } else {
+    return moveTo(creep, target.pos, /*highway=*/false, RANGED_ATTACK_RANGE);
+  }
+}
+
 export function upgradeController(creep: Creep, target: StructureController) {
   if (creep.pos.inRangeTo(target.pos, UPGRADE_RANGE)) {
     return creep.upgradeController(target);
   } else {
-    return moveTo(creep, target.pos, /*highway=*/false, /*range=*/UPGRADE_RANGE);
+    return moveTo(creep, target.pos, /*highway=*/false, UPGRADE_RANGE);
   }
 }
 

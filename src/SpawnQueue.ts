@@ -1,7 +1,6 @@
 import { findMinBy } from './Array';
 import { CacheService } from './Cache';
 import { BODY_PART_SPAWN_TIME, errorCodeToString } from './constants';
-import { getCreepSpawnName } from './Creep';
 import { EventEnum, events } from './Events';
 import { log } from './Logger';
 import { memInit } from './Memory';
@@ -179,14 +178,13 @@ export class SpawnQueue {
 		const spawn = findMinBy(availableSpawns, (s) => s.pos.getRangeTo(requestPos));
 		if (spawn) {
 			this.pop();
-			const newName = getCreepSpawnName(request.name);
 			const body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(spawnRequestFromMemory(request), spawn);
 			if (body == null) {
 				log.w(`Skipping null body for request [${request.name}]`);
 				this.run();
 				return;
 			}
-			const rv = spawn.spawnCreep(body, newName, request.opts);
+			const rv = spawn.spawnCreep(body, request.name, request.opts);
 			if (rv === OK) {
 				log.v(`[${spawn}] spawning [${request.name}]`);
 			} else {

@@ -2,7 +2,6 @@ import * as A from './Action';
 import { isWithdrawTarget, WithdrawTarget } from './Action';
 import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { GENERIC_WORKER } from './constants';
-import { getActiveCreepTtl, getLiveCreepsAll, isActiveCreepSpawning } from './Creep';
 import { log } from './Logger';
 import { nextExtensionPos } from './Planning';
 import { BuildQueuePriority, constructionQueueSize, currentConstruction, findRoomSource, requestConstruction, findMyConstructionSites, findStructuresByType } from './Room';
@@ -12,6 +11,7 @@ import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from 
 import { Task } from './Task';
 import { everyN } from './Tick';
 import { findMinBy } from './Array';
+import { CreepPair } from './creep_pair';
 
 interface SequenceContext {
 	creep: Creep;
@@ -24,6 +24,8 @@ const sequence = [
 	new A.Withdraw<SequenceContext>().setArgs((c) => c.task.withdrawTarget),
 	new A.Harvest<SequenceContext>().setArgs((c) => c.task.harvestTarget).setPersist(),
 ];
+
+const kMaxBuildersPerRoom = 3;
 
 export class TaskBuildRoom extends Task {
 	static readonly className = 'BuildRoom' as Id<typeof Task>;
@@ -70,29 +72,33 @@ export class TaskBuildRoom extends Task {
 			}
 		});
 
-		const numCreeps = Math.min(Math.ceil(this.constructionQueueSize / 5000), 3);
-		// Spawn builders
-		everyN(20, () => {
-			for (const name of this.creepNames(numCreeps)) {
-				if (getActiveCreepTtl(name) > 50 || isActiveCreepSpawning(name)) {
-					continue;
-				}
-				const queue = SpawnQueue.getSpawnQueue();
-				queue.has(name) || queue.push(buildSpawnRequest(this.room, name));
-			}
-		});
-
-		// Run builders
+		const numCreeps = Math.min(Math.ceil(this.constructionQueueSize / 5000), kMaxBuildersPerRoom);
 		const noMoreBuilding = elapsed(`${this.id}.lastBuild`, 10, Boolean(this.constructionSite));
-		for (const creep of getLiveCreepsAll(this.creepNames())) {
-			if (noMoreBuilding) {
-				A.recycle(creep);
+
+		for (const name of this.creepNames(numCreeps)) {
+			const creepPair = new CreepPair(name);
+			everyN(20, () => {
+				if (creepPair.getActiveCreepTtl() < 50) {
+					SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
+						|| SpawnQueue.getSpawnQueue().push(
+							buildSpawnRequest(this.room, creepPair.getSecondaryCreepName(),
+								Game.time + creepPair.getActiveCreepTtl()));
+				}
+			});
+		}
+
+		for (const name of this.creepNames(kMaxBuildersPerRoom)) {
+			const creepPair = new CreepPair(name);
+			for (const creep of creepPair.getLiveCreeps()) {
+				if (noMoreBuilding) {
+					A.recycle(creep);
+				}
+				A.runSequence(sequence, creep, { creep, task: this });
 			}
-			A.runSequence(sequence, creep, { creep, task: this });
 		}
 	}
 
-	private creepNames(numCreeps = 3): string[] {
+	private creepNames(numCreeps: number): string[] {
 		return _.range(0, numCreeps).map((i) => `${this.id}.${i}`);
 	}
 
@@ -110,12 +116,12 @@ const bodySpec = createBodySpec([
 	GENERIC_WORKER,
 ]);
 
-function buildSpawnRequest(room: Room, name: string): SpawnRequest {
+function buildSpawnRequest(room: Room, name: string, time: number): SpawnRequest {
 	return {
 		name,
 		bodyPartsCallbackName: bodyPartsCallbackName,
 		priority: SpawnQueuePriority.BUILDER,
-		time: Game.time + getActiveCreepTtl(name),
+		time: time,
 		pos: room.controller.pos,
 		context: {
 			roomName: room.name,

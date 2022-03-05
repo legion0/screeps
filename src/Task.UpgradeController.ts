@@ -1,14 +1,12 @@
-import * as A from './Action';
 import { createBodySpec, getBodyForRoom } from './BodySpec';
-import { getActiveCreepTtl, isActiveCreepSpawning, getLiveCreepsAll } from './Creep';
-import { findRoomSource, findStructuresByType, RoomSource } from './Room';
-import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
-import { SpawnQueue, SpawnRequest, SpawnQueuePriority, BodyPartsCallback } from './SpawnQueue';
-import { Task } from './Task';
-import { everyN } from './Tick';
 import { GENERIC_WORKER } from './constants';
 import { runUpgradeCreep } from './creeps.upgrade';
+import { CreepPair } from './creep_pair';
+import { findStructuresByType } from './Room';
+import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
+import { Task } from './Task';
 import { hasHarvestCreeps } from './Task.HarvestSource';
+import { everyN } from './Tick';
 
 export class TaskUpgradeController extends Task {
 	static className = 'UpgradeController' as Id<typeof Task>;
@@ -21,18 +19,19 @@ export class TaskUpgradeController extends Task {
 	}
 
 	protected run() {
-		everyN(20, () => {
-			for (const name of this.creepNames()) {
-				if (getActiveCreepTtl(name) > 50 || isActiveCreepSpawning(name)) {
-					continue;
+		for (const name of this.creepNames()) {
+			const creepPair = new CreepPair(name);
+			everyN(20, () => {
+				if (creepPair.getActiveCreepTtl() < 50) {
+					SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
+						|| SpawnQueue.getSpawnQueue().push(
+							buildSpawnRequest(this.room, creepPair.getSecondaryCreepName(),
+								Game.time + creepPair.getActiveCreepTtl()));
 				}
-				const queue = SpawnQueue.getSpawnQueue();
-				queue.has(name) || queue.push(buildSpawnRequest(this.room, name));
+			});
+			for (const creep of creepPair.getLiveCreeps()) {
+				runUpgradeCreep(creep, this.room);
 			}
-		});
-
-		for (const creep of getLiveCreepsAll(this.creepNames())) {
-			runUpgradeCreep(creep, this.room);
 		}
 	}
 
@@ -59,12 +58,12 @@ const bodySpec = createBodySpec([
 	GENERIC_WORKER,
 ]);
 
-function buildSpawnRequest(room: Room, name: string): SpawnRequest {
+function buildSpawnRequest(room: Room, name: string, time: number): SpawnRequest {
 	return {
 		name,
 		bodyPartsCallbackName: bodyPartsCallbackName,
 		priority: SpawnQueuePriority.UPGRADER,
-		time: Game.time + getActiveCreepTtl(name),
+		time: time,
 		pos: room.controller.pos,
 		context: {
 			roomName: room.name,

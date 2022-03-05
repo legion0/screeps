@@ -1,12 +1,12 @@
 import { TransferTarget } from './Action';
-import { createBodySpec, getBodyForRoom } from './BodySpec';
-import { getActiveCreepTtl, getLiveCreeps, isActiveCreepSpawning } from './Creep';
 import { getHaulerCreepName, runHaulerCreep } from './creeps.hauler';
+import { CreepPair } from './creep_pair';
 import { EventEnum, events } from './Events';
 import { memInit } from './Memory';
 import { findStructuresByType } from './Room';
 import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { getFreeCapacity } from './Store';
+import { getEnergyAvailableForSpawn, getEnergyCapacityForSpawn } from './structure.spawn.energy';
 import { everyN } from './Tick';
 
 declare global {
@@ -73,33 +73,31 @@ class EnergyWeb {
 			if (findStructuresByType(room, STRUCTURE_CONTAINER).length == 0) {
 				continue;
 			}
-			const creepName = getHaulerCreepName(room);
+			const creepBaseName = getHaulerCreepName(room);
+			const creepPair = new CreepPair(creepBaseName);
 			everyN(20, () => {
-				if (getActiveCreepTtl(creepName) > 50 || isActiveCreepSpawning(creepName)) {
+				if (creepPair.getActiveCreepTtl() > 50) {
 					return;
 				}
-				const queue = SpawnQueue.getSpawnQueue();
-				queue.has(creepName) || queue.push(buildSpawnRequest(room, creepName));
+				SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
+					|| SpawnQueue.getSpawnQueue().push(
+						buildSpawnRequest(room, creepPair.getSecondaryCreepName(),
+							Game.time + creepPair.getActiveCreepTtl()));
 			});
-			for (const creep of getLiveCreeps(creepName)) {
+			for (const creep of creepPair.getLiveCreeps()) {
 				room.visual.circle(creep.pos.x, creep.pos.y, { stroke: 'red', radius: 1, fill: 'transparent' });
-				runHaulerCreep(creep, haulerAssignments[creepName]?.transferTarget);
+				runHaulerCreep(creep, haulerAssignments[creepBaseName]?.transferTarget);
 			}
 		}
 	}
 }
 
-const bodySpec = createBodySpec([
-	[CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE],
-	[CARRY, CARRY, MOVE, MOVE],
-]);
-
-function buildSpawnRequest(room: Room, name: string): SpawnRequest {
+function buildSpawnRequest(room: Room, name: string, time: number): SpawnRequest {
 	return {
 		name,
 		bodyPartsCallbackName: bodyPartsCallbackName,
 		priority: SpawnQueuePriority.HAULER,
-		time: Game.time + getActiveCreepTtl(name),
+		time: time,
 		pos: room.controller.pos,
 		context: {
 			roomName: room.name,
@@ -107,12 +105,31 @@ function buildSpawnRequest(room: Room, name: string): SpawnRequest {
 	};
 }
 
-type SpawnRequestContext = {
-	roomName: string;
-};
+// TODO: add self heal better survive during attacks
+function getBodyForEnergy(energy: number) {
+	let amount = energy / (BODYPART_COST[MOVE] + BODYPART_COST[CARRY]);
+	// Round up to one if less
+	amount = Math.max(amount, 1);
+	// Round down if fractional
+	amount = Math.floor(amount);
+	const bodyParts = [];
+	for (let i = 0; i < amount; ++i) {
+		bodyParts.push(CARRY);
+	}
+	for (let i = 0; i < amount; ++i) {
+		bodyParts.push(MOVE);
+	}
+	return bodyParts;
+}
 
-function bodyPartsCallback(request: SpawnRequest): BodyPartConstant[] {
-	return getBodyForRoom(Game.rooms[request.context.roomName], bodySpec);
+function bodyPartsCallback(request: SpawnRequest, spawn?: StructureSpawn): BodyPartConstant[] {
+	const room = Game.rooms[request.context.roomName];
+	// return getBodyForRoom(Game.rooms[request.context.roomName], bodySpec);
+	if (spawn) {
+		return getBodyForEnergy(getEnergyAvailableForSpawn(spawn));
+	} else {
+		return getBodyForEnergy(getEnergyCapacityForSpawn(room));
+	}
 }
 
 const bodyPartsCallbackName = 'HaulerCreep' as Id<BodyPartsCallback>;

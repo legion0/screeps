@@ -1,8 +1,9 @@
 import { createBodySpec, getBodyForRoom } from './BodySpec';
-import { getActiveCreepTtl, getLiveCreeps, isActiveCreepSpawning } from './Creep';
-import { runBootCreep } from './creeps.boot';
+import { getBootCreepBodyForEnergy, runBootCreep } from './creeps.boot';
+import { CreepPair } from './creep_pair';
 import { RoomSync } from './Room';
 import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
+import { getEnergyAvailableForSpawn, getEnergyCapacityForSpawn } from './structure.spawn.energy';
 import { Task } from './Task';
 import { everyN } from './Tick';
 
@@ -29,14 +30,17 @@ export class TaskHarvestSource extends Task {
 	protected run() {
 		const name = `${this.id}.harvest`;
 
+		const creepPair = new CreepPair(name);
 		everyN(20, () => {
-			if (getActiveCreepTtl(name) < 50 && !isActiveCreepSpawning(name)) {
-				const queue = SpawnQueue.getSpawnQueue();
-				queue.has(name) || queue.push(buildSpawnRequest(this.source.room, name, this.source.pos));
+			if (creepPair.getActiveCreepTtl() < 50) {
+				SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
+					|| SpawnQueue.getSpawnQueue().push(
+						buildSpawnRequest(this.source.room, creepPair.getSecondaryCreepName(),
+							this.source.pos, Game.time + creepPair.getActiveCreepTtl()));
 			}
 		});
 
-		for (const creep of getLiveCreeps(name)) {
+		for (const creep of creepPair.getLiveCreeps()) {
 			runBootCreep(creep, this.source);
 		}
 	}
@@ -56,17 +60,12 @@ export function hasHarvestCreeps(room: Room) {
 
 Task.register.registerTaskClass(TaskHarvestSource);
 
-const bodySpec = createBodySpec([
-	[WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE],
-	[WORK, WORK, CARRY, MOVE],
-]);
-
-function buildSpawnRequest(room: Room, name: string, sourcePos: RoomPosition): SpawnRequest {
+function buildSpawnRequest(room: Room, name: string, sourcePos: RoomPosition, time: number): SpawnRequest {
 	return {
 		name,
 		bodyPartsCallbackName: bodyPartsCallbackName,
 		priority: SpawnQueuePriority.BOOT,
-		time: Game.time + getActiveCreepTtl(name),
+		time: time,
 		pos: sourcePos,
 		context: {
 			roomName: room.name,
@@ -74,12 +73,12 @@ function buildSpawnRequest(room: Room, name: string, sourcePos: RoomPosition): S
 	};
 }
 
-function bodyPartsCallback(request: SpawnRequest): BodyPartConstant[] {
+function bodyPartsCallback(request: SpawnRequest, spawn?: StructureSpawn): BodyPartConstant[] {
 	let room = Game.rooms[request.context.roomName];
-	if (!hasHarvestCreeps(room)) {
-		return bodySpec[bodySpec.length - 1].body;
+	if (spawn && !hasHarvestCreeps(room)) {
+		return getBootCreepBodyForEnergy(getEnergyAvailableForSpawn(spawn));
 	}
-	return getBodyForRoom(room, bodySpec);
+	return getBootCreepBodyForEnergy(getEnergyCapacityForSpawn(room));
 }
 
 const bodyPartsCallbackName = 'BootCreep' as Id<BodyPartsCallback>;

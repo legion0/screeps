@@ -1,4 +1,4 @@
-import { ActionType } from './Action';
+import { ActionType, recycle } from './Action';
 import { build, creepActions, harvest, repair, transferToTarget } from './actions2';
 import { errorCodeToString, TERRAIN_PLAIN } from './constants';
 import { getHaulerCreepName } from './creeps.hauler';
@@ -40,6 +40,12 @@ function placeContainer(sourcePosition: RoomPosition) {
 
 export function runBootCreep(creep: Creep, source: Source) {
   if (creep.spawning) {
+    return;
+  }
+
+  // Recycle
+  if (creep.getActiveBodyparts(WORK) == 0) {
+    recycle(creep);
     return;
   }
 
@@ -125,4 +131,13 @@ export function runBootCreep(creep: Creep, source: Source) {
   if (Memory.creepSayAction) {
     creep.say('.');
   }
+}
+
+export function getBootCreepBodyForEnergy(energy: number) {
+  if (energy >= 4 * /*100*/BODYPART_COST[WORK] + 2 * /*50*/BODYPART_COST[CARRY] + /*50*/BODYPART_COST[MOVE]) {
+    return /*550*/[WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE];
+  } else if (energy >= 2 * /*100*/BODYPART_COST[WORK] + /*50*/BODYPART_COST[CARRY] + /*50*/BODYPART_COST[MOVE]) {
+    return /*300*/[WORK, WORK, CARRY, MOVE];
+  }
+  return /*200*/[WORK, CARRY, MOVE];
 }

@@ -6,7 +6,8 @@
 sudo apt update
 sudo apt install python2 build-essential
 
-Install NVM: https://github.com/nvm-sh/nvm#installing-and-updating
+# Install NVM: https://github.com/nvm-sh/nvm#installing-and-updating
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
 # Screeps driver requires node version <= 12
 nvm install v12.22.10 && nvm use v12.22.10
 
@@ -39,6 +40,7 @@ https://github.com/techfort/LokiJS/wiki
 
 ### P0
 
+* Fix ERR_NAME_EXISTS on new CreepPair spawning.
 * Combat Creep Group to combat first invasion wave.
 * Figure out task replacment strategy, when/how does harvester_hauler replace boot task?
 
