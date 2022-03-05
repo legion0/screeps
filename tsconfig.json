@@ -17,6 +17,8 @@
 	"rootDir": "src",
 	"include": [
 		"./src/*.ts",
+		"src/creeps/creep.Hauler.ts",
+		"src/creeps/creep.Boot.ts",
 	],
 	"exclude": [
 		"./src/*.spec.ts",

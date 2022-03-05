@@ -3,14 +3,18 @@ export function isWalkableStructure(structure: Structure<StructureConstant> | Ru
 		return true;
 	}
 	switch (structure.structureType) {
-	case STRUCTURE_CONTAINER:
-	case STRUCTURE_ROAD:
-		return true;
-	case STRUCTURE_RAMPART:
-		return (structure as StructureRampart).my;
-	default:
-		return false;
+		case STRUCTURE_CONTAINER:
+		case STRUCTURE_ROAD:
+			return true;
+		case STRUCTURE_RAMPART:
+			return (structure as StructureRampart).my;
+		default:
+			return false;
 	}
+}
+
+export function isStructure(object: any): object is Structure {
+	return object.structureType != null;
 }
 
 export function isConcreteStructure<T extends StructureConstant>(s: any, structureType: T): s is ConcreteStructure<T> {

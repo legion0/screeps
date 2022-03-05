@@ -3,57 +3,21 @@ import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { getActiveCreepTtl, isActiveCreepSpawning, getLiveCreepsAll } from './Creep';
 import { findRoomSource, findStructuresByType, RoomSource } from './Room';
 import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
-import { SpawnQueue, SpawnRequest, SpawnQueuePriority } from './SpawnQueue';
+import { SpawnQueue, SpawnRequest, SpawnQueuePriority, BodyPartsCallback } from './SpawnQueue';
 import { Task } from './Task';
 import { everyN } from './Tick';
 import { GENERIC_WORKER } from './constants';
-
-
-interface SequenceContext {
-	creep: Creep;
-	task: TaskUpgradeController;
-}
-
-const upgradeControllerActions = [
-	new A.Build<SequenceContext>().setArgs((c) => lookForConstructionAt(STRUCTURE_ROAD, c.creep.pos)),
-	new A.Repair<SequenceContext>().setArgs((c) => lookForStructureAt(STRUCTURE_ROAD, c.creep.pos)),
-	new A.UpgradeController<SequenceContext>().setArgs((c) => c.task.controller).setHighway(),
-	new A.Pickup<SequenceContext>().setArgs((c) => findNearbyEnergy(c.creep.pos)),
-	new A.Pickup<SequenceContext>().setArgs((c) => c.task.pickupTarget),
-	new A.Withdraw<SequenceContext>().setArgs((c) => c.task.withdrawTarget).setHighway(),
-	new A.Harvest<SequenceContext>().setArgs((c) => c.task.harvestTarget).setPersist(),
-];
+import { runUpgradeCreep } from './creeps.upgrade';
+import { hasHarvestCreeps } from './Task.HarvestSource';
 
 export class TaskUpgradeController extends Task {
 	static className = 'UpgradeController' as Id<typeof Task>;
 
 	readonly room: Room;
 
-	readonly controller?: StructureController;
-
-	readonly roomSource: RoomSource;
-
-	readonly withdrawTarget?: A.WithdrawTarget;
-
-	readonly pickupTarget?: A.PickupTarget;
-
-	readonly harvestTarget?: Source;
-
 	constructor(roomName: Id<TaskUpgradeController>) {
 		super(TaskUpgradeController, roomName);
 		this.room = Game.rooms[roomName];
-		if (this.room && !this.room.controller) {
-			throw new Error(`No Controller in room [${roomName}]`);
-		}
-		this.controller = this.room?.controller;
-		const roomSource = findRoomSource(this.room);
-		if (A.isPickupTarget(roomSource)) {
-			this.pickupTarget = roomSource;
-		} else if (A.isWithdrawTarget(roomSource)) {
-			this.withdrawTarget = roomSource;
-		} else if (roomSource instanceof Source) {
-			this.harvestTarget = roomSource;
-		}
 	}
 
 	protected run() {
@@ -68,7 +32,7 @@ export class TaskUpgradeController extends Task {
 		});
 
 		for (const creep of getLiveCreepsAll(this.creepNames())) {
-			A.runSequence(upgradeControllerActions, creep, { creep, task: this });
+			runUpgradeCreep(creep, this.room);
 		}
 	}
 
@@ -98,11 +62,26 @@ const bodySpec = createBodySpec([
 function buildSpawnRequest(room: Room, name: string): SpawnRequest {
 	return {
 		name,
-		body: getBodyForRoom(room, bodySpec),
+		bodyPartsCallbackName: bodyPartsCallbackName,
 		priority: SpawnQueuePriority.UPGRADER,
 		time: Game.time + getActiveCreepTtl(name),
 		pos: room.controller.pos,
+		context: {
+			roomName: room.name,
+		}
 	};
 }
+
+function bodyPartsCallback(request: SpawnRequest): BodyPartConstant[] {
+	const room = Game.rooms[request.context.roomName];
+	if (!hasHarvestCreeps(room)) {
+		return null;
+	}
+	return getBodyForRoom(room, bodySpec);
+}
+
+const bodyPartsCallbackName = 'UpgradeCreep' as Id<BodyPartsCallback>;
+
+SpawnQueue.registerBodyPartsCallback(bodyPartsCallbackName, bodyPartsCallback);
 
 Task.register.registerTaskClass(TaskUpgradeController);

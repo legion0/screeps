@@ -16,7 +16,7 @@ interface HighwayMemory {
 
 declare global {
 	interface Memory {
-		highways: { [key: string]: HighwayMemory }
+		highways: { [key: string]: HighwayMemory; };
 		showHighways?: boolean;
 		clearHighways?: boolean;
 	}
@@ -58,8 +58,10 @@ export class Highway {
 			return this;
 		}
 		log.d(`Attempting to build highway from [${this.from}] to [${this.to}]`);
-		const rv = PathFinder.search(this.from, { pos: this.to,
-			range: 1 }, {
+		const rv = PathFinder.search(this.from, {
+			pos: this.to,
+			range: 1
+		}, {
 			plainCost: 1,
 			swampCost: 1,
 			roomCallback: this.roomCallback,
@@ -120,7 +122,7 @@ export class Highway {
 		const range = current.getRangeTo(to);
 		const candidates = Object.values(Memory.highways).filter(
 			(memory) => fromMemoryWorld(memory.from).getRangeTo(to) <= 5 ||
-			fromMemoryWorld(memory.to).getRangeTo(to) <= 5
+				fromMemoryWorld(memory.to).getRangeTo(to) <= 5
 		);
 
 		for (const memory of candidates) {

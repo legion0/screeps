@@ -1,11 +1,11 @@
 import { TransferTarget } from './Action';
 import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { getActiveCreepTtl, getLiveCreeps, isActiveCreepSpawning } from './Creep';
-import { getHaulerCreepName, runHaulerCreep } from './creep.Hauler';
+import { getHaulerCreepName, runHaulerCreep } from './creeps.hauler';
 import { EventEnum, events } from './Events';
 import { memInit } from './Memory';
 import { findStructuresByType } from './Room';
-import { SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
+import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { getFreeCapacity } from './Store';
 import { everyN } from './Tick';
 
@@ -79,7 +79,7 @@ class EnergyWeb {
 					return;
 				}
 				const queue = SpawnQueue.getSpawnQueue();
-				// queue.has(creepName) || queue.push(buildSpawnRequest(room, creepName));
+				queue.has(creepName) || queue.push(buildSpawnRequest(room, creepName));
 			});
 			for (const creep of getLiveCreeps(creepName)) {
 				room.visual.circle(creep.pos.x, creep.pos.y, { stroke: 'red', radius: 1, fill: 'transparent' });
@@ -97,12 +97,27 @@ const bodySpec = createBodySpec([
 function buildSpawnRequest(room: Room, name: string): SpawnRequest {
 	return {
 		name,
-		body: getBodyForRoom(room, bodySpec),
+		bodyPartsCallbackName: bodyPartsCallbackName,
 		priority: SpawnQueuePriority.HAULER,
 		time: Game.time + getActiveCreepTtl(name),
 		pos: room.controller.pos,
+		context: {
+			roomName: room.name,
+		}
 	};
 }
+
+type SpawnRequestContext = {
+	roomName: string;
+};
+
+function bodyPartsCallback(request: SpawnRequest): BodyPartConstant[] {
+	return getBodyForRoom(Game.rooms[request.context.roomName], bodySpec);
+}
+
+const bodyPartsCallbackName = 'HaulerCreep' as Id<BodyPartsCallback>;
+
+SpawnQueue.registerBodyPartsCallback(bodyPartsCallbackName, bodyPartsCallback);
 
 function initMemory(forced = false) {
 	memInit(Memory, 'energyWeb', {

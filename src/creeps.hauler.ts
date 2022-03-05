@@ -1,10 +1,14 @@
 import { ActionType, isPickupTarget, isWithdrawTarget, PickupTarget, TransferTarget, WithdrawTarget } from './Action';
-import { creepActions, idle, PickupResource, transferToTarget, withdrawFromTarget } from './actions2';
+import { creepActions, idle, pickupResource, transferToTarget, withdrawFromTarget } from './actions2';
 import { findMySpawns, findRoomSource } from './Room';
 import { findNearbyEnergy } from './RoomPosition';
 import { hasFreeCapacity, hasUsedCapacity } from './Store';
 
 export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
+  if (creep.spawning) {
+    return;
+  }
+
   if (hasFreeCapacity(creep)) {
     const nearbyEnergy = findNearbyEnergy(creep.pos);
     if (nearbyEnergy) {
@@ -32,7 +36,7 @@ export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
 
   if (isPickupTarget(source) && hasFreeCapacity(creep) && hasUsedCapacity(source)) {
     creepActions.setAction(creep, ActionType.PICKUP, (creep: Creep) => {
-      return PickupResource(creep, source as PickupTarget);
+      return pickupResource(creep, source as PickupTarget);
     });
     return;
   }

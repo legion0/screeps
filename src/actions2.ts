@@ -1,8 +1,14 @@
 import { ActionType, actionTypeName, moveTo, PickupTarget, TransferTarget, WithdrawTarget } from './Action';
-import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE } from './constants';
+import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE } from './constants';
 import { log } from './Logger';
 import { findMySpawns } from './Room';
 import { getFreeCapacity } from './Store';
+
+declare global {
+  interface Memory {
+    logCreepActions?: boolean;
+  }
+}
 
 export function transferToTarget(creep: Creep, target: TransferTarget) {
   if (Memory.creepSayAction) {
@@ -44,6 +50,22 @@ export function repair(creep: Creep, target: Structure) {
   }
 }
 
+export function attack(creep: Creep, target: AnyCreep | Structure) {
+  if (creep.pos.isNearTo(target.pos)) {
+    return creep.attack(target);
+  } else {
+    return moveTo(creep, target.pos, /*highway=*/false, /*range=*/1);
+  }
+}
+
+export function upgradeController(creep: Creep, target: StructureController) {
+  if (creep.pos.inRangeTo(target.pos, UPGRADE_RANGE)) {
+    return creep.upgradeController(target);
+  } else {
+    return moveTo(creep, target.pos, /*highway=*/false, /*range=*/UPGRADE_RANGE);
+  }
+}
+
 export function harvest(creep: Creep, target: Source) {
   if (creep.pos.isNearTo(target.pos)) {
     return creep.harvest(target);
@@ -52,7 +74,7 @@ export function harvest(creep: Creep, target: Source) {
   }
 }
 
-export function PickupResource(creep: Creep, target: PickupTarget) {
+export function pickupResource(creep: Creep, target: PickupTarget) {
   // if (!hasFreeCapacity(creep)) {
   // 	return ERR_FULL;
   // } else if (!hasUsedCapacity(target)) {
@@ -87,6 +109,9 @@ type ActionEntry = { actionType: ActionType, actionCallback: ActionCallback; };
 
 class CreepActions {
   setAction(creep: Creep, actionType: ActionType, actionCallback: ActionCallback) {
+    if (Memory.logCreepActions) {
+      log.d(creep.name, actionTypeName(actionType));
+    }
     this.actionCache_.set(creep.name, {
       actionType: actionType,
       actionCallback: actionCallback,
@@ -100,7 +125,9 @@ class CreepActions {
         creep.say(actionTypeName(actionEntry.actionType));
       }
       const rv = actionEntry.actionCallback(creep);
-      // console.log(creep.name, actionTypeName(actionEntry.actionType), errorCodeToString(rv));
+      if (Memory.logCreepActions) {
+        log.i(creep.name, actionTypeName(actionEntry.actionType), errorCodeToString(rv));
+      }
       if (rv != OK) {
         log.e(`[${creep.name}] at pos [${creep.pos}] failed to perform action [${actionTypeName(actionEntry.actionType)}] with error [${errorCodeToString(rv)}]`);
       }

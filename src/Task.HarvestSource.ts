@@ -1,8 +1,8 @@
 import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { getActiveCreepTtl, getLiveCreeps, isActiveCreepSpawning } from './Creep';
-import { runBootCreep } from './creep.Boot';
+import { runBootCreep } from './creeps.boot';
 import { RoomSync } from './Room';
-import { SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
+import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { Task } from './Task';
 import { everyN } from './Tick';
 
@@ -50,6 +50,10 @@ export class TaskHarvestSource extends Task {
 	}
 }
 
+export function hasHarvestCreeps(room: Room) {
+	return Object.values(Game.creeps).filter(creep => creep.name.endsWith('.harvest') && creep.pos.roomName == room.name).length;
+}
+
 Task.register.registerTaskClass(TaskHarvestSource);
 
 const bodySpec = createBodySpec([
@@ -60,9 +64,24 @@ const bodySpec = createBodySpec([
 function buildSpawnRequest(room: Room, name: string, sourcePos: RoomPosition): SpawnRequest {
 	return {
 		name,
-		body: getBodyForRoom(room, bodySpec),
-		priority: SpawnQueuePriority.HARVESTER,
+		bodyPartsCallbackName: bodyPartsCallbackName,
+		priority: SpawnQueuePriority.BOOT,
 		time: Game.time + getActiveCreepTtl(name),
 		pos: sourcePos,
+		context: {
+			roomName: room.name,
+		},
 	};
 }
+
+function bodyPartsCallback(request: SpawnRequest): BodyPartConstant[] {
+	let room = Game.rooms[request.context.roomName];
+	if (!hasHarvestCreeps(room)) {
+		return bodySpec[bodySpec.length - 1].body;
+	}
+	return getBodyForRoom(room, bodySpec);
+}
+
+const bodyPartsCallbackName = 'BootCreep' as Id<BodyPartsCallback>;
+
+SpawnQueue.registerBodyPartsCallback(bodyPartsCallbackName, bodyPartsCallback);

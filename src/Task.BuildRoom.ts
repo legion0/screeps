@@ -8,7 +8,7 @@ import { nextExtensionPos } from './Planning';
 import { BuildQueuePriority, constructionQueueSize, currentConstruction, findRoomSource, requestConstruction, findMyConstructionSites, findStructuresByType } from './Room';
 import { findNearbyEnergy, toMemoryRoom } from './RoomPosition';
 import { elapsed } from './ServerCache';
-import { SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
+import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { Task } from './Task';
 import { everyN } from './Tick';
 import { findMinBy } from './Array';
@@ -113,11 +113,25 @@ const bodySpec = createBodySpec([
 function buildSpawnRequest(room: Room, name: string): SpawnRequest {
 	return {
 		name,
-		body: getBodyForRoom(room, bodySpec),
+		bodyPartsCallbackName: bodyPartsCallbackName,
 		priority: SpawnQueuePriority.BUILDER,
 		time: Game.time + getActiveCreepTtl(name),
 		pos: room.controller.pos,
+		context: {
+			roomName: room.name,
+		}
 	};
 }
+
+function bodyPartsCallback(request: SpawnRequest): BodyPartConstant[] {
+	if (Object.keys(Game.creeps).length == 0) {
+		return bodySpec[bodySpec.length - 1].body;
+	}
+	return getBodyForRoom(Game.rooms[request.context.roomName], bodySpec);
+}
+
+const bodyPartsCallbackName = 'BuilderCreep' as Id<BodyPartsCallback>;
+
+SpawnQueue.registerBodyPartsCallback(bodyPartsCallbackName, bodyPartsCallback);
 
 Task.register.registerTaskClass(TaskBuildRoom);

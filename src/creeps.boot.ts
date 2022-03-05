@@ -1,21 +1,22 @@
 import { ActionType } from './Action';
 import { build, creepActions, harvest, repair, transferToTarget } from './actions2';
-import { Direction, errorCodeToString, TERRAIN_PLAIN } from './constants';
-import { getHaulerCreepName } from './creep.Hauler';
+import { errorCodeToString, TERRAIN_PLAIN } from './constants';
+import { getHaulerCreepName } from './creeps.hauler';
 import { log } from './Logger';
 import { findRoomSync } from './Room';
 import { findNearbyEnergy, lookNear, posNear } from './RoomPosition';
 import { hasFreeCapacity, hasUsedCapacity } from './Store';
 import { isConcreteStructure, isConstructionSiteForStructure, isDamaged } from './Structure';
+import { reverseDirection } from './directions';
 
-function findContainer(pos: RoomPosition): StructureContainer | undefined {
+function findContainer(pos: RoomPosition): StructureContainer | null {
   const containers = lookNear(
     pos, LOOK_STRUCTURES, (s) => isConcreteStructure(s, STRUCTURE_CONTAINER)
   ) as StructureContainer[];
-  return containers[0];
+  return containers[0] ?? null;
 }
 
-function findConstructionSite(pos: RoomPosition) {
+function findConstructionSite(pos: RoomPosition): ConstructionSite<STRUCTURE_CONTAINER> | null {
   const constructionSites = lookNear(
     pos, LOOK_CONSTRUCTION_SITES, (s) => isConstructionSiteForStructure(s, STRUCTURE_CONTAINER)
   );
@@ -38,6 +39,10 @@ function placeContainer(sourcePosition: RoomPosition) {
 }
 
 export function runBootCreep(creep: Creep, source: Source) {
+  if (creep.spawning) {
+    return;
+  }
+
   if (hasFreeCapacity(creep)) {
     const nearbyEnergy = findNearbyEnergy(creep.pos);
     if (nearbyEnergy) {
@@ -57,19 +62,23 @@ export function runBootCreep(creep: Creep, source: Source) {
   }
 
   const roomSync = findRoomSync(source.room);
-  if ((roomSync instanceof StructureExtension || roomSync instanceof StructureSpawn) && !Game.creeps[getHaulerCreepName(source.room)]) {
+  if (hasUsedCapacity(creep) && (roomSync instanceof StructureExtension || roomSync instanceof StructureSpawn) && !Game.creeps[getHaulerCreepName(source.room)]) {
     // Transfer to spawn/extension
     creepActions.setAction(creep, ActionType.TRANSFER, (creep: Creep) => {
       return transferToTarget(creep, roomSync);
     });
+    return;
   }
 
-  const constructionSite = null;
   const container = findContainer(source.pos);
+  let constructionSite = null;
   if (!container) {
-    const constructionSite = findConstructionSite(source.pos);
+    constructionSite = findConstructionSite(source.pos);
     if (!constructionSite) {
-      let rv = placeContainer(source.pos);
+      const rv = placeContainer(source.pos);
+      if (rv != OK) {
+        log.e(`[${creep.name}] at pos [${creep.pos}] failed to place container construction site with error [${errorCodeToString(rv)}]`);
+      }
     }
   }
 
@@ -105,7 +114,7 @@ export function runBootCreep(creep: Creep, source: Source) {
     return;
   }
 
-  if (creep.pos.getRangeTo(source.pos) != 2) {
+  if (creep.pos.getRangeTo(source.pos) < 2) {
     // Move away
     creepActions.setAction(creep, ActionType.MOVE, (creep: Creep) => {
       return creep.move(reverseDirection(creep.pos.getDirectionTo(source.pos)));;
@@ -115,18 +124,5 @@ export function runBootCreep(creep: Creep, source: Source) {
 
   if (Memory.creepSayAction) {
     creep.say('.');
-  }
-}
-
-function reverseDirection(dir: Direction) {
-  switch (dir) {
-    case BOTTOM: return TOP;
-    case TOP: return BOTTOM;
-    case LEFT: return RIGHT;
-    case RIGHT: return LEFT;
-    case BOTTOM_LEFT: return TOP_RIGHT;
-    case BOTTOM_RIGHT: return TOP_LEFT;
-    case TOP_LEFT: return BOTTOM_RIGHT;
-    case TOP_RIGHT: return BOTTOM_LEFT;
   }
 }

@@ -20,9 +20,9 @@ declare global {
 
 export enum SpawnQueuePriority {
 	UNKNOWN,
-	WORKER,
+	BOOT,
+	ATTACK,
 	HAULER,
-	HARVESTER,
 	BUILDER,
 	UPGRADER,
 }
@@ -33,7 +33,6 @@ interface SpawnQueueMemory {
 }
 
 export interface SpawnRequest {
-
 	/*
 	 * The base creep name, may have _alt appended to it in cases where the new
 	 * creep is spawned before the old one dies.
@@ -41,7 +40,7 @@ export interface SpawnRequest {
 	 */
 	name: string;
 
-	body: BodyPartConstant[];
+	bodyPartsCallbackName: Id<BodyPartsCallback>;
 	// Where is the creep going after spawning, will be used to adjust actual spawning time.
 	pos: RoomPosition;
 	// When do you want the creep to arrive at its destination post spawning
@@ -49,17 +48,33 @@ export interface SpawnRequest {
 
 	priority: SpawnQueuePriority;
 	opts?: SpawnOptions;
+
+	// Any serializable context you wish to pass into `BodyPartsCallback`.
+	context?: any;
 }
 
 interface SpawnRequestMemory {
 	name: string;
-	body: BodyPartConstant[];
+	bodyPartsCallbackName: Id<BodyPartsCallback>;
 	cost: number;
 	pos: RoomPositionMemory;
 	startTime: number;
 	endTime: number;
 	priority: SpawnQueuePriority;
 	opts?: SpawnOptions;
+	context?: any;
+}
+
+function spawnRequestFromMemory(spawnRequestMemory: SpawnRequestMemory): SpawnRequest {
+	return {
+		name: spawnRequestMemory.name,
+		bodyPartsCallbackName: spawnRequestMemory.bodyPartsCallbackName,
+		pos: fromMemoryWorld(spawnRequestMemory.pos),
+		time: spawnRequestMemory.endTime,
+		priority: spawnRequestMemory.priority,
+		opts: spawnRequestMemory.opts,
+		context: spawnRequestMemory.context,
+	};
 }
 
 export class SpawnQueue {
@@ -69,17 +84,23 @@ export class SpawnQueue {
 		if (request.name in this.memory.index) {
 			throw new Error(`Trying to re-queue [${request.name}]`);
 		}
-		const duration = request.body.length * BODY_PART_SPAWN_TIME;
+		const body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(request);
+		if (body == null) {
+			log.e(`Cannot queue null body for request [${request.name}]`);
+			return;
+		}
+		const duration = body.length * BODY_PART_SPAWN_TIME;
 
 		const r: SpawnRequestMemory = {
 			name: request.name,
-			body: request.body,
-			cost: _.sum(request.body, (part) => BODYPART_COST[part]),
+			bodyPartsCallbackName: request.bodyPartsCallbackName,
+			cost: _.sum(body, (part) => BODYPART_COST[part]),
 			pos: toMemoryWorld(request.pos),
 			priority: request.priority,
 			opts: request.opts,
 			startTime: request.time - duration,
 			endTime: request.time,
+			context: request.context,
 		};
 
 		log.d(`Pushing new request for [${request.name}]`);
@@ -159,14 +180,31 @@ export class SpawnQueue {
 		if (spawn) {
 			this.pop();
 			const newName = getCreepSpawnName(request.name);
-			const rv = spawn.spawnCreep(request.body, newName, request.opts);
+			const body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(spawnRequestFromMemory(request), spawn);
+			if (body == null) {
+				log.w(`Skipping null body for request [${request.name}]`);
+				this.run();
+				return;
+			}
+			const rv = spawn.spawnCreep(body, newName, request.opts);
 			if (rv === OK) {
 				log.v(`[${spawn}] spawning [${request.name}]`);
 			} else {
 				log.e(`[${spawn}] failed to spawn [${JSON.stringify(request)}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			everyN(50, () => log.w(`Not enough energy for spawning next request [${request.name}] with cost [${request.cost}]`));
+			everyN(50, () => {
+				log.w(`Not enough energy for spawning next request [${request.name}] with cost [${request.cost}]`);
+				// Recalculate cost
+				const body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(spawnRequestFromMemory(request));
+				if (body == null) {
+					log.w(`Skipping null body for request [${request.name}]`);
+					this.pop();
+					this.run();
+					return;
+				}
+				request.cost = _.sum(body, (part) => BODYPART_COST[part]);
+			});
 		}
 	}
 
@@ -180,7 +218,15 @@ export class SpawnQueue {
 		queue.memory = initMemory();
 		return queue;
 	}
+
+	static registerBodyPartsCallback(bodyPartsCallbackName: string, bodyPartsCallback: BodyPartsCallback) {
+		SpawnQueue.bodyPartsCallbacks_.set(bodyPartsCallbackName, bodyPartsCallback);
+	}
+
+	private static bodyPartsCallbacks_: Map<string, BodyPartsCallback> = new Map();
 }
+
+export type BodyPartsCallback = (request: SpawnRequest, spawn?: StructureSpawn) => BodyPartConstant[];
 
 export function findAllSpawns(): StructureSpawn[] {
 	return sortById(_.flatten(Object.values(Game.rooms).map((room) => room.find(FIND_MY_SPAWNS))));

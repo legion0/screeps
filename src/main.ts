@@ -10,6 +10,7 @@ import { TaskBootRoom } from './Task.BootRoom';
 
 import './StructureSpawn';
 import { creepActions } from './actions2';
+import { runRoomDefences } from './room.defence';
 
 
 declare global {
@@ -39,6 +40,7 @@ function mainLoop() {
 	Task.runAll();
 	energyWeb.run();
 	SpawnQueue.getSpawnQueue().run();
+	runRoomDefences();
 	creepActions.runActions();
 }
 

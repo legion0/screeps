@@ -20,7 +20,7 @@ rm -rf node_modules && npm install
 
 system.setTickDuration(4000)
 
-storage.db['rooms.objects'].update({ type: 'constructionSite' }, { $set: { progress: 2999 }})
+storage.db['rooms.objects'].update({ type: 'constructionSite' }, { $set: { progress: 2995 }})
 
 storage.db['rooms.objects'].update({room: 'W8N8', type: 'container'}, {$set: {store: {energy: 0}}})
 
@@ -39,18 +39,17 @@ https://github.com/techfort/LokiJS/wiki
 
 ### P0
 
-* Do not build highways until later in the game, e.g. containers + controller level 2
-* Make spawning body dynamic so we can downgrade the body in case the spawn is starved for resources for a prolonged period of time (e.g. all creeps are dead and no one is going to fill the extensions).
-
-* Make highway lookup by finding highway endpoint within range of edges, otherwise it creates multiple different highways for very close together destinations, this will also potentially allow to hick to existing highway from random position without the "from" position.
-* Build energy request system
+* Combat Creep Group to combat first invasion wave.
 * Figure out task replacment strategy, when/how does harvester_hauler replace boot task?
 
 ### P1
 
+* Given the dynamic nature of the spawn queue (starvation affecting the end time and hence the priorities and hence the order), abandon the queue implementation and transition to a sorted array, where we can find the best request to fulfill (e.g. when behind schedule look ahead to see if there are urgent requests that should now take priority). Otherwise we end up trying to build an upgrade creep just because at the time of scheduling the timing worked out such that it can be spawned prior to a more urgent creep like a boot creep. And now the boot creep cannot be spawned until we spawn all the upgrade creeps in the queue.
+* Do not build highways until later in the game, e.g. containers + controller level 2
 * Add additional arguments support to creep actions (e.g. withdraw energy type)
 * Clean up how server cache write back to tick cache in get
 * Convert highway path in creep memory to standard serialized path and use moveByPath
+* Make highway lookup by finding highway endpoint within range of edges, otherwise it creates multiple different highways for very close together destinations, this will also potentially allow to hick to existing highway from random position without the "from" position.
 
 ## Aspirational TODO
 
@@ -60,6 +59,7 @@ https://github.com/techfort/LokiJS/wiki
 
 ## Console Commands
 
+* `Memory.logCreepActions = true`
 * `Memory.creepSayAction = true` 
 * `Memory.creepSayName = true` 
 * `Memory.highwayDebugVisuals = true` 

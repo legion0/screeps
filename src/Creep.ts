@@ -51,3 +51,7 @@ export function isActiveCreepSpawning(baseCreepName: string): boolean {
 	const alt = Game.creeps[`${baseCreepName}_alt`];
 	return main && main.spawning || alt && alt.spawning;
 }
+
+export function isAnyCreep(object: any): object is AnyCreep {
+	return object instanceof Creep || object instanceof PowerCreep;
+}
