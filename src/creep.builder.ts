@@ -16,7 +16,7 @@ export function runBuilderCreep(creep: Creep, constructionSite?: ConstructionSit
   }
 
   // Recycle
-  const noMoreBuilding = elapsed(`${creep.name}.lastBuild`, 10, Boolean(constructionSite));
+  const noMoreBuilding = elapsed(`${creep.name}.lastBuild`, /*elapsedTime=*/10, /*cacheTtl=*/50, /*resetStartTime=*/Boolean(constructionSite));
   if (noMoreBuilding || creep.getActiveBodyparts(WORK) == 0) {
     recycle(creep);
     return;

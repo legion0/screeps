@@ -121,17 +121,17 @@ export const objectsServerStrongCache: CacheService<ObjectWithId<any>[]> = new C
 );
 
 /*
- * Use server cache to estimate elapsed time
- * prefer Game.time % N == 0 if condition is tested every tick,
+ * Use server cache to estimate elapsed time.
+ * Prefer Game.time % N == 0 if condition is tested every tick,
  * for cases where the condition is not tested every tick use `elapsed`.
- * this function needs to be called at least once every 2 * ttl or it will assume its the first time its called.
+ * This function needs to be called at least once every `cacheTtl` or it will assume its the first time its called.
  */
-export function elapsed(id: string, ttl: number, update: boolean) {
+export function elapsed(id: string, elapsedTime: number, cacheTtl: number, resetStartTime: boolean) {
 	const cache = rawServerCache as CacheService<number>;
-	let value = cache.get(id);
-	if (value === undefined || update) {
-		value = Game.time;
-		cache.set(id, value, 2 * ttl);
+	let startTime = cache.get(id);
+	if (startTime === undefined || resetStartTime) {
+		startTime = Game.time;
+		cache.set(id, startTime, cacheTtl);
 	}
-	return value + ttl < Game.time;
+	return startTime + elapsedTime < Game.time;
 }

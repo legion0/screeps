@@ -91,7 +91,7 @@ export class Highway {
 	}
 
 	buildRoad() {
-		if (elapsed(`${this.name}.lastBuild`, 10, false)) {
+		if (elapsed(`${this.name}.lastBuild`, /*elapsedTime=*/10, /*cacheTtl=*/50, /*resetStartTime=*/false)) {
 			this.memory.path
 				.map(fromMemoryWorld)
 				.filter((pos) => !pos.lookFor(LOOK_STRUCTURES).some(isRoad))
