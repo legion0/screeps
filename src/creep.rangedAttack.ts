@@ -15,25 +15,17 @@ export function runRangedAttackCreep(creep: Creep, target?: RoomPosition | AnyCr
   }
 
   // Recycle
-  if (!target || (creep.getActiveBodyparts(RANGED_ATTACK) == 0 && creep.getActiveBodyparts(HEAL) == 0)) {
+  if (!target || (creep.getActiveBodyparts(RANGED_ATTACK) == 0 && creep.getActiveBodyparts(HEAL) == 0 && creep.getActiveBodyparts(MOVE))) {
     recycle(creep);
     return;
   }
 
   // Heal Self
-  if (creep.hits < creep.hitsMax && creep.getActiveBodyparts(HEAL) > 0) {
+  if (creep.hits < creep.hitsMax && creep.getActiveBodyparts(HEAL)) {
     const rv = creep.heal(creep);
     if (rv != OK) {
       log.e(`[${creep.name}] at pos [${creep.pos}] failed to perform action [${actionTypeName(ActionType.HEAL)}] with error [${errorCodeToString(rv)}]`);
     }
-  }
-
-  // Flee
-  if (creep.getActiveBodyparts(RANGED_ATTACK) == 0) {
-    creepActions.setAction(creep, ActionType.MOVE, (creep: Creep) => {
-      return creep.move(reverseDirection(creep.pos.getDirectionTo(target)));
-    });
-    return;
   }
 
   // Rally
@@ -47,17 +39,25 @@ export function runRangedAttackCreep(creep: Creep, target?: RoomPosition | AnyCr
   }
 
   // Attack
-  if (isAnyCreep(target) || isStructure(target)) {
-    creepActions.setAction(creep, ActionType.RANGED_ATTACK, (creep: Creep) => {
-      return rangedAttack(creep, target);
-    });
-    return;
+  if ((isAnyCreep(target) || isStructure(target)) && creep.getActiveBodyparts(RANGED_ATTACK)) {
+    const rv = rangedAttack(creep, target);
+    if (rv != OK) {
+      log.e(`[${creep.name}] at pos [${creep.pos}] failed to perform action [${actionTypeName(ActionType.RANGED_ATTACK)}] with error [${errorCodeToString(rv)}]`);
+    }
+  }
+  // Also back away while attacking
+  if (creep.hits < creep.hitsMax && creep.pos.getRangeTo(target) <= RANGED_ATTACK_RANGE && creep.getActiveBodyparts(MOVE)) {
+    const rv = creep.move(reverseDirection(creep.pos.getDirectionTo(target)));
+    if (rv != OK) {
+      log.e(`[${creep.name}] at pos [${creep.pos}] failed to perform action [${actionTypeName(ActionType.MOVE)}] with error [${errorCodeToString(rv)}]`);
+    }
   }
 }
 
 export function requestRangedAttackCreepAt(name: string, pos: RoomPosition) {
   const queue = SpawnQueue.getSpawnQueue();
-  queue.has(name) || queue.push({
+  const creep = Game.creeps[name];
+  (creep && creep.ticksToLive) || (creep && creep.spawning) || queue.has(name) || queue.push({
     name,
     bodyPartsCallbackName: bodyPartsCallbackName,
     priority: SpawnQueuePriority.ATTACK,
