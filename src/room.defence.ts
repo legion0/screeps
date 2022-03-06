@@ -1,5 +1,5 @@
-import { requestRangedAttackCreepAt, runRangedAttackCreep } from './creep.rangedAttack';
-import { requestAttackCreepAt, runAttackCreep } from './creeps.attack';
+import { requestRangedAttackCreepAt, runRangedAttackCreep } from './creep.ranged_attack';
+import { requestAttackCreepAt, runAttackCreep } from './creep.attack';
 
 function runRoomDefence(room: Room) {
   const hostile = room.find(FIND_HOSTILE_CREEPS)[0];

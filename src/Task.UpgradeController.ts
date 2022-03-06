@@ -1,6 +1,6 @@
 import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { GENERIC_WORKER } from './constants';
-import { runUpgradeCreep } from './creeps.upgrade';
+import { runUpgradeCreep } from './creep.upgrade';
 import { CreepPair } from './creep_pair';
 import { findStructuresByType } from './Room';
 import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';

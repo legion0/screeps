@@ -1,5 +1,5 @@
 import { createBodySpec, getBodyForRoom } from './BodySpec';
-import { getBootCreepBodyForEnergy, runBootCreep } from './creeps.boot';
+import { getBootCreepBodyForEnergy, runBootCreep } from './creep.boot';
 import { CreepPair } from './creep_pair';
 import { RoomSync } from './Room';
 import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';

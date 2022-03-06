@@ -1,7 +1,7 @@
 import { ActionType, isPickupTarget, isWithdrawTarget, PickupTarget, recycle, WithdrawTarget } from './Action';
 import { build, creepActions, harvest, pickupResource, repair, transferToTarget, withdrawFromTarget } from './actions2';
 import { errorCodeToString } from './constants';
-import { getHaulerCreepName } from './creeps.hauler';
+import { getHaulerCreepName } from './creep.hauler';
 import { reverseDirection } from './directions';
 import { log } from './Logger';
 import { findRoomSource, findRoomSync } from './Room';

@@ -1,5 +1,5 @@
 import { TransferTarget } from './Action';
-import { getHaulerCreepName, runHaulerCreep } from './creeps.hauler';
+import { getHaulerCreepName, runHaulerCreep } from './creep.hauler';
 import { CreepPair } from './creep_pair';
 import { EventEnum, events } from './Events';
 import { memInit } from './Memory';

@@ -1,7 +1,7 @@
 import { ActionType, recycle } from './Action';
 import { build, creepActions, harvest, repair, transferToTarget } from './actions2';
 import { errorCodeToString, TERRAIN_PLAIN } from './constants';
-import { getHaulerCreepName } from './creeps.hauler';
+import { getHaulerCreepName } from './creep.hauler';
 import { log } from './Logger';
 import { findRoomSync } from './Room';
 import { findNearbyEnergy, lookNear, posNear } from './RoomPosition';
