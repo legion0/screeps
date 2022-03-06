@@ -56,7 +56,7 @@ export class TaskHarvestSource extends Task {
 }
 
 export function hasHarvestCreeps(room: Room) {
-	return Object.values(Game.creeps).filter(creep => creep.name.endsWith('.harvest') && creep.pos.roomName == room.name).length;
+	return Object.values(Game.creeps).filter(creep => (creep.name.endsWith('.harvest') || creep.name.endsWith('.harvest_alt')) && creep.pos.roomName == room.name).length;
 }
 
 Task.register.registerTaskClass(TaskHarvestSource);
