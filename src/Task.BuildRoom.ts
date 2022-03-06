@@ -80,6 +80,7 @@ export class TaskBuildRoom extends Task {
 			everyN(20, () => {
 				if (creepPair.getActiveCreepTtl() < 50) {
 					SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
+						|| creepPair.getSecondaryCreep()?.spawning
 						|| SpawnQueue.getSpawnQueue().push(
 							buildSpawnRequest(this.room, creepPair.getSecondaryCreepName(),
 								Game.time + creepPair.getActiveCreepTtl()));

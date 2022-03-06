@@ -34,6 +34,7 @@ export class TaskHarvestSource extends Task {
 		everyN(20, () => {
 			if (creepPair.getActiveCreepTtl() < 50) {
 				SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
+					|| creepPair.getSecondaryCreep()?.spawning
 					|| SpawnQueue.getSpawnQueue().push(
 						buildSpawnRequest(this.source.room, creepPair.getSecondaryCreepName(),
 							this.source.pos, Game.time + creepPair.getActiveCreepTtl()));

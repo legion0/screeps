@@ -40,7 +40,6 @@ https://github.com/techfort/LokiJS/wiki
 
 ### P0
 
-* Fix ERR_NAME_EXISTS on new CreepPair spawning.
 * Combat Creep Group to combat first invasion wave.
 * Figure out task replacment strategy, when/how does harvester_hauler replace boot task?
 

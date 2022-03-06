@@ -80,6 +80,7 @@ class EnergyWeb {
 					return;
 				}
 				SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
+					|| creepPair.getSecondaryCreep()?.spawning
 					|| SpawnQueue.getSpawnQueue().push(
 						buildSpawnRequest(room, creepPair.getSecondaryCreepName(),
 							Game.time + creepPair.getActiveCreepTtl()));
