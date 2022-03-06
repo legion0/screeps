@@ -8,6 +8,7 @@ import { fromMemoryWorld, RoomPositionMemory, toMemoryWorld } from './RoomPositi
 import { rawServerCache } from './ServerCache';
 import { sortById } from './util';
 import { everyN } from './Tick';
+import { getEnergyAvailableForSpawn, getEnergyCapacityForSpawn } from './structure.spawn.energy';
 
 
 declare global {
@@ -76,6 +77,14 @@ function spawnRequestFromMemory(spawnRequestMemory: SpawnRequestMemory): SpawnRe
 	};
 }
 
+function findClosestSpawnRoom(pos: RoomPosition) {
+	const roomsWithSpawns = Object.values(Game.rooms)
+		.filter(room => room.find(FIND_MY_SPAWNS).length);
+	return findMinBy(
+		roomsWithSpawns,
+		room => Game.map.getRoomLinearDistance(room.name, pos.roomName));
+}
+
 export class SpawnQueue {
 	private memory: SpawnQueueMemory;
 
@@ -83,7 +92,12 @@ export class SpawnQueue {
 		if (request.name in this.memory.index) {
 			throw new Error(`Trying to re-queue [${request.name}]`);
 		}
-		const body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(request);
+		const spawnRoom = findClosestSpawnRoom(request.pos);
+		if (!spawnRoom) {
+			log.e(`No spawn room found, failed to queue request: ${request}`);
+			return;
+		}
+		const body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(request, getEnergyCapacityForSpawn(spawnRoom));
 		if (body == null) {
 			log.e(`Cannot queue null body for request [${request.name}]`);
 			return;
@@ -156,7 +170,7 @@ export class SpawnQueue {
 			return;
 		}
 
-		let request: SpawnRequestMemory;
+		let request: SpawnRequestMemory = null;
 		let validSpawns: StructureSpawn[];
 		while (!this.isEmpty()) {
 			request = this.peek()!;
@@ -178,7 +192,7 @@ export class SpawnQueue {
 		const spawn = findMinBy(availableSpawns, (s) => s.pos.getRangeTo(requestPos));
 		if (spawn) {
 			this.pop();
-			const body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(spawnRequestFromMemory(request), spawn);
+			const body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(spawnRequestFromMemory(request), getEnergyCapacityForSpawn(spawn.room));
 			if (body == null) {
 				log.w(`Skipping null body for request [${request.name}]`);
 				this.run();
@@ -193,15 +207,27 @@ export class SpawnQueue {
 		} else {
 			everyN(50, () => {
 				log.w(`Not enough energy for spawning next request [${request.name}] with cost [${request.cost}]`);
-				// Recalculate cost
-				const body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(spawnRequestFromMemory(request));
-				if (body == null) {
-					log.w(`Skipping null body for request [${request.name}]`);
-					this.pop();
-					this.run();
-					return;
+				if (request.endTime > Game.time + 200) {
+					log.d(`Recalculating cost for request [${request.name}] with cost [${request.cost}]`);
+					// Recalculate cost
+					const spawnRoom = findClosestSpawnRoom(requestPos);
+					if (!spawnRoom) {
+						log.e(`No spawn room found, dropping queued request: ${request}`);
+						this.pop();
+						this.run();
+						return;
+					}
+					const spawn = spawnRoom.find(FIND_MY_SPAWNS)[0];
+					const body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(spawnRequestFromMemory(request), getEnergyAvailableForSpawn(spawn));
+					if (body == null) {
+						log.w(`Skipping null body for request [${request.name}]`);
+						this.pop();
+						this.run();
+						return;
+					}
+					request.cost = _.sum(body, (part) => BODYPART_COST[part]);
+					log.d(`New cost for request [${request.name}] is [${request.cost}]`);
 				}
-				request.cost = _.sum(body, (part) => BODYPART_COST[part]);
 			});
 		}
 	}
@@ -224,7 +250,7 @@ export class SpawnQueue {
 	private static bodyPartsCallbacks_: Map<string, BodyPartsCallback> = new Map();
 }
 
-export type BodyPartsCallback = (request: SpawnRequest, spawn?: StructureSpawn) => BodyPartConstant[];
+export type BodyPartsCallback = (request: SpawnRequest, maxEnergy?: number) => BodyPartConstant[];
 
 export function findAllSpawns(): StructureSpawn[] {
 	return sortById(_.flatten(Object.values(Game.rooms).map((room) => room.find(FIND_MY_SPAWNS))));

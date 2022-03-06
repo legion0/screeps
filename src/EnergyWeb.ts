@@ -123,14 +123,8 @@ function getBodyForEnergy(energy: number) {
 	return bodyParts;
 }
 
-function bodyPartsCallback(request: SpawnRequest, spawn?: StructureSpawn): BodyPartConstant[] {
-	const room = Game.rooms[request.context.roomName];
-	// return getBodyForRoom(Game.rooms[request.context.roomName], bodySpec);
-	if (spawn) {
-		return getBodyForEnergy(getEnergyAvailableForSpawn(spawn));
-	} else {
-		return getBodyForEnergy(getEnergyCapacityForSpawn(room));
-	}
+function bodyPartsCallback(request: SpawnRequest, maxEnergy: number): BodyPartConstant[] {
+	return getBodyForEnergy(maxEnergy);
 }
 
 const bodyPartsCallbackName = 'HaulerCreep' as Id<BodyPartsCallback>;

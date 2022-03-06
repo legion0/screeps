@@ -78,16 +78,12 @@ function getBodyForEnergy(energy: number) {
   return /*200*/[RANGED_ATTACK, MOVE];
 }
 
-function bodyPartsCallback(request: SpawnRequest, spawn?: StructureSpawn): BodyPartConstant[] {
+function bodyPartsCallback(request: SpawnRequest, maxEnergy: number): BodyPartConstant[] {
   const room = Game.rooms[request.context.roomName];
   if (room.find(FIND_HOSTILE_CREEPS).length == 0) {
     return null;
   }
-  if (spawn) {
-    return getBodyForEnergy(getEnergyAvailableForSpawn(spawn));
-  } else {
-    return getBodyForEnergy(getEnergyCapacityForSpawn(room));
-  }
+  return getBodyForEnergy(maxEnergy);
 }
 
 const bodyPartsCallbackName = 'RangedAttackCreep' as Id<BodyPartsCallback>;

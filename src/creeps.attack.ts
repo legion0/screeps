@@ -81,16 +81,12 @@ function getBodyForEnergy(energy: number) {
   return /*130*/[ATTACK, MOVE];
 }
 
-function bodyPartsCallback(request: SpawnRequest, spawn?: StructureSpawn): BodyPartConstant[] {
+function bodyPartsCallback(request: SpawnRequest, maxEnergy: number): BodyPartConstant[] {
   const room = Game.rooms[request.context.roomName];
   if (room.find(FIND_HOSTILE_CREEPS).length == 0) {
     return null;
   }
-  if (spawn) {
-    return getBodyForEnergy(getEnergyAvailableForSpawn(spawn));
-  } else {
-    return getBodyForEnergy(getEnergyCapacityForSpawn(room));
-  }
+  return getBodyForEnergy(maxEnergy);
 }
 
 const bodyPartsCallbackName = 'AttackCreep' as Id<BodyPartsCallback>;

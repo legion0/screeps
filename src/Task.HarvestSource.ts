@@ -74,12 +74,8 @@ function buildSpawnRequest(room: Room, name: string, sourcePos: RoomPosition, ti
 	};
 }
 
-function bodyPartsCallback(request: SpawnRequest, spawn?: StructureSpawn): BodyPartConstant[] {
-	let room = Game.rooms[request.context.roomName];
-	if (spawn && !hasHarvestCreeps(room)) {
-		return getBootCreepBodyForEnergy(getEnergyAvailableForSpawn(spawn));
-	}
-	return getBootCreepBodyForEnergy(getEnergyCapacityForSpawn(room));
+function bodyPartsCallback(request: SpawnRequest, maxEnergy: number): BodyPartConstant[] {
+	return getBootCreepBodyForEnergy(maxEnergy);
 }
 
 const bodyPartsCallbackName = 'BootCreep' as Id<BodyPartsCallback>;
