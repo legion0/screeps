@@ -61,6 +61,7 @@ https://github.com/techfort/LokiJS/wiki
 
 ## Console Commands
 
+* `Memory.logger.printLevel = LogLevel.DEBUG`
 * `Memory.logCreepActions = true`
 * `Memory.creepSayAction = true` 
 * `Memory.creepSayName = true` 

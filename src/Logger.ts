@@ -19,6 +19,9 @@ enum LogLevel {
 	DEBUG2,
 	DEBUG3,
 }
+
+(global as any).LogLevel = LogLevel;
+
 const LogLevelColor: string[] = [
 	'black',
 	'red',
