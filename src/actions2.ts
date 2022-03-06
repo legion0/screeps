@@ -60,7 +60,7 @@ export function attack(creep: Creep, target: AnyCreep | Structure) {
 
 export function rangedAttack(creep: Creep, target: AnyCreep | Structure) {
   if (creep.pos.inRangeTo(target.pos, RANGED_ATTACK_RANGE)) {
-    return creep.attack(target);
+    return creep.rangedAttack(target);
   } else {
     return moveTo(creep, target.pos, /*highway=*/false, RANGED_ATTACK_RANGE);
   }
