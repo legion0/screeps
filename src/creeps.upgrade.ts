@@ -1,4 +1,4 @@
-import { ActionType, isPickupTarget, isWithdrawTarget } from './Action';
+import { ActionType, isPickupTarget, isWithdrawTarget, recycle } from './Action';
 import { build, creepActions, harvest, pickupResource, repair, upgradeController, withdrawFromTarget } from './actions2';
 import { errorCodeToString, TERRAIN_PLAIN } from './constants';
 import { log } from './Logger';
@@ -41,6 +41,16 @@ export function runUpgradeCreep(creep: Creep, room: Room) {
   if (creep.spawning) {
     return;
   }
+
+  if (!creep.getActiveBodyparts(WORK)) {
+    if (creep.getActiveBodyparts(MOVE)) {
+      recycle(creep);
+    } else {
+      creep.suicide();
+    }
+    return;
+  }
+
   const source = findRoomSource(room);
   if (hasFreeCapacity(creep)) {
     const nearbyEnergy = findNearbyEnergy(creep.pos);
