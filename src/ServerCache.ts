@@ -7,7 +7,7 @@ declare global {
 	interface Memory {
 		nextServerId: number;
 		serverCache: {
-			servers: { [key: /* serverId=*/number]: /* lastActive=*/number };
+			servers: { [key: /* serverId=*/number]: /* lastActive=*/number; };
 			stableSince: number;
 		};
 	}
