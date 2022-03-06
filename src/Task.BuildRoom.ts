@@ -1,29 +1,15 @@
-import * as A from './Action';
-import { isWithdrawTarget, WithdrawTarget } from './Action';
+import { findMinBy } from './Array';
 import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { GENERIC_WORKER } from './constants';
+import { runBuilderCreep } from './creep.builder';
+import { CreepPair } from './creep_pair';
 import { log } from './Logger';
 import { nextExtensionPos } from './Planning';
-import { BuildQueuePriority, constructionQueueSize, currentConstruction, findRoomSource, requestConstruction, findMyConstructionSites, findStructuresByType } from './Room';
-import { findNearbyEnergy, toMemoryRoom } from './RoomPosition';
-import { elapsed } from './ServerCache';
+import { BuildQueuePriority, constructionQueueSize, currentConstruction, findMyConstructionSites, findStructuresByType, requestConstruction } from './Room';
+import { toMemoryRoom } from './RoomPosition';
 import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { Task } from './Task';
 import { everyN } from './Tick';
-import { findMinBy } from './Array';
-import { CreepPair } from './creep_pair';
-
-interface SequenceContext {
-	creep: Creep;
-	task: TaskBuildRoom;
-}
-
-const sequence = [
-	new A.Build<SequenceContext>().setArgs((c) => c.task.constructionSite),
-	new A.Pickup<SequenceContext>().setArgs((c) => findNearbyEnergy(c.creep.pos)),
-	new A.Withdraw<SequenceContext>().setArgs((c) => c.task.withdrawTarget),
-	new A.Harvest<SequenceContext>().setArgs((c) => c.task.harvestTarget).setPersist(),
-];
 
 const kMaxBuildersPerRoom = 3;
 
@@ -33,14 +19,8 @@ export class TaskBuildRoom extends Task {
 	readonly roomName: string;
 
 	readonly room?: Room;
-
 	readonly constructionSite?: ConstructionSite;
-
 	private constructionQueueSize: number;
-
-	readonly withdrawTarget?: WithdrawTarget;
-
-	readonly harvestTarget?: Source;
 
 	constructor(roomName: Id<TaskBuildRoom>) {
 		super(TaskBuildRoom, roomName);
@@ -48,12 +28,6 @@ export class TaskBuildRoom extends Task {
 		this.room = Game.rooms[roomName];
 		this.constructionSite = currentConstruction(this.room.name) ?? findMinBy(findMyConstructionSites(this.room), (s: ConstructionSite) => toMemoryRoom(s.pos));
 		this.constructionQueueSize = constructionQueueSize(this.room.name);
-		const roomSource = findRoomSource(this.room);
-		if (isWithdrawTarget(roomSource)) {
-			this.withdrawTarget = roomSource;
-		} else if (roomSource instanceof Source) {
-			this.harvestTarget = roomSource;
-		}
 	}
 
 	protected run() {
@@ -73,8 +47,6 @@ export class TaskBuildRoom extends Task {
 		});
 
 		const numCreeps = Math.min(Math.ceil(this.constructionQueueSize / 5000), kMaxBuildersPerRoom);
-		const noMoreBuilding = elapsed(`${this.id}.lastBuild`, 10, Boolean(this.constructionSite));
-
 		for (const name of this.creepNames(numCreeps)) {
 			const creepPair = new CreepPair(name);
 			everyN(20, () => {
@@ -91,10 +63,7 @@ export class TaskBuildRoom extends Task {
 		for (const name of this.creepNames(kMaxBuildersPerRoom)) {
 			const creepPair = new CreepPair(name);
 			for (const creep of creepPair.getLiveCreeps()) {
-				if (noMoreBuilding) {
-					A.recycle(creep);
-				}
-				A.runSequence(sequence, creep, { creep, task: this });
+				runBuilderCreep(creep, this.constructionSite);
 			}
 		}
 	}
