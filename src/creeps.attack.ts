@@ -56,7 +56,8 @@ export function runAttackCreep(creep: Creep, target?: RoomPosition | AnyCreep | 
 
 export function requestAttackCreepAt(name: string, pos: RoomPosition) {
   const queue = SpawnQueue.getSpawnQueue();
-  queue.has(name) || queue.push({
+  const creep = Game.creeps[name];
+  (creep && creep.ticksToLive) || (creep && creep.spawning) || queue.has(name) || queue.push({
     name,
     bodyPartsCallbackName: bodyPartsCallbackName,
     priority: SpawnQueuePriority.ATTACK,
