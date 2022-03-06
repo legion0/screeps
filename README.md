@@ -50,7 +50,7 @@ https://github.com/techfort/LokiJS/wiki
 * Add additional arguments support to creep actions (e.g. withdraw energy type)
 * Clean up how server cache write back to tick cache in get
 * Convert highway path in creep memory to standard serialized path and use moveByPath
-* Make highway lookup by finding highway endpoint within range of edges, otherwise it creates multiple different highways for very close together destinations, this will also potentially allow to hick to existing highway from random position without the "from" position.
+* Make highway lookup by finding highway endpoint within range of edges, otherwise it creates multiple different highways for very close together destinations, this will also potentially allow to hitch to existing highway from random position without the "from" position.
 
 ## Aspirational TODO
 
