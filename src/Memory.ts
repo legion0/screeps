@@ -5,7 +5,7 @@
  * @param forced
  * @example
  */
-export function memInit<T, K extends keyof T> (
+export function memInit<T, K extends keyof T>(
 	o: T,
 	name: K, value: Exclude<T[K], undefined>, forced = false
 ): Exclude<T[K], undefined> {

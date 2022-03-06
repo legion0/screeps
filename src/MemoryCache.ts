@@ -6,7 +6,7 @@ export type MemoryCacheable = string | number | string[] | number[];
 
 declare global {
 	interface Memory {
-		cache: { [key: string]: MemoryCacheable };
+		cache: { [key: string]: MemoryCacheable; };
 	}
 }
 

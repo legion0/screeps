@@ -64,7 +64,7 @@ function newBuffer(type: Type, size: number) {
 function decodeTestForType(type: Type) {
 	return function (buffer: DataView, offset: { i: number; }) {
 		return buffer.getUint8(offset.i) == type;
-	}
+	};
 }
 
 const SPEC = {

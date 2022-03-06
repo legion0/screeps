@@ -1,6 +1,6 @@
 interface PriorityQueueMemory<T> {
 	array: T[];
-	index?: { [key: string]: null };
+	index?: { [key: string]: null; };
 	size: number;
 }
 

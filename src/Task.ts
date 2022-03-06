@@ -9,7 +9,7 @@ declare global {
 }
 
 class TaskClassRegister {
-	private readonly register: { [key: string]: TaskClass<any> } = {
+	private readonly register: { [key: string]: TaskClass<any>; } = {
 	};
 
 	registerTaskClass<SubClass>(taskClass: TaskClass<SubClass>) {

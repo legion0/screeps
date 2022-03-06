@@ -9,7 +9,7 @@ function canBuildExtension(room: Room, x: number, y: number): boolean {
 		(terrain === TERRAIN_PLAIN || terrain === TERRAIN_SWAMP);
 }
 
-export function *nextExtensionPos(room: Room) {
+export function* nextExtensionPos(room: Room) {
 	const maxExtensions = CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.controller.level];
 	if (maxExtensions === 0) {
 		return;
@@ -32,7 +32,7 @@ export function *nextExtensionPos(room: Room) {
 	}
 }
 
-function *spread(x: number, y: number): Generator<[number, number]> {
+function* spread(x: number, y: number): Generator<[number, number]> {
 	const queue: number[] = [];
 	const visited: Set<number> = new Set();
 	let value = x * ROOM_WIDTH + y;

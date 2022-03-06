@@ -10,9 +10,9 @@ export interface CacheService<T> {
 }
 
 export class ObjectCacheService<T> implements CacheService<T> {
-	private cache: { [key: string]: { insertTime: number, value: T, ttl: number } };
+	private cache: { [key: string]: { insertTime: number, value: T, ttl: number; }; };
 
-	constructor(obj: { [key: string]: any }) {
+	constructor(obj: { [key: string]: any; }) {
 		this.cache = obj;
 	}
 
@@ -66,7 +66,7 @@ export class ObjectCacheService<T> implements CacheService<T> {
 export class TickCacheService<T> implements CacheService<T> {
 	private time: number = 0;
 
-	private cache: { [key: number]: { [key: string]: T } } = {};
+	private cache: { [key: number]: { [key: string]: T; }; } = {};
 
 	get(id: string): T | undefined {
 		return this.cache[Game.time]?.[id];

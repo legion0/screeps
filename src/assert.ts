@@ -12,7 +12,7 @@ export function ok(value: any, message?: string): void {
 	}
 }
 
-export function instanceOf<T extends new(...args: any) => any>(
+export function instanceOf<T extends new (...args: any) => any>(
 	value: any,
 	expected: T,
 	message?: string): value is InstanceType<T> {

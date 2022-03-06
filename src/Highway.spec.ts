@@ -37,4 +37,4 @@ test('deep', () => {
 
 	expect(highway).toBeInstanceOf(Highway);
 	expect((highway as Highway).nextSegment(from as any, to as any)).toMatchObject([{ "x": 2, "y": 2 }, { "x": 3, "y": 3 }]);
-})
+});

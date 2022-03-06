@@ -13,4 +13,4 @@ type HasPropertyOfType<T, K extends keyof T, X> = Exclude<T, K> & {
 };
 
 type HasProperty<T, K extends keyof T> =
-  HasPropertyOfType<T, K, Exclude<T[K], undefined>>;
+	HasPropertyOfType<T, K, Exclude<T[K], undefined>>;

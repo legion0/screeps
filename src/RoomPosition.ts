@@ -127,7 +127,7 @@ export function getClearance(pos: RoomPosition) {
 	return pos._clearance ?? (pos._clearance = (() => posNear(pos, /* includeSelf=*/false).reduce((count: number, pos: RoomPosition) => count + Number(pos.lookFor(LOOK_TERRAIN)[0] == TERRAIN_PLAIN), 0))());
 }
 
-export function findObjectByPos<T extends RoomObject & { id: Id<T> }>(
+export function findObjectByPos<T extends RoomObject & { id: Id<T>; }>(
 	pos: RoomPosition,
 	cacheReader: () => Id<T>,
 	cacheWriter: (id: Id<T>) => void,
