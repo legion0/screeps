@@ -11,7 +11,7 @@ interface HighwayMemory {
 	from: RoomPositionMemory;
 	to: RoomPositionMemory;
 	path: RoomPositionMemory[];
-	lastUsed?: number;
+	lastUsed: number;
 }
 
 declare global {
@@ -24,54 +24,146 @@ declare global {
 
 memInit(Memory, 'highways', {});
 
+function highwayName(from: RoomPosition, to: RoomPosition) {
+	return `highway_${posKey(from)}_${posKey(to)}`;
+}
+
+// Buffer from target to build highway at.
+const HIGHWAY_ROAD_BUFFER = 2;
+
+export const HIGHWAY_RANGE = 5;
+
+const HIGHWAY_SEGMENT_SIZE = 5;
+
 export class Highway {
 	private name: string;
-
 	private from: RoomPosition;
-
 	private to: RoomPosition;
-
 	private memory: HighwayMemory;
 
-	constructor(from: RoomPosition, to: RoomPosition) {
-		// Support for reverse coordinates when loading highway while walking backwards
-		const reverseName = `highway_${posKey(to)}_${posKey(from)}`;
-		if (reverseName in Memory.highways) {
-			[to, from] = [from, to];
-		}
-		this.name = `highway_${posKey(from)}_${posKey(to)}`;
-		this.from = from;
-		this.to = to;
+	private constructor(highwayName: string) {
+		this.name = highwayName;
+		this.memory = Memory.highways[highwayName];
+		this.from = fromMemoryWorld(this.memory.from);
+		this.to = fromMemoryWorld(this.memory.to);
 	}
 
-	build(): Highway | ScreepsReturnCode {
-		if (this.from.getRangeTo(this.to) < 10) {
-			return ERR_FULL;
+	getName(): string {
+		return this.name;
+	}
+
+	exits() {
+		return [this.from, this.to];
+	}
+
+	// Returns the `Highway` object for the given `name` or null if not found.
+	static loadHighway(name: string): Highway {
+		if (name in Memory.highways) {
+			return new Highway(name);
 		}
-		this.memory = memInit(Memory.highways, this.name, {
+		return null;
+	}
+
+	// Creates a new `Highway` from `source` to `target`.
+	// Returns ERR_NO_PATH if it fails to find a path from `source` to `target`.
+	static createHighway(source: RoomPosition, target: RoomPosition) {
+		const name = highwayName(source, target);
+		if (name in Memory.highways) {
+			return new Highway(name);
+		}
+		return Highway.createNewHighway(source, target);
+	}
+
+	// Creates a new `Highway` from `source` to `target`.
+	// Returns ERR_NO_PATH if it fails to find a path from `source` to `target`.
+	private static createNewHighway(source: RoomPosition, target: RoomPosition): Highway | ScreepsReturnCode {
+		log.d(`Creating highway from [${source}] to [${target}]`);
+		const name = highwayName(source, target);
+		const memory = memInit(Memory.highways, highwayName(source, target), {
 			path: [],
-			from: toMemoryWorld(this.from),
-			to: toMemoryWorld(this.to),
+			from: toMemoryWorld(source),
+			to: toMemoryWorld(target),
+			lastUsed: Game.time,
 		});
-		this.memory.lastUsed = Game.time;
-		if (this.memory.path.length) {
-			return this;
-		}
-		log.d(`Attempting to build highway from [${this.from}] to [${this.to}]`);
-		const rv = PathFinder.search(this.from, {
-			pos: this.to,
+		const rv = PathFinder.search(source, {
+			pos: target,
 			range: 1
 		}, {
 			plainCost: 1,
 			swampCost: 1,
-			roomCallback: this.roomCallback,
+			roomCallback: Highway.roomCallback,
 		});
 		if (rv.incomplete) {
 			return ERR_NO_PATH;
 		}
-		const path = rv.path.slice(2, rv.path.length - 2);
-		this.memory.path = path.map(toMemoryWorld);
-		return this;
+		const path = rv.path.slice(HIGHWAY_ROAD_BUFFER, rv.path.length - HIGHWAY_ROAD_BUFFER);
+		memory.path = path.map(toMemoryWorld);
+		Memory.highways[name] = memory;
+		return new Highway(name);
+	}
+
+	// Returns the `Highway` that will take you from `current` to `target` or
+	// null if not found.
+	static findHighway(current: RoomPosition, target: RoomPosition) {
+		const room = Game.rooms[current.roomName];
+		// Find candidates where either end of the highway is in range < 5 to the
+		// `target` position.
+		const candidates = Object.values(Memory.highways).filter(
+			(memory) => fromMemoryWorld(memory.from).getRangeTo(target) <= HIGHWAY_RANGE ||
+				fromMemoryWorld(memory.to).getRangeTo(target) <= HIGHWAY_RANGE
+		);
+
+		const range = current.getRangeTo(target);
+
+		for (const memory of candidates) {
+			const from = fromMemoryWorld(memory.from);
+			const to = fromMemoryWorld(memory.to);
+			const onRamp = findMinBy(memory.path.map(fromMemoryWorld),
+				(pos) => pos.getRangeTo(current) + pos.getRangeTo(target) / range)!;
+			if (onRamp.getRangeTo(current) <= HIGHWAY_RANGE) {
+				if (Memory.highwayDebugVisuals && room) {
+					room.visual.line(current.x, current.y, onRamp.x, onRamp.y, { color: 'green' });
+					room.visual.line(onRamp.x, onRamp.y, to.x, to.y, { color: 'green' });
+					room.visual.line(from.x, from.y, to.x, to.y, { color: 'blue' });
+				}
+				return new Highway(highwayName(from, to));
+			}
+		}
+		if (Memory.highwayDebugVisuals && room) {
+			room.visual.line(current.x, current.y, target.x, target.y, { color: 'red' });
+		}
+		return null;
+	}
+
+	// Returns the next segment of the highway to walk given the `current` position of the creep.
+	// Returns an empty array when reaching the end of the highway.
+	nextSegment(current: RoomPosition, target: RoomPosition): RoomPosition[] {
+		const highwayPath = this.memory.path.map(fromMemoryWorld);
+		this.memory.lastUsed = Game.time;
+		const range = current.getRangeTo(target);
+
+		/*
+		 * We use range as a tie breaker for positions that are equally far from
+		 * the creep, this is important when changing routes between 2 highways
+		 * after changing destination.
+		 */
+		let startIdx = findMinIndexBy(highwayPath, pos => pos.getRangeTo(current) + pos.getRangeTo(target) / range);
+		if (startIdx == 0 || startIdx == highwayPath.length - 1) {
+			return [];
+		}
+		let endIdx = findMinIndexBy(highwayPath, pos => pos.getRangeTo(target));
+
+		if (startIdx > endIdx) {
+			highwayPath.reverse();
+			[startIdx, endIdx] = [highwayPath.length - startIdx - 1, highwayPath.length - endIdx - 1];
+		}
+		if (highwayPath[startIdx].isEqualTo(current)) {
+			++startIdx;
+			if (endIdx + 1 < highwayPath.length) {
+				++endIdx;
+			}
+		}
+		return highwayPath.slice(startIdx, Math.min(endIdx, startIdx + HIGHWAY_SEGMENT_SIZE));
 	}
 
 	show() {
@@ -91,85 +183,14 @@ export class Highway {
 	}
 
 	buildRoad() {
-		if (elapsed(`${this.name}.lastBuild`, /*elapsedTime=*/10, /*cacheTtl=*/50, /*resetStartTime=*/false)) {
-			this.memory.path
-				.map(fromMemoryWorld)
-				.filter((pos) => !pos.lookFor(LOOK_STRUCTURES).some(isRoad))
-				.filter((pos) => !pos.lookFor(LOOK_CONSTRUCTION_SITES).some(isRoad))
-				.forEach((pos) => Game.rooms[pos.roomName].createConstructionSite(pos, STRUCTURE_ROAD));
-		}
-		return this;
-	}
-
-	/*
-	 * Clears all construction sites for STRUCTURE_ROAD on the highway path
-	 * TODO: make sure we don't remove construction sites and roads not placed by this highway.
-	 */
-	clearRoad() {
 		this.memory.path
 			.map(fromMemoryWorld)
-			.forEach((pos) => {
-				pos.lookFor(LOOK_CONSTRUCTION_SITES)
-					.filter((s) => s.structureType === STRUCTURE_ROAD)
-					.forEach((s) => s.remove());
-				pos.lookFor(LOOK_STRUCTURES)
-					.filter((s) => s.structureType === STRUCTURE_ROAD)
-					.forEach((s) => s.destroy());
-			});
+			.filter((pos) => !pos.lookFor(LOOK_STRUCTURES).some(isRoad))
+			.filter((pos) => !pos.lookFor(LOOK_CONSTRUCTION_SITES).some(isRoad))
+			.forEach((pos) => Game.rooms[pos.roomName].createConstructionSite(pos, STRUCTURE_ROAD));
 	}
 
-	static findHighway(current: RoomPosition, to: RoomPosition) {
-		const range = current.getRangeTo(to);
-		const candidates = Object.values(Memory.highways).filter(
-			(memory) => fromMemoryWorld(memory.from).getRangeTo(to) <= 5 ||
-				fromMemoryWorld(memory.to).getRangeTo(to) <= 5
-		);
-
-		for (const memory of candidates) {
-			const start = fromMemoryWorld(memory.from);
-			const end = fromMemoryWorld(memory.to);
-			const onRamp = findMinBy(memory.path.map(fromMemoryWorld),
-				(pos) => pos.getRangeTo(current) + pos.getRangeTo(to) / range)!;
-			if (onRamp.getRangeTo(current) > 5) {
-				continue;
-			}
-			if (start.getRangeTo(to) < 5) {
-				return end;
-			} else if (end.getRangeTo(to) < 5) {
-				return start;
-			}
-		}
-		return null;
-	}
-
-	nextSegment(current: RoomPosition, to: RoomPosition): RoomPosition[] {
-		if (!this.memory.path || !this.memory.path.length) {
-			log.e(`Accessing Failed Highway at [${this.name}]`);
-			return [];
-		}
-		const highwayPath = this.memory.path.map(fromMemoryWorld);
-		const range = current.getRangeTo(to);
-
-		/*
-		 * We use range as a tie breaker for positions that are equally far from
-		 * the creep, this is important when changing routes between 2 highways
-		 * after changing destination.
-		 */
-		let startIdx = findMinIndexBy(highwayPath, (pos) => pos.getRangeTo(current) + pos.getRangeTo(to) / range);
-		let endIdx = findMinIndexBy(highwayPath, to.getRangeTo.bind(to));
-
-		if (startIdx > endIdx) {
-			highwayPath.reverse();
-			[startIdx, endIdx] = [highwayPath.length - startIdx - 1, highwayPath.length - endIdx - 1];
-		}
-		// Console.log(startIdx, endIdx, highwayPath.length);
-		if (highwayPath[startIdx].isEqualTo(current)) {
-			startIdx += 1;
-		}
-		return highwayPath.slice(startIdx, Math.min(endIdx, startIdx + 5));
-	}
-
-	private roomCallback(roomName: string): CostMatrix {
+	private static roomCallback(roomName: string): CostMatrix {
 		const room = Game.rooms[roomName];
 
 		/*
@@ -190,17 +211,14 @@ export class Highway {
 	}
 }
 
-// eslint-disable-next-line max-lines-per-function
 events.listen(EventEnum.EVENT_TICK_END, () => {
 	// Cleanup old unused highways
 	everyN(500, () => {
-		for (const name of Object.keys(Memory.highways)) {
-			const lastUsed = memInit(Memory.highways[name], 'lastUsed', Game.time);
+		for (const [name, memory] of Object.entries(Memory.highways)) {
+			const lastUsed = memory.lastUsed;
 			if (lastUsed + 2000 < Game.time) {
 				log.v(`Removing old unused highway [${name}]`);
-				Memory.highways[name].path
-					.map(fromMemoryWorld)
-					.forEach(removeRoads);
+				memory.path.map(fromMemoryWorld).forEach(removeRoadConstructionSites);
 				delete Memory.highways[name];
 			}
 		}
@@ -209,8 +227,8 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 	if (Memory.clearHighways) {
 		log.w(`Clearing all highways!`);
 		delete Memory.clearHighways;
-		for (const [name, highway] of Object.entries(Memory.highways)) {
-			highway.path.forEach(removeRoadAtMem);
+		for (const [name, memory] of Object.entries(Memory.highways)) {
+			memory.path.map(fromMemoryWorld).forEach(removeRoadConstructionSites);
 			delete Memory.highways[name];
 		}
 		for (const name of Object.keys(Memory.creeps)) {
@@ -233,23 +251,11 @@ events.listen(EventEnum.EVENT_TICK_END, () => {
 	}
 });
 
-function removeRoads(pos: RoomPosition) {
+function removeRoadConstructionSites(pos: RoomPosition) {
 	if (Game.rooms[pos.roomName]) {
 		pos.lookFor(LOOK_CONSTRUCTION_SITES)
 			.filter((s) => s.structureType === STRUCTURE_ROAD)
 			.forEach((s) => s.remove());
-	}
-}
-
-function removeRoadAtMem(posMem: RoomPositionMemory) {
-	const pos = fromMemoryWorld(posMem);
-	if (Game.rooms[pos.roomName]) {
-		const road = lookForStructureAt(STRUCTURE_ROAD, pos);
-		if (road instanceof ConstructionSite) {
-			road.remove();
-		} else if (road instanceof StructureRoad) {
-			road.destroy();
-		}
 	}
 }
 

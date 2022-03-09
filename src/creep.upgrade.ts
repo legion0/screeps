@@ -71,7 +71,7 @@ export function runUpgradeCreep(creep: Creep, room: Room) {
   }
 
   const roadConstruction = lookForConstructionAt(STRUCTURE_ROAD, creep.pos);
-  if (roadConstruction) {
+  if (roadConstruction && creep.store[RESOURCE_ENERGY] && creep.memory.highway) {
     // Build road
     creepActions.setAction(creep, ActionType.BUILD, (creep: Creep) => {
       return build(creep, roadConstruction);
@@ -79,7 +79,7 @@ export function runUpgradeCreep(creep: Creep, room: Room) {
     return;
   }
   const road = lookForStructureAt(STRUCTURE_ROAD, creep.pos);
-  if (road && isDamaged(road) && hasUsedCapacity(creep)) {
+  if (road && isDamaged(road) && creep.store[RESOURCE_ENERGY]) {
     // Repair road
     creepActions.setAction(creep, ActionType.REPAIR, (creep: Creep) => {
       return repair(creep, road);

@@ -40,6 +40,9 @@ https://github.com/techfort/LokiJS/wiki
 
 ### P0
 
+* Complete new highway
+* Stop using room source and instead select best source taking into account current creep position, otherwise it walks over to the other side of the room just because that container has a little more resource than the container next to it.
+* Create a temporary container(s) next to spawn to use as room source until we have a larger storage unit.
 * Combat Creep Group to combat first invasion wave.
 * Figure out task replacment strategy, when/how does harvester_hauler replace boot task?
 

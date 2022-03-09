@@ -1,7 +1,10 @@
 import { createBodySpec, getBodyForRoom } from './BodySpec';
+import { errorCodeToString } from './constants';
 import { getBootCreepBodyForEnergy, runBootCreep } from './creep.boot';
 import { CreepPair } from './creep_pair';
-import { RoomSync } from './Room';
+import { Highway } from './Highway';
+import { log } from './Logger';
+import { findMySpawns, RoomSync } from './Room';
 import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { getEnergyAvailableForSpawn, getEnergyCapacityForSpawn } from './structure.spawn.energy';
 import { Task } from './Task';
@@ -32,6 +35,14 @@ export class TaskHarvestSource extends Task {
 
 		const creepPair = new CreepPair(name);
 		everyN(20, () => {
+			for (const spawn of findMySpawns(this.source.room)) {
+				const highway = Highway.createHighway(this.source.pos, spawn.pos);
+				if (highway instanceof Highway) {
+					highway.buildRoad();
+				} else {
+					log.e(`Failed to build highway from source at [${this.source.pos}] to spawn at [${spawn.pos}] with error: [${errorCodeToString(highway)}]`);
+				}
+			}
 			if (creepPair.getActiveCreepTtl() < 50) {
 				SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
 					|| creepPair.getSecondaryCreep()?.spawning

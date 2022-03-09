@@ -1,7 +1,9 @@
 import { createBodySpec, getBodyForRoom } from './BodySpec';
-import { GENERIC_WORKER } from './constants';
+import { errorCodeToString, GENERIC_WORKER } from './constants';
 import { runUpgradeCreep } from './creep.upgrade';
 import { CreepPair } from './creep_pair';
+import { Highway } from './Highway';
+import { log } from './Logger';
 import { findStructuresByType } from './Room';
 import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { Task } from './Task';
@@ -34,6 +36,17 @@ export class TaskUpgradeController extends Task {
 				runUpgradeCreep(creep, this.room);
 			}
 		}
+		everyN(20, () => {
+			for (const container of findStructuresByType(this.room, STRUCTURE_CONTAINER)) {
+				const highway = Highway.createHighway(this.room.controller.pos, container.pos);
+				if (highway instanceof Highway) {
+					highway.buildRoad();
+				} else {
+					log.e(`Failed to build highway from container at [${container.pos}] to controller at [${this.room.controller.pos}] with error: [${errorCodeToString(highway)}]`);
+				}
+
+			}
+		});
 	}
 
 	private creepNames(): string[] {

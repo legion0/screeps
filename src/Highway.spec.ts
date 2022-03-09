@@ -31,10 +31,10 @@ initFromSample(
 // WWW    WWWWWWWWW   WWWWWWWWWL  WWWWWWWWWWW WWWWWWW
 
 test('deep', () => {
-	let from = new RoomPosition(1, 1, 'W0N0');
-	let to = new RoomPosition(5, 9, 'W0N0');
-	let highway = new Highway(from as any, to as any).build();
+	const from = new RoomPosition(1, 1, 'W0N0');
+	const to = new RoomPosition(5, 9, 'W0N0');
+	const highway = Highway.createHighway(from as any, to as any);
 
 	expect(highway).toBeInstanceOf(Highway);
-	expect((highway as Highway).nextSegment(from as any, to as any)).toMatchObject([{ "x": 2, "y": 2 }, { "x": 3, "y": 3 }]);
+	expect((highway as Highway).nextSegment(from, to)).toMatchObject([{ "x": 2, "y": 2 }, { "x": 3, "y": 3 }]);
 });
