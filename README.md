@@ -40,13 +40,15 @@ https://github.com/techfort/LokiJS/wiki
 
 ### P0
 
-* Stop using room source and instead select best source taking into account current creep position, otherwise it walks over to the other side of the room just because that container has a little more resource than the container next to it.
-* Create a temporary container(s) next to spawn to use as room source until we have a larger storage unit.
+* Create a temporary container(s) close to spawn to use as room source until we have a larger storage unit, otherwise the hauler has to walk far to fill spawn and creep swapning times out and drops requests. Then designate it as storage, if storage does not exist yet, for finding creep energy source. Make sure its not too close to spawn to avoid congestion next to spawn.
 * Combat Creep Group to combat first invasion wave.
 * Figure out task replacment strategy, when/how does harvester_hauler replace boot task?
 
 ### P1
 
+* Make existing highway path cost lower than regular tiles when calculating new highways to reuse existing road segments.
+* Idle harvest source on the container.
+* Replace creepSayName with debugCreepRole with a 2 letter role shorthand (can we use unicode emoji?).
 * Enable strict in tsconfig compiler options.
 * Figure out why the last pos of a highway isn't used.
 * Make sure we don't build new buildings on existing highways, or alternatively delete the highway and create a new one.
