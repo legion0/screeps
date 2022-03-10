@@ -180,7 +180,9 @@ export function moveTo(creep: Creep, target: RoomPosition, useHighways: boolean,
 	}
 	let rv: ScreepsReturnCode = OK;
 	let nextWaypoint: RoomPosition = null;
-	if (creep.memory.highway?.path?.length || creep.pos.getRangeTo(target) > HIGHWAY_NAVIGTION_RANGE) {
+	// TODO: after the creep gets unstuck it can immediately go back to the
+	// highway, need to fix this and do short detourts around obstacle.
+	if (!isCreepStuck(creep) && (creep.memory.highway?.path?.length || creep.pos.getRangeTo(target) > HIGHWAY_NAVIGTION_RANGE)) {
 		const highwayNextWaypoint = getNextHighwayWaypoint(creep, target);
 		if (highwayNextWaypoint instanceof RoomPosition) {
 			nextWaypoint = highwayNextWaypoint;
