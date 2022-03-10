@@ -1,13 +1,13 @@
-import { ActionType, isPickupTarget, isWithdrawTarget, PickupTarget, recycle, WithdrawTarget } from './Action';
-import { build, creepActions, harvest, pickupResource, withdrawFromTarget } from './actions2';
+import { ActionType, recycle, WithdrawTarget } from './Action';
+import { build, creepActions, withdrawFromTarget } from './actions2';
 import { reverseDirection } from './directions';
-import { findEnergySourceForCreep, findRoomSource } from './Room';
+import { findEnergySourceForCreep } from './Room';
 import { findNearbyEnergy } from './RoomPosition';
 import { elapsed } from './ServerCache';
 import { hasFreeCapacity, hasUsedCapacity } from './Store';
 
 export function findEnergySourceForBuilder(creep: Creep) {
-  return findEnergySourceForCreep(creep, /*minLoad=*/0.2, /*switchLoad=*/0.3);
+  return findEnergySourceForCreep(creep, /*minLoad=*/0.3, /*switchLoad=*/0.4);
 }
 
 export function runBuilderCreep(creep: Creep, constructionSite?: ConstructionSite) {

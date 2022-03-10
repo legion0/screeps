@@ -1,7 +1,6 @@
 import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { errorCodeToString, GENERIC_WORKER } from './constants';
 import { findEnergySourceForUpgrade, runUpgradeCreep } from './creep.upgrade';
-import { CreepPair } from './creep_pair';
 import { Highway } from './Highway';
 import { log } from './Logger';
 import { findStructuresByType } from './Room';
@@ -27,24 +26,22 @@ export class TaskUpgradeController extends Task {
 	}
 
 	protected run() {
+		everyN(20, () => {
+			for (const name of this.creepNames()) {
+				const creep = Game.creeps[name];
+				if (!(creep || SpawnQueue.getSpawnQueue().has(name)) && findEnergySourceForUpgrade(this.fakeCreep)) {
+					SpawnQueue.getSpawnQueue().push(buildSpawnRequest(this.room, name, Game.time));
+				}
+			}
+		});
+
 		for (const name of this.creepNames()) {
-			const creepPair = new CreepPair(name);
-			everyN(20, () => {
-				if (!findEnergySourceForUpgrade(this.fakeCreep)) {
-					return;
-				}
-				if (creepPair.getActiveCreepTtl() < 50) {
-					SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
-						|| creepPair.getSecondaryCreep()
-						|| SpawnQueue.getSpawnQueue().push(
-							buildSpawnRequest(this.room, creepPair.getSecondaryCreepName(),
-								Game.time + creepPair.getActiveCreepTtl()));
-				}
-			});
-			for (const creep of creepPair.getLiveCreeps()) {
+			const creep = Game.creeps[name];
+			if (creep) {
 				runUpgradeCreep(creep, this.room);
 			}
 		}
+
 		everyN(20, () => {
 			for (const container of findStructuresByType(this.room, STRUCTURE_CONTAINER)) {
 				const highway = Highway.createHighway(this.room.controller.pos, container.pos);
@@ -53,7 +50,6 @@ export class TaskUpgradeController extends Task {
 				} else {
 					log.e(`Failed to build highway from container at [${container.pos}] to controller at [${this.room.controller.pos}] with error: [${errorCodeToString(highway)}]`);
 				}
-
 			}
 		});
 	}

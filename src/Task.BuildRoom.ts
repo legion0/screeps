@@ -1,9 +1,8 @@
 import { recycle } from './Action';
 import { findMinBy } from './Array';
-import { createBodySpec, getBodyForRoom } from './BodySpec';
+import { createBodySpec } from './BodySpec';
 import { GENERIC_WORKER } from './constants';
 import { findEnergySourceForBuilder, getBuildCreepBodyForEnergy, runBuilderCreep } from './creep.builder';
-import { CreepPair } from './creep_pair';
 import { log } from './Logger';
 import { nextExtensionPos } from './Planning';
 import { BuildQueuePriority, constructionQueueSize, currentConstruction, findMyConstructionSites, findStructuresByType, getRoomStorageLoad, requestConstruction } from './Room';
@@ -44,7 +43,7 @@ export class TaskBuildRoom extends Task {
 		}
 
 		// Create new extensions
-		everyN(5, () => {
+		everyN(20, () => {
 			for (const pos of nextExtensionPos(this.room)) {
 				const rv = requestConstruction(pos, STRUCTURE_EXTENSION, BuildQueuePriority.EXTENSION);
 				if (rv !== OK && rv !== ERR_NAME_EXISTS) {
@@ -53,17 +52,16 @@ export class TaskBuildRoom extends Task {
 			}
 		});
 
-		if (getRoomStorageLoad(this.room, RESOURCE_ENERGY) > 0.6) {
+
+		everyN(20, () => {
 			const numCreeps = Math.min(Math.ceil(this.constructionQueueSize / 5000), kMaxBuildersPerRoom);
 			for (const name of this.creepNames(numCreeps)) {
 				const creep = Game.creeps[name];
-				everyN(20, () => {
-					if (!(creep || SpawnQueue.getSpawnQueue().has(name)) && findEnergySourceForBuilder(this.fakeCreep)) {
-						SpawnQueue.getSpawnQueue().push(buildSpawnRequest(this.room, name, Game.time));
-					}
-				});
+				if (!(creep || SpawnQueue.getSpawnQueue().has(name)) && findEnergySourceForBuilder(this.fakeCreep)) {
+					SpawnQueue.getSpawnQueue().push(buildSpawnRequest(this.room, name, Game.time));
+				}
 			}
-		}
+		});
 
 		for (const name of this.creepNames(kMaxBuildersPerRoom)) {
 			const creep = Game.creeps[name];
