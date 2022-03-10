@@ -234,7 +234,7 @@ export function recycle(creep: Creep) {
 			log.e(`[${creep.name}] failed to find spawn for recycling at recycle pos [${creep.pos}]`);
 		}
 	} else {
-		creep.moveTo(recyclePos);
+		return moveTo(creep, recyclePos, /*useHighways=*/false, /*range=*/1);
 	}
 }
 
