@@ -55,6 +55,7 @@ export interface SpawnRequest {
 
 interface SpawnRequestMemory {
 	name: string;
+	body: BodyPartConstant[];
 	bodyPartsCallbackName: Id<BodyPartsCallback>;
 	cost: number;
 	pos: RoomPositionMemory;
@@ -106,6 +107,7 @@ export class SpawnQueue {
 
 		const r: SpawnRequestMemory = {
 			name: request.name,
+			body: body,
 			bodyPartsCallbackName: request.bodyPartsCallbackName,
 			cost: _.sum(body, (part) => BODYPART_COST[part]),
 			pos: toMemoryWorld(request.pos),
@@ -192,13 +194,7 @@ export class SpawnQueue {
 		const spawn = findMinBy(availableSpawns, (s) => s.pos.getRangeTo(requestPos));
 		if (spawn) {
 			this.pop();
-			const body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(spawnRequestFromMemory(request), getEnergyCapacityForSpawn(spawn.room));
-			if (body == null) {
-				log.w(`Skipping null body for request [${request.name}]`);
-				this.run();
-				return;
-			}
-			const rv = spawn.spawnCreep(body, request.name, request.opts);
+			const rv = spawn.spawnCreep(request.body, request.name, request.opts);
 			if (rv === OK) {
 				log.v(`[${spawn}] spawning [${request.name}]`);
 			} else {
@@ -206,8 +202,8 @@ export class SpawnQueue {
 			}
 		} else {
 			everyN(50, () => {
-				log.w(`Not enough energy for spawning next request [${request.name}] with cost [${request.cost}]`);
-				if (request.endTime > Game.time + 200) {
+				log.w(`Not enough energy for spawning next request [${request.name}] with cost [${request.cost}], recalculating in [${request.endTime + 200 - Game.time}]`);
+				if (request.endTime + 200 < Game.time) {
 					log.d(`Recalculating cost for request [${request.name}] with cost [${request.cost}]`);
 					// Recalculate cost
 					const spawnRoom = findClosestSpawnRoom(requestPos);
@@ -218,15 +214,22 @@ export class SpawnQueue {
 						return;
 					}
 					const spawn = spawnRoom.find(FIND_MY_SPAWNS)[0];
-					const body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(spawnRequestFromMemory(request), getEnergyAvailableForSpawn(spawn));
-					if (body == null) {
+					const energyAvailable = getEnergyAvailableForSpawn(spawn);
+					request.body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(spawnRequestFromMemory(request), energyAvailable);
+					if (request.body == null) {
 						log.w(`Skipping null body for request [${request.name}]`);
 						this.pop();
 						this.run();
 						return;
 					}
-					request.cost = _.sum(body, (part) => BODYPART_COST[part]);
+					request.cost = _.sum(request.body, (part) => BODYPART_COST[part]);
 					log.d(`New cost for request [${request.name}] is [${request.cost}]`);
+					if (request.cost > energyAvailable) {
+						log.w(`Request [${request.name}] is too expensive and stalled, abandoning request`);
+						this.pop();
+						this.run();
+						return;
+					}
 				}
 			});
 		}

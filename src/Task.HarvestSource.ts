@@ -45,7 +45,7 @@ export class TaskHarvestSource extends Task {
 			}
 			if (creepPair.getActiveCreepTtl() < 50) {
 				SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
-					|| creepPair.getSecondaryCreep()?.spawning
+					|| creepPair.getSecondaryCreep()
 					|| SpawnQueue.getSpawnQueue().push(
 						buildSpawnRequest(this.source.room, creepPair.getSecondaryCreepName(),
 							this.source.pos, Game.time + creepPair.getActiveCreepTtl()));
@@ -66,8 +66,8 @@ export class TaskHarvestSource extends Task {
 	}
 }
 
-export function hasHarvestCreeps(room: Room) {
-	return Object.values(Game.creeps).filter(creep => (creep.name.endsWith('.harvest') || creep.name.endsWith('.harvest_alt')) && creep.pos.roomName == room.name).length;
+export function hasHarvestCreeps(room: Room): boolean {
+	return Object.values(Game.creeps).filter(creep => (creep.name.endsWith('.harvest') || creep.name.endsWith('.harvest_alt')) && creep.pos.roomName == room.name).length != 0;
 }
 
 Task.register.registerTaskClass(TaskHarvestSource);

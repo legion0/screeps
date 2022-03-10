@@ -1,11 +1,12 @@
+import { recycle } from './Action';
 import { findMinBy } from './Array';
 import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { GENERIC_WORKER } from './constants';
-import { runBuilderCreep } from './creep.builder';
+import { getBuildCreepBodyForEnergy, runBuilderCreep } from './creep.builder';
 import { CreepPair } from './creep_pair';
 import { log } from './Logger';
 import { nextExtensionPos } from './Planning';
-import { BuildQueuePriority, constructionQueueSize, currentConstruction, findMyConstructionSites, findStructuresByType, requestConstruction } from './Room';
+import { BuildQueuePriority, constructionQueueSize, currentConstruction, findMyConstructionSites, findStructuresByType, getRoomStorageLoad, requestConstruction } from './Room';
 import { toMemoryRoom } from './RoomPosition';
 import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { Task } from './Task';
@@ -46,24 +47,27 @@ export class TaskBuildRoom extends Task {
 			}
 		});
 
-		const numCreeps = Math.min(Math.ceil(this.constructionQueueSize / 5000), kMaxBuildersPerRoom);
-		for (const name of this.creepNames(numCreeps)) {
-			const creepPair = new CreepPair(name);
-			everyN(20, () => {
-				if (creepPair.getActiveCreepTtl() < 50) {
-					SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
-						|| creepPair.getSecondaryCreep()?.spawning
-						|| SpawnQueue.getSpawnQueue().push(
-							buildSpawnRequest(this.room, creepPair.getSecondaryCreepName(),
-								Game.time + creepPair.getActiveCreepTtl()));
-				}
-			});
+		if (getRoomStorageLoad(this.room, RESOURCE_ENERGY) > 0.6) {
+			const numCreeps = Math.min(Math.ceil(this.constructionQueueSize / 5000), kMaxBuildersPerRoom);
+			for (const name of this.creepNames(numCreeps)) {
+				const creep = Game.creeps[name];
+				everyN(20, () => {
+					if (!(creep || SpawnQueue.getSpawnQueue().has(name))) {
+						SpawnQueue.getSpawnQueue().push(buildSpawnRequest(this.room, name, Game.time));
+					}
+				});
+			}
 		}
 
 		for (const name of this.creepNames(kMaxBuildersPerRoom)) {
-			const creepPair = new CreepPair(name);
-			for (const creep of creepPair.getLiveCreeps()) {
+			const creep = Game.creeps[name];
+			if (!creep) {
+				continue;
+			}
+			if (getRoomStorageLoad(this.room, RESOURCE_ENERGY) > 0.3) {
 				runBuilderCreep(creep, this.constructionSite);
+			} else {
+				recycle(creep);
 			}
 		}
 	}
@@ -98,12 +102,8 @@ function buildSpawnRequest(room: Room, name: string, time: number): SpawnRequest
 		}
 	};
 }
-
-function bodyPartsCallback(request: SpawnRequest): BodyPartConstant[] {
-	if (Object.keys(Game.creeps).length == 0) {
-		return bodySpec[bodySpec.length - 1].body;
-	}
-	return getBodyForRoom(Game.rooms[request.context.roomName], bodySpec);
+function bodyPartsCallback(request: SpawnRequest, maxEnergy: number): BodyPartConstant[] {
+	return getBuildCreepBodyForEnergy(maxEnergy);
 }
 
 const bodyPartsCallbackName = 'BuilderCreep' as Id<BodyPartsCallback>;

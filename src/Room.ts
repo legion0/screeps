@@ -288,3 +288,21 @@ export function getRecyclePos(room: Room): RoomPosition | undefined {
 function isGoodRecyclePos(pos: RoomPosition): boolean {
 	return pos.lookFor(LOOK_STRUCTURES).every((s) => isWalkableStructure(s));
 }
+
+export function getRoomStorageCapacity(room: Room, resource: ResourceConstant) {
+	return _.sum(findStructuresByType(room, STRUCTURE_STORAGE).filter(s => s.my), s => s.store.getCapacity(resource))
+		+ _.sum(findStructuresByType(room, STRUCTURE_CONTAINER), s => s.store.getCapacity(resource));
+}
+
+export function getRoomStorageUsedCapacity(room: Room, resource: ResourceConstant) {
+	return _.sum(findStructuresByType(room, STRUCTURE_STORAGE).filter(s => s.my), s => s.store.getUsedCapacity(resource))
+		+ _.sum(findStructuresByType(room, STRUCTURE_CONTAINER), s => s.store.getUsedCapacity(resource));
+}
+
+export function getRoomStorageLoad(room: Room, resource: ResourceConstant) {
+	const capacity = getRoomStorageCapacity(room, resource);
+	if (capacity == 0) {
+		return 0;
+	}
+	return getRoomStorageUsedCapacity(room, resource) / capacity;
+}

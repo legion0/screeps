@@ -1,12 +1,12 @@
 import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE } from './constants';
-import { Highway, HIGHWAY_RANGE } from './Highway';
+import { EventEnum, events } from './Events';
+import { Highway, HIGHWAY_SEARCH_RADIUS } from './Highway';
 import { log } from './Logger';
 import { memInit } from './Memory';
 import { getRecyclePos } from './Room';
-import { fromMemoryWorld, lookNear, RoomPositionMemory, toMemoryRoom, toMemoryWorld, fromMemoryRoom } from './RoomPosition';
+import { fromMemoryRoom, fromMemoryWorld, lookNear, RoomPositionMemory, toMemoryRoom, toMemoryWorld } from './RoomPosition';
 import { getFreeCapacity, hasFreeCapacity, hasUsedCapacity } from './Store';
 import { isDamaged, isSpawn } from './Structure';
-import { events, EventEnum } from './Events';
 
 declare global {
 	interface CreepMemory {
@@ -125,6 +125,8 @@ function isCreepStuck(creep: Creep) {
 	return creepStuckDuration(creep) >= CREEP_STUCK_INTERVAL;
 }
 
+const HIGHWAY_NAVIGTION_RANGE = 8;
+
 function getNextHighwayWaypoint(creep: Creep, target: RoomPosition) {
 	// console.log(`getNextHighwayWaypoint: creep.pos: [${creep.pos}], target: [${target}]`);
 	if (!creep.memory.highway) {
@@ -139,7 +141,7 @@ function getNextHighwayWaypoint(creep: Creep, target: RoomPosition) {
 		return getNextHighwayWaypoint(creep, target);
 	}
 	const highway = Highway.loadHighway(creep.memory.highway.name);
-	if (highway == null || !highway.exits().some(pos => pos.getRangeTo(target) < HIGHWAY_RANGE)) {
+	if (highway == null || !highway.exits().some(pos => pos.getRangeTo(target) < HIGHWAY_SEARCH_RADIUS)) {
 		delete creep.memory.highway;
 		return getNextHighwayWaypoint(creep, target);
 	}
@@ -178,9 +180,8 @@ export function moveTo(creep: Creep, target: RoomPosition, useHighways: boolean,
 	}
 	let rv: ScreepsReturnCode = OK;
 	let nextWaypoint: RoomPosition = null;
-	if (creep.pos.getRangeTo(target) > HIGHWAY_RANGE) {
+	if (creep.memory.highway?.path?.length || creep.pos.getRangeTo(target) > HIGHWAY_NAVIGTION_RANGE) {
 		const highwayNextWaypoint = getNextHighwayWaypoint(creep, target);
-		// console.log(`creep.pos: [${creep.pos}], target: [${target}] highwayNextWaypoint: [${highwayNextWaypoint}]`);
 		if (highwayNextWaypoint instanceof RoomPosition) {
 			nextWaypoint = highwayNextWaypoint;
 		} else {
@@ -588,39 +589,3 @@ function creepUpdateMoveTicker(creep: Creep) {
 events.listen(EventEnum.EVENT_TICK_START, () => {
 	Object.values(Game.creeps).forEach((c) => creepUpdateMoveTicker(c));
 });
-
-
-
-/*
-[8:44:08 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 13,33]], current: [[room W8N8 pos 13,33]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:08 PM]creep.pos: [[room W8N8 pos 13,33]], target: [[room W8N8 pos 5,21]] highwayNextWaypoint: [[room W8N8 pos 14,32]]
-[8:44:09 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]]
-[8:44:09 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 14,32]], current: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:09 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 14,32]], current: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:09 PM]creep.pos: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]] highwayNextWaypoint: [[room W8N8 pos 15,31]]
-[8:44:09 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 15,31]], target: [[room W8N8 pos 5,21]]
-[8:44:09 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 15,31]], current: [[room W8N8 pos 15,31]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:09 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 15,31]], current: [[room W8N8 pos 15,31]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:09 PM]creep.pos: [[room W8N8 pos 15,31]], target: [[room W8N8 pos 5,21]] highwayNextWaypoint: [-5]
-[8:44:10 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]]
-[8:44:10 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 14,32]], current: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:10 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 14,32]], current: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:10 PM]creep.pos: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]] highwayNextWaypoint: [[room W8N8 pos 15,31]]
-[8:44:10 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 15,31]], target: [[room W8N8 pos 5,21]]
-[8:44:10 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 15,31]], current: [[room W8N8 pos 15,31]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:10 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 15,31]], current: [[room W8N8 pos 15,31]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:10 PM]creep.pos: [[room W8N8 pos 15,31]], target: [[room W8N8 pos 5,21]] highwayNextWaypoint: [-5]
-[8:44:11 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]]
-[8:44:11 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 14,32]], current: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:11 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 14,32]], current: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:11 PM]creep.pos: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]] highwayNextWaypoint: [[room W8N8 pos 15,31]]
-[8:44:16 PM]DEBUG   93146 Stable servers detected with size [1] at time [93146] [checkServerCache main:660:13]
-[8:44:16 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 15,31]], target: [[room W8N8 pos 5,21]]
-[8:44:16 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 15,31]], current: [[room W8N8 pos 15,31]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:16 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 15,31]], current: [[room W8N8 pos 15,31]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:16 PM]creep.pos: [[room W8N8 pos 15,31]], target: [[room W8N8 pos 5,21]] highwayNextWaypoint: [-5]
-[8:44:21 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]]
-[8:44:21 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 14,32]], current: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:21 PM]getNextHighwayWaypoint: creep.pos: [[room W8N8 pos 14,32]], current: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]], highway: [[object Object]]
-[8:44:21 PM]creep.pos: [[room W8N8 pos 14,32]], target: [[room W8N8 pos 5,21]] highwayNextWaypoint: [[room W8N8 pos 15,31]]
-*/

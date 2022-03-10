@@ -1,7 +1,7 @@
 import { ActionType, recycle } from './Action';
 import { build, creepActions, harvest, repair, transferToTarget } from './actions2';
 import { errorCodeToString, TERRAIN_PLAIN } from './constants';
-import { getHaulerCreepName } from './creep.hauler';
+import { getHaulerCreepName, isHaulerCreepAlive } from './creep.hauler';
 import { log } from './Logger';
 import { findRoomSync } from './Room';
 import { findNearbyEnergy, lookNear, posNear } from './RoomPosition';
@@ -68,7 +68,7 @@ export function runBootCreep(creep: Creep, source: Source) {
   }
 
   const roomSync = findRoomSync(source.room);
-  if (hasUsedCapacity(creep) && (roomSync instanceof StructureExtension || roomSync instanceof StructureSpawn) && !Game.creeps[getHaulerCreepName(source.room)]) {
+  if (hasUsedCapacity(creep) && (roomSync instanceof StructureExtension || roomSync instanceof StructureSpawn) && !isHaulerCreepAlive(source.room)) {
     // Transfer to spawn/extension
     creepActions.setAction(creep, ActionType.TRANSFER, (creep: Creep) => {
       return transferToTarget(creep, roomSync);
@@ -86,6 +86,17 @@ export function runBootCreep(creep: Creep, source: Source) {
         log.e(`[${creep.name}] at pos [${creep.pos}] failed to place container construction site with error [${errorCodeToString(rv)}]`);
       }
     }
+  }
+
+  if (container
+    && container.store.getUsedCapacity(RESOURCE_ENERGY) == 0
+    && container.store.getFreeCapacity(RESOURCE_ENERGY) > 0
+    && creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+    // Transfer to container if its totally empty
+    creepActions.setAction(creep, ActionType.TRANSFER, (creep: Creep) => {
+      return transferToTarget(creep, container);
+    });
+    return;
   }
 
   if (constructionSite && hasUsedCapacity(creep)) {

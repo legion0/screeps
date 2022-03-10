@@ -1,41 +1,12 @@
 import { ActionType, isPickupTarget, isWithdrawTarget, recycle } from './Action';
 import { build, creepActions, harvest, pickupResource, repair, upgradeController, withdrawFromTarget } from './actions2';
-import { errorCodeToString, TERRAIN_PLAIN } from './constants';
-import { log } from './Logger';
-import { findRoomSource } from './Room';
-import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt, lookNear, posNear } from './RoomPosition';
-import { hasFreeCapacity, hasUsedCapacity } from './Store';
-import { isConcreteStructure, isConstructionSiteForStructure, isDamaged } from './Structure';
 import { reverseDirection } from './directions';
+import { findRoomSource } from './Room';
+import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
+import { hasFreeCapacity, hasUsedCapacity } from './Store';
+import { isDamaged } from './Structure';
 
-function findContainer(pos: RoomPosition): StructureContainer | null {
-  const containers = lookNear(
-    pos, LOOK_STRUCTURES, (s) => isConcreteStructure(s, STRUCTURE_CONTAINER)
-  ) as StructureContainer[];
-  return containers[0] ?? null;
-}
 
-function findConstructionSite(pos: RoomPosition): ConstructionSite<STRUCTURE_CONTAINER> | null {
-  const constructionSites = lookNear(
-    pos, LOOK_CONSTRUCTION_SITES, (s) => isConstructionSiteForStructure(s, STRUCTURE_CONTAINER)
-  );
-  return (constructionSites[0]) as ConstructionSite<STRUCTURE_CONTAINER>;
-}
-
-function isPosGoodForContainer(pos: RoomPosition) {
-  return pos.lookFor(LOOK_CONSTRUCTION_SITES).length === 0 &&
-    pos.lookFor(LOOK_TERRAIN)[0] === TERRAIN_PLAIN &&
-    pos.lookFor(LOOK_STRUCTURES).length === 0;
-}
-
-function placeContainer(sourcePosition: RoomPosition) {
-  const containerPos = posNear(sourcePosition, /* includeSelf=*/false).find(isPosGoodForContainer);
-  const rv = containerPos ? containerPos.createConstructionSite(STRUCTURE_CONTAINER) : ERR_NOT_FOUND;
-  if (rv !== OK) {
-    log.e(`Failed to create STRUCTURE_CONTAINER at [${containerPos}] with error [${errorCodeToString(rv)}]`);
-  }
-  return rv;
-}
 
 export function runUpgradeCreep(creep: Creep, room: Room) {
   if (creep.spawning) {
@@ -70,21 +41,23 @@ export function runUpgradeCreep(creep: Creep, room: Room) {
     }
   }
 
-  const roadConstruction = lookForConstructionAt(STRUCTURE_ROAD, creep.pos);
-  if (roadConstruction && creep.store[RESOURCE_ENERGY] && creep.memory.highway) {
-    // Build road
-    creepActions.setAction(creep, ActionType.BUILD, (creep: Creep) => {
-      return build(creep, roadConstruction);
-    });
-    return;
-  }
-  const road = lookForStructureAt(STRUCTURE_ROAD, creep.pos);
-  if (road && isDamaged(road) && creep.store[RESOURCE_ENERGY]) {
-    // Repair road
-    creepActions.setAction(creep, ActionType.REPAIR, (creep: Creep) => {
-      return repair(creep, road);
-    });
-    return;
+  if (creep.memory.highway && creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0.9 * creep.store.getCapacity(RESOURCE_ENERGY)) {
+    const roadConstruction = lookForConstructionAt(STRUCTURE_ROAD, creep.pos);
+    if (roadConstruction) {
+      // Build road
+      creepActions.setAction(creep, ActionType.BUILD, (creep: Creep) => {
+        return build(creep, roadConstruction);
+      });
+      return;
+    }
+    const road = lookForStructureAt(STRUCTURE_ROAD, creep.pos);
+    if (road && isDamaged(road) && creep.store[RESOURCE_ENERGY]) {
+      // Repair road
+      creepActions.setAction(creep, ActionType.REPAIR, (creep: Creep) => {
+        return repair(creep, road);
+      });
+      return;
+    }
   }
 
   if (hasUsedCapacity(creep)) {

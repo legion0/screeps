@@ -1,8 +1,10 @@
 import { ActionType, isPickupTarget, isWithdrawTarget, PickupTarget, TransferTarget, WithdrawTarget } from './Action';
-import { creepActions, idle, pickupResource, transferToTarget, withdrawFromTarget } from './actions2';
+import { build, creepActions, idle, pickupResource, repair, transferToTarget, withdrawFromTarget } from './actions2';
+import { CreepPair } from './creep_pair';
 import { findMySpawns, findRoomSource } from './Room';
-import { findNearbyEnergy } from './RoomPosition';
+import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
 import { hasFreeCapacity, hasUsedCapacity } from './Store';
+import { isDamaged } from './Structure';
 
 export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
   if (creep.spawning) {
@@ -14,6 +16,25 @@ export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
     if (nearbyEnergy) {
       creepActions.setAction(creep, ActionType.PICKUP, (creep: Creep) => {
         return creep.pickup(nearbyEnergy);
+      });
+      return;
+    }
+  }
+
+  if (creep.memory.highway && creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0.9 * creep.store.getCapacity(RESOURCE_ENERGY)) {
+    const roadConstruction = lookForConstructionAt(STRUCTURE_ROAD, creep.pos);
+    if (roadConstruction) {
+      // Build road
+      creepActions.setAction(creep, ActionType.BUILD, (creep: Creep) => {
+        return build(creep, roadConstruction);
+      });
+      return;
+    }
+    const road = lookForStructureAt(STRUCTURE_ROAD, creep.pos);
+    if (road && isDamaged(road) && creep.store[RESOURCE_ENERGY]) {
+      // Repair road
+      creepActions.setAction(creep, ActionType.REPAIR, (creep: Creep) => {
+        return repair(creep, road);
       });
       return;
     }
@@ -63,4 +84,8 @@ export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
 
 export function getHaulerCreepName(room: Room) {
   return `${room.name}.hauler`;
+}
+
+export function isHaulerCreepAlive(room: Room) {
+  return new CreepPair(`${room.name}.hauler`).getLiveCreeps().length != 0;
 }

@@ -1,14 +1,9 @@
 import { ActionType, isPickupTarget, isWithdrawTarget, PickupTarget, recycle, WithdrawTarget } from './Action';
-import { build, creepActions, harvest, pickupResource, repair, transferToTarget, withdrawFromTarget } from './actions2';
-import { errorCodeToString } from './constants';
-import { getHaulerCreepName } from './creep.hauler';
-import { reverseDirection } from './directions';
-import { log } from './Logger';
-import { findRoomSource, findRoomSync } from './Room';
+import { build, creepActions, harvest, pickupResource, withdrawFromTarget } from './actions2';
+import { findRoomSource } from './Room';
 import { findNearbyEnergy } from './RoomPosition';
 import { elapsed } from './ServerCache';
 import { hasFreeCapacity, hasUsedCapacity } from './Store';
-import { isDamaged } from './Structure';
 
 export function runBuilderCreep(creep: Creep, constructionSite?: ConstructionSite) {
   if (creep.spawning) {
@@ -77,7 +72,7 @@ export function runBuilderCreep(creep: Creep, constructionSite?: ConstructionSit
   }
 }
 
-export function getBootCreepBodyForEnergy(energy: number) {
+export function getBuildCreepBodyForEnergy(energy: number) {
   if (energy >= 4 * /*100*/BODYPART_COST[WORK] + 2 * /*50*/BODYPART_COST[CARRY] + /*50*/BODYPART_COST[MOVE]) {
     return /*550*/[WORK, WORK, WORK, WORK, CARRY, CARRY, MOVE];
   } else if (energy >= 2 * /*100*/BODYPART_COST[WORK] + /*50*/BODYPART_COST[CARRY] + /*50*/BODYPART_COST[MOVE]) {

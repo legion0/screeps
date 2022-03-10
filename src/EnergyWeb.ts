@@ -80,7 +80,7 @@ class EnergyWeb {
 					return;
 				}
 				SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
-					|| creepPair.getSecondaryCreep()?.spawning
+					|| creepPair.getSecondaryCreep()
 					|| SpawnQueue.getSpawnQueue().push(
 						buildSpawnRequest(room, creepPair.getSecondaryCreepName(),
 							Game.time + creepPair.getActiveCreepTtl()));
@@ -108,12 +108,12 @@ function buildSpawnRequest(room: Room, name: string, time: number): SpawnRequest
 
 // TODO: add self heal better survive during attacks
 function getBodyForEnergy(energy: number) {
-	let amount = energy / (BODYPART_COST[MOVE] + BODYPART_COST[CARRY]);
+	let amount = (energy - BODYPART_COST[MOVE] - BODYPART_COST[WORK]) / (BODYPART_COST[MOVE] + BODYPART_COST[CARRY]);
 	// Round up to one if less
 	amount = Math.max(amount, 1);
 	// Round down if fractional
 	amount = Math.floor(amount);
-	const bodyParts = [];
+	const bodyParts: BodyPartConstant[] = [WORK, MOVE];
 	for (let i = 0; i < amount; ++i) {
 		bodyParts.push(CARRY);
 	}

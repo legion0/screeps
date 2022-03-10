@@ -40,7 +40,7 @@ https://github.com/techfort/LokiJS/wiki
 
 ### P0
 
-* Complete new highway
+* Create energy monitoring and slow down or stop actions like controller upgrade or room building if energy reserves are getting low. Ideally we monitor energy change in addition to current available energy.
 * Stop using room source and instead select best source taking into account current creep position, otherwise it walks over to the other side of the room just because that container has a little more resource than the container next to it.
 * Create a temporary container(s) next to spawn to use as room source until we have a larger storage unit.
 * Combat Creep Group to combat first invasion wave.
@@ -48,6 +48,10 @@ https://github.com/techfort/LokiJS/wiki
 
 ### P1
 
+* Enable strict in tsconfig compiler options.
+* Figure out why the last pos of a highway isn't used.
+* Make sure we don't build new buildings on existing highways, or alternatively delete the highway and create a new one.
+* Figure out how to not have creeps idling on a highway.
 * Given the dynamic nature of the spawn queue (starvation affecting the end time and hence the priorities and hence the order), abandon the queue implementation and transition to a sorted array, where we can find the best request to fulfill (e.g. when behind schedule look ahead to see if there are urgent requests that should now take priority). Otherwise we end up trying to build an upgrade creep just because at the time of scheduling the timing worked out such that it can be spawned prior to a more urgent creep like a boot creep. And now the boot creep cannot be spawned until we spawn all the upgrade creeps in the queue.
 * Do not build highways until later in the game, e.g. containers + controller level 2
 * Add additional arguments support to creep actions (e.g. withdraw energy type)
