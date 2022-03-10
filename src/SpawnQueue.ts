@@ -202,7 +202,7 @@ export class SpawnQueue {
 			}
 		} else {
 			everyN(50, () => {
-				log.w(`Not enough energy for spawning next request [${request.name}] with cost [${request.cost}], recalculating in [${request.endTime + 200 - Game.time}]`);
+				log.d(`Not enough energy for spawning next request [${request.name}] with cost [${request.cost}], recalculating in [${request.endTime + 200 - Game.time}]`);
 				if (request.endTime + 200 < Game.time) {
 					log.d(`Recalculating cost for request [${request.name}] with cost [${request.cost}]`);
 					// Recalculate cost
@@ -217,19 +217,20 @@ export class SpawnQueue {
 					const energyAvailable = getEnergyAvailableForSpawn(spawn);
 					request.body = SpawnQueue.bodyPartsCallbacks_.get(request.bodyPartsCallbackName)(spawnRequestFromMemory(request), energyAvailable);
 					if (request.body == null) {
-						log.w(`Skipping null body for request [${request.name}]`);
+						log.w(`Removing null body request [${request.name}]`);
 						this.pop();
 						this.run();
 						return;
 					}
-					request.cost = _.sum(request.body, (part) => BODYPART_COST[part]);
-					log.d(`New cost for request [${request.name}] is [${request.cost}]`);
-					if (request.cost > energyAvailable) {
-						log.w(`Request [${request.name}] is too expensive and stalled, abandoning request`);
+					const newConst = _.sum(request.body, (part) => BODYPART_COST[part]);
+					if (newConst > energyAvailable) {
+						log.e(`Removing stalled request [${request.name}]. New cost [${newConst}] is too expensive`);
 						this.pop();
 						this.run();
 						return;
 					}
+					log.w(`Cost updated for request [${request.name}] from [${request.cost}] to [${newConst}]`);
+					request.cost = newConst;
 				}
 			});
 		}
