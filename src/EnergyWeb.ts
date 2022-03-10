@@ -76,14 +76,7 @@ class EnergyWeb {
 			const creepBaseName = getHaulerCreepName(room);
 			const creepPair = new CreepPair(creepBaseName);
 			everyN(20, () => {
-				if (creepPair.getActiveCreepTtl() > 50) {
-					return;
-				}
-				SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
-					|| creepPair.getSecondaryCreep()
-					|| SpawnQueue.getSpawnQueue().push(
-						buildSpawnRequest(room, creepPair.getSecondaryCreepName(),
-							Game.time + creepPair.getActiveCreepTtl()));
+				maybeRequestNextHaulerCreep(room, creepPair);
 			});
 			for (const creep of creepPair.getLiveCreeps()) {
 				room.visual.circle(creep.pos.x, creep.pos.y, { stroke: 'red', radius: 1, fill: 'transparent' });
@@ -91,6 +84,19 @@ class EnergyWeb {
 			}
 		}
 	}
+}
+
+function maybeRequestNextHaulerCreep(room: Room, creepPair: CreepPair) {
+	if (creepPair.getActiveCreepTtl() > 50
+		|| creepPair.getSecondaryCreep()
+		|| SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())) {
+		return;
+	}
+	SpawnQueue.getSpawnQueue().push(
+		buildSpawnRequest(
+			room,
+			creepPair.getSecondaryCreepName(),
+			Game.time + creepPair.getActiveCreepTtl()));
 }
 
 function buildSpawnRequest(room: Room, name: string, time: number): SpawnRequest {
