@@ -1,3 +1,5 @@
+import { creepIsSpawning, getCreepTtl } from './Creep';
+
 export class CreepPair {
   constructor(baseName: string) {
     this.mainName_ = baseName;
@@ -7,11 +9,11 @@ export class CreepPair {
   getActiveCreepName() {
     const main = Game.creeps[this.mainName_];
     const alt = Game.creeps[this.altName_];
-    if (main && !main.spawning && alt && !alt.spawning) {
+    if (main && !creepIsSpawning(main) && alt && !creepIsSpawning(alt)) {
       return main.ticksToLive >= alt.ticksToLive ? main.name : alt.name;
-    } else if (main && !main.spawning) {
+    } else if (main && !creepIsSpawning(main)) {
       return main.name;
-    } else if (alt && !alt.spawning) {
+    } else if (alt && !creepIsSpawning(alt)) {
       return alt.name;
     }
     return this.mainName_;
@@ -30,8 +32,7 @@ export class CreepPair {
   }
 
   getActiveCreepTtl() {
-    const creep = this.getActiveCreep();
-    return (creep && !creep.spawning) ? creep.ticksToLive : 0;
+    return getCreepTtl(this.getActiveCreep());
   }
 
   getLiveCreeps() {

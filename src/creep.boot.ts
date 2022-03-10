@@ -8,6 +8,7 @@ import { findNearbyEnergy, lookNear, posNear } from './RoomPosition';
 import { hasFreeCapacity, hasUsedCapacity } from './Store';
 import { isConcreteStructure, isConstructionSiteForStructure, isDamaged } from './Structure';
 import { reverseDirection } from './directions';
+import { creepIsSpawning } from './Creep';
 
 function findContainer(pos: RoomPosition): StructureContainer | null {
   const containers = lookNear(
@@ -39,7 +40,7 @@ function placeContainer(sourcePosition: RoomPosition) {
 }
 
 export function runBootCreep(creep: Creep, source: Source) {
-  if (creep.spawning) {
+  if (creepIsSpawning(creep)) {
     return;
   }
 

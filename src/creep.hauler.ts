@@ -1,5 +1,6 @@
 import { ActionType, isPickupTarget, isWithdrawTarget, PickupTarget, TransferTarget, WithdrawTarget } from './Action';
 import { build, creepActions, idle, pickupResource, repair, transferToTarget, withdrawFromTarget } from './actions2';
+import { creepIsSpawning } from './Creep';
 import { CreepPair } from './creep_pair';
 import { findMySpawns, findRoomSource } from './Room';
 import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
@@ -7,7 +8,7 @@ import { hasFreeCapacity, hasUsedCapacity } from './Store';
 import { isDamaged } from './Structure';
 
 export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
-  if (creep.spawning) {
+  if (creepIsSpawning(creep)) {
     return;
   }
 

@@ -1,16 +1,14 @@
 import { ActionType, actionTypeName, moveTo, recycle } from './Action';
 import { creepActions, rangedAttack } from './actions2';
-import { createBodySpec, getBodyForRoom, getBodyForSpawn } from './BodySpec';
 import { errorCodeToString, RALLY_RANGE, RANGED_ATTACK_RANGE } from './constants';
-import { isAnyCreep } from './Creep';
+import { creepIsSpawning, getCreepTtl, isAnyCreep } from './Creep';
 import { reverseDirection } from './directions';
 import { log } from './Logger';
 import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { isStructure } from './Structure';
-import { getEnergyAvailableForSpawn, getEnergyCapacityForSpawn } from './structure.spawn.energy';
 
 export function runRangedAttackCreep(creep: Creep, target?: RoomPosition | AnyCreep | Structure) {
-  if (creep.spawning) {
+  if (creepIsSpawning(creep)) {
     return;
   }
 
@@ -57,7 +55,7 @@ export function runRangedAttackCreep(creep: Creep, target?: RoomPosition | AnyCr
 export function requestRangedAttackCreepAt(name: string, pos: RoomPosition) {
   const queue = SpawnQueue.getSpawnQueue();
   const creep = Game.creeps[name];
-  (creep && creep.ticksToLive) || (creep && creep.spawning) || queue.has(name) || queue.push({
+  creepIsSpawning(creep) || getCreepTtl(creep) || queue.has(name) || queue.push({
     name,
     bodyPartsCallbackName: bodyPartsCallbackName,
     priority: SpawnQueuePriority.ATTACK,

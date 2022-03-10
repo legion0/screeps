@@ -1,4 +1,5 @@
 import { BUILD_RANGE, errorCodeToString, REPAIR_RANGE, UPGRADE_RANGE } from './constants';
+import { creepIsSpawning } from './Creep';
 import { EventEnum, events } from './Events';
 import { Highway, HIGHWAY_SEARCH_RADIUS } from './Highway';
 import { log } from './Logger';
@@ -530,7 +531,7 @@ export class Harvest<ContextType> extends Action<ContextType> {
 }
 
 export function runSequence<T>(sequence: Action<T>[], creep: Creep, context: any) {
-	if (creep.spawning) {
+	if (creepIsSpawning(creep)) {
 		return;
 	}
 	let chosenAction: Action<T> | undefined;

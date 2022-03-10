@@ -1,5 +1,6 @@
 import { ActionType, recycle, WithdrawTarget } from './Action';
 import { build, creepActions, withdrawFromTarget } from './actions2';
+import { creepIsSpawning } from './Creep';
 import { reverseDirection } from './directions';
 import { findEnergySourceForCreep } from './Room';
 import { findNearbyEnergy } from './RoomPosition';
@@ -11,7 +12,7 @@ export function findEnergySourceForBuilder(creep: Creep) {
 }
 
 export function runBuilderCreep(creep: Creep, constructionSite?: ConstructionSite) {
-  if (creep.spawning) {
+  if (creepIsSpawning(creep)) {
     return;
   }
 

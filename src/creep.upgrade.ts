@@ -1,5 +1,6 @@
 import { ActionType, isPickupTarget, isWithdrawTarget, recycle } from './Action';
 import { build, creepActions, harvest, pickupResource, repair, upgradeController, withdrawFromTarget } from './actions2';
+import { creepIsSpawning } from './Creep';
 import { reverseDirection } from './directions';
 import { findEnergySourceForCreep } from './Room';
 import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
@@ -11,7 +12,7 @@ export function findEnergySourceForUpgrade(creep: Creep) {
 }
 
 export function runUpgradeCreep(creep: Creep, room: Room) {
-  if (creep.spawning) {
+  if (creepIsSpawning(creep)) {
     return;
   }
 
