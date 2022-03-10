@@ -1,6 +1,6 @@
 import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { errorCodeToString, GENERIC_WORKER } from './constants';
-import { runUpgradeCreep } from './creep.upgrade';
+import { findEnergySourceForUpgrade, runUpgradeCreep } from './creep.upgrade';
 import { CreepPair } from './creep_pair';
 import { Highway } from './Highway';
 import { log } from './Logger';
@@ -14,16 +14,25 @@ export class TaskUpgradeController extends Task {
 	static className = 'UpgradeController' as Id<typeof Task>;
 
 	readonly room: Room;
+	private fakeCreep: Creep;
 
 	constructor(roomName: Id<TaskUpgradeController>) {
 		super(TaskUpgradeController, roomName);
 		this.room = Game.rooms[roomName];
+		this.fakeCreep = {
+			pos: this.room.controller.pos,
+			room: this.room,
+			memory: {},
+		} as any as Creep;
 	}
 
 	protected run() {
 		for (const name of this.creepNames()) {
 			const creepPair = new CreepPair(name);
 			everyN(20, () => {
+				if (!findEnergySourceForUpgrade(this.fakeCreep)) {
+					return;
+				}
 				if (creepPair.getActiveCreepTtl() < 50) {
 					SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
 						|| creepPair.getSecondaryCreep()

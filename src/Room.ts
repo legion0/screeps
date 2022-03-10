@@ -16,6 +16,9 @@ declare global {
 	interface RoomMemory {
 		constructionQueueSize?: number;
 	}
+	interface CreepMemory {
+		energy_source?: Id<StructureStorage | StructureContainer>;
+	}
 }
 
 export enum BuildQueuePriority {
@@ -193,6 +196,11 @@ export function findStructuresByType<T extends StructureConstant>(room: Room, ty
 	return room ? filterStructureType(room.find(FIND_STRUCTURES), type) : [];
 }
 
+export function findMyStorage(room: Room) {
+	const storages = findStructuresByType(room, STRUCTURE_STORAGE).filter(s => s.my);
+	return storages.length ? storages[0] : null;
+}
+
 export type RoomSource = Resource<RESOURCE_ENERGY> | Tombstone | StructureContainer | Source;
 
 export function isRoomSource(s: any): s is RoomSource {
@@ -243,6 +251,57 @@ const findRoomSourceCache: CacheEntrySpec<RoomSource, Room> = {
 
 export function findRoomSource(room: Room): RoomSource | undefined {
 	return getFromCacheSpec(findRoomSourceCache, `${room.name}.roomSource`, room) ?? undefined;
+}
+
+// Returns a conventional energy source, either storage or container.
+// Returns the closest container if it meets minLoadNear, otherwise returns the closest that meets minLoadFar.
+export function findEnergySource(room: Room, pos: RoomPosition, minLoadNear: number, minLoadFar: number) {
+	const storage = findMyStorage(room);
+	if (storage) {
+		return storage;
+	}
+
+	let containers = findStructuresByType(room, STRUCTURE_CONTAINER);
+	if (containers.length) {
+		const closest = findMinBy(containers, c => c.pos.getRangeTo(pos));
+		if (containerHasLoad(closest, minLoadNear)) {
+			return closest;
+		}
+		containers = containers.filter(c => c.id != closest.id && containerHasLoad(c, minLoadFar));
+		if (containers.length) {
+			return findMinBy(containers, c => c.pos.getRangeTo(pos));
+		}
+	}
+
+	return null;
+}
+
+function containerHasLoad(source: StructureStorage | StructureContainer | undefined, minLoad: number) {
+	if (source) {
+		return source.store.getUsedCapacity(RESOURCE_ENERGY) / source.store.getCapacity(RESOURCE_ENERGY) > minLoad;
+	}
+	return false;
+}
+
+export function findEnergySourceForCreep(creep: Creep, minLoad: number, switchLoad: number): StructureStorage | StructureContainer | null {
+	if (minLoad >= switchLoad) {
+		throw new Error(`Invalid arguments minLoad [${minLoad}] >= switchLoad [${switchLoad}]`);
+	}
+	if (creep.memory.energy_source) {
+		const source = Game.getObjectById(creep.memory.energy_source);
+		if (containerHasLoad(source, minLoad)) {
+			return source;
+		} else {
+			delete creep.memory.energy_source;
+			return findEnergySourceForCreep(creep, minLoad, switchLoad);
+		}
+	}
+	const source = findEnergySource(creep.room, creep.pos, minLoad, switchLoad);
+	if (containerHasLoad(source, minLoad)) {
+		creep.memory.energy_source = source.id;
+		return source;
+	}
+	return null;
 }
 
 export type RoomSync = StructureSpawn | StructureExtension | StructureContainer;

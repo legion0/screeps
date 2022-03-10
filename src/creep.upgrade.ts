@@ -1,41 +1,35 @@
 import { ActionType, isPickupTarget, isWithdrawTarget, recycle } from './Action';
 import { build, creepActions, harvest, pickupResource, repair, upgradeController, withdrawFromTarget } from './actions2';
 import { reverseDirection } from './directions';
-import { findRoomSource } from './Room';
+import { findEnergySourceForCreep } from './Room';
 import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
 import { hasFreeCapacity, hasUsedCapacity } from './Store';
 import { isDamaged } from './Structure';
 
-
+export function findEnergySourceForUpgrade(creep: Creep) {
+  return findEnergySourceForCreep(creep, /*minLoad=*/0.1, /*switchLoad=*/0.5);
+}
 
 export function runUpgradeCreep(creep: Creep, room: Room) {
   if (creep.spawning) {
     return;
   }
 
+  if (!creep.getActiveBodyparts(MOVE)) {
+    creep.suicide();
+    return;
+  }
   if (!creep.getActiveBodyparts(WORK)) {
-    if (creep.getActiveBodyparts(MOVE)) {
-      recycle(creep);
-    } else {
-      creep.suicide();
-    }
+    recycle(creep);
     return;
   }
 
-  const source = findRoomSource(room);
   if (hasFreeCapacity(creep)) {
     const nearbyEnergy = findNearbyEnergy(creep.pos);
     if (nearbyEnergy) {
       // Pickup nearby energy
       creepActions.setAction(creep, ActionType.PICKUP, (creep: Creep) => {
         return creep.pickup(nearbyEnergy);
-      });
-      return;
-    }
-    if (source instanceof Source && creep.pos.isNearTo(source.pos) && hasUsedCapacity(source)) {
-      // Harvest source
-      creepActions.setAction(creep, ActionType.HARVEST, (creep: Creep) => {
-        return creep.harvest(source);
       });
       return;
     }
@@ -68,24 +62,11 @@ export function runUpgradeCreep(creep: Creep, room: Room) {
     return;
   }
 
-  if (isPickupTarget(source) && hasFreeCapacity(creep) && hasUsedCapacity(source)) {
-    creepActions.setAction(creep, ActionType.PICKUP, (creep: Creep) => {
-      return pickupResource(creep, source);
-    });
-    return;
-  }
+  const source = findEnergySourceForUpgrade(creep);
 
-  if (isWithdrawTarget(source) && hasFreeCapacity(creep) && hasUsedCapacity(source)) {
-    creepActions.setAction(creep, ActionType.PICKUP, (creep: Creep) => {
+  if (source && creep.store.getFreeCapacity(RESOURCE_ENERGY)) {
+    creepActions.setAction(creep, ActionType.WITHDRAW, (creep: Creep) => {
       return withdrawFromTarget(creep, source);
-    });
-    return;
-  }
-
-  if (source instanceof Source && hasFreeCapacity(creep) && hasUsedCapacity(source)) {
-    // Harvest source
-    creepActions.setAction(creep, ActionType.HARVEST, (creep: Creep) => {
-      return harvest(creep, source);
     });
     return;
   }

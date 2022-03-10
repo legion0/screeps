@@ -44,11 +44,11 @@ export class TaskHarvestSource extends Task {
 				}
 			}
 			if (creepPair.getActiveCreepTtl() < 50) {
-				SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())
-					|| creepPair.getSecondaryCreep()
-					|| SpawnQueue.getSpawnQueue().push(
+				if (!(creepPair.getSecondaryCreep() || SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName()))) {
+					SpawnQueue.getSpawnQueue().push(
 						buildSpawnRequest(this.source.room, creepPair.getSecondaryCreepName(),
 							this.source.pos, Game.time + creepPair.getActiveCreepTtl()));
+				}
 			}
 		});
 

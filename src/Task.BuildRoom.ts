@@ -2,7 +2,7 @@ import { recycle } from './Action';
 import { findMinBy } from './Array';
 import { createBodySpec, getBodyForRoom } from './BodySpec';
 import { GENERIC_WORKER } from './constants';
-import { getBuildCreepBodyForEnergy, runBuilderCreep } from './creep.builder';
+import { findEnergySourceForBuilder, getBuildCreepBodyForEnergy, runBuilderCreep } from './creep.builder';
 import { CreepPair } from './creep_pair';
 import { log } from './Logger';
 import { nextExtensionPos } from './Planning';
@@ -22,6 +22,7 @@ export class TaskBuildRoom extends Task {
 	readonly room?: Room;
 	readonly constructionSite?: ConstructionSite;
 	private constructionQueueSize: number;
+	private fakeCreep: Creep;
 
 	constructor(roomName: Id<TaskBuildRoom>) {
 		super(TaskBuildRoom, roomName);
@@ -29,6 +30,11 @@ export class TaskBuildRoom extends Task {
 		this.room = Game.rooms[roomName];
 		this.constructionSite = currentConstruction(this.room.name) ?? findMinBy(findMyConstructionSites(this.room), (s: ConstructionSite) => toMemoryRoom(s.pos));
 		this.constructionQueueSize = constructionQueueSize(this.room.name);
+		this.fakeCreep = {
+			pos: this.room.controller.pos,
+			room: this.room,
+			memory: {},
+		} as any as Creep;
 	}
 
 	protected run() {
@@ -52,7 +58,7 @@ export class TaskBuildRoom extends Task {
 			for (const name of this.creepNames(numCreeps)) {
 				const creep = Game.creeps[name];
 				everyN(20, () => {
-					if (!(creep || SpawnQueue.getSpawnQueue().has(name))) {
+					if (!(creep || SpawnQueue.getSpawnQueue().has(name)) && findEnergySourceForBuilder(this.fakeCreep)) {
 						SpawnQueue.getSpawnQueue().push(buildSpawnRequest(this.room, name, Game.time));
 					}
 				});
