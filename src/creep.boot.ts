@@ -1,4 +1,4 @@
-import { ActionType, recycle } from './Action';
+import { ActionType, moveTo, recycle } from './Action';
 import { build, creepActions, harvest, repair, transferToTarget } from './actions2';
 import { errorCodeToString, TERRAIN_PLAIN } from './constants';
 import { getHaulerCreepName, isHaulerCreepAlive } from './creep.hauler';
@@ -132,10 +132,10 @@ export function runBootCreep(creep: Creep, source: Source) {
     return;
   }
 
-  if (creep.pos.getRangeTo(source.pos) < 2) {
-    // Move away
+  if (!creep.pos.isEqualTo(source.pos)) {
+    // idle
     creepActions.setAction(creep, ActionType.MOVE, (creep: Creep) => {
-      return creep.move(reverseDirection(creep.pos.getDirectionTo(source.pos)));;
+      return moveTo(creep, source.pos, /*useHighways=*/false, /*range=*/0);
     });
     return;
   }

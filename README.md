@@ -49,7 +49,6 @@ https://github.com/techfort/LokiJS/wiki
 ### P1
 
 * Make existing highway path cost lower than regular tiles when calculating new highways to reuse existing road segments.
-* Idle harvest source on the container.
 * Replace creepSayName with debugCreepRole with a 2 letter role shorthand (can we use unicode emoji?).
 * Enable strict in tsconfig compiler options.
 * Figure out why the last pos of a highway isn't used.
