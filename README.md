@@ -40,9 +40,12 @@ https://github.com/techfort/LokiJS/wiki
 
 ### P0
 
-* Make hauler deposit to storage container.
 * Fix creeps getting stuck on highway.
 * Create a temporary container(s) close to spawn to use as room source until we have a larger storage unit, otherwise the hauler has to walk far to fill spawn and creep swapning times out and drops requests. Then designate it as storage, if storage does not exist yet, for finding creep energy source. Make sure its not too close to spawn to avoid congestion next to spawn.
+  + Repurpose storage container to spawn container.
+  + Repurpose hauler as spawn hauler.
+  + Make sure haulers don't steal from each other.
+
 * Combat Creep Group to combat first invasion wave.
 * Figure out task replacment strategy, when/how does harvester_hauler replace boot task?
 
@@ -63,6 +66,7 @@ https://github.com/techfort/LokiJS/wiki
 
 ## Aspirational TODO
 
+* Figure out a better way to check if boot needs to haul to spawn than checking if hauler is alive.
 * Incorporate simultaneous actions in Action.ts: https://docs.screeps.com/simultaneous-actions.html
 * Use segments to sync across servers for server cache (for objects with ids or that implement serialization themselves)
 * Have creep spawn requests take in destination position and time and plan creep spawns to arrive at the destination position at the given time.
