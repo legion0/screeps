@@ -98,6 +98,21 @@ export function posNear(center: RoomPosition, includeSelf: boolean): RoomPositio
 	return results;
 }
 
+export function posDiag(center: RoomPosition): RoomPosition[] {
+	const xMin = center.x > 0 ? center.x - 1 : center.x;
+	const xMax = center.x < (ROOM_WIDTH - 1) ? center.x + 1 : center.x;
+	const yMin = center.y > 0 ? center.y - 1 : center.y;
+	const yMax = center.y < (ROOM_HEIGHT - 1) ? center.y + 1 : center.y;
+
+	const results = [];
+	for (const [x, y] of [[center.x - 1, center.y - 1], [center.x - 1, center.y + 1], [center.x + 1, center.y - 1], [center.x + 1, center.y + 1]]) {
+		if (x >= 0 && x < ROOM_WIDTH && y >= 0 && y < ROOM_HEIGHT) {
+			results.push(new RoomPosition(x, y, center.roomName));
+		}
+	}
+	return results;
+}
+
 export function lookNear<T extends keyof AllLookAtTypes>(
 	pos: RoomPosition,
 	type: T,

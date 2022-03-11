@@ -4,9 +4,9 @@ import { createBodySpec } from './BodySpec';
 import { GENERIC_WORKER } from './constants';
 import { findEnergySourceForBuilder, getBuildCreepBodyForEnergy, runBuilderCreep } from './creep.builder';
 import { log } from './Logger';
-import { nextExtensionPos } from './Planning';
+import { findStorageContainerPosition, nextExtensionPos } from './room_layout';
 import { BuildQueuePriority, constructionQueueSize, currentConstruction, findMyConstructionSites, findStructuresByType, getRoomStorageLoad, requestConstruction } from './Room';
-import { toMemoryRoom } from './RoomPosition';
+import { lookForConstructionAt, lookForStructureAt, toMemoryRoom } from './RoomPosition';
 import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { Task } from './Task';
 import { everyN } from './Tick';
@@ -42,6 +42,11 @@ export class TaskBuildRoom extends Task {
 			return;
 		}
 
+		// Create storage container
+		everyN(20, () => {
+			maybeBuildStorageContainer(this.room);
+		});
+
 		// Create new extensions
 		everyN(20, () => {
 			for (const pos of nextExtensionPos(this.room)) {
@@ -52,7 +57,7 @@ export class TaskBuildRoom extends Task {
 			}
 		});
 
-
+		// Spawn builder
 		everyN(20, () => {
 			const numCreeps = Math.min(Math.ceil(this.constructionQueueSize / 5000), kMaxBuildersPerRoom);
 			for (const name of this.creepNames(numCreeps)) {
@@ -86,6 +91,21 @@ export class TaskBuildRoom extends Task {
 			return rv;
 		}
 		return new TaskBuildRoom(roomName as Id<TaskBuildRoom>);
+	}
+}
+
+function maybeBuildStorageContainer(room: Room) {
+	const pos = findStorageContainerPosition(room);
+	if (!pos) {
+		return;
+	}
+	const container = lookForStructureAt(STRUCTURE_CONTAINER, pos) ?? lookForConstructionAt(STRUCTURE_CONTAINER, pos);
+	if (container) {
+		return;
+	}
+	const rv = requestConstruction(pos, STRUCTURE_CONTAINER, BuildQueuePriority.STORAGE_CONTAINER);
+	if (rv !== OK) {
+		log.e(`Failed to request STRUCTURE_CONTAINER at [${pos}]`);
 	}
 }
 
