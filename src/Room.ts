@@ -24,6 +24,7 @@ declare global {
 export enum BuildQueuePriority {
 	UNKNOWN,
 	ROAD,
+	STORAGE_CONTAINER,
 	EXTENSION,
 }
 
@@ -114,7 +115,8 @@ export function currentConstruction(roomName: string): ConstructionSite | null {
 		if (!finishedConstruction) {
 			const rv = pos.createConstructionSite(item.structureType);
 			if (rv !== OK) {
-				log.e(`Failed to create construction [${item.structureType}] at [${pos}]`);
+				log.e(`Failed to create construction [${item.structureType}] at [${pos}] with error: [${errorCodeToString(rv)}]`);
+				queue.pop();
 			}
 
 			// TODO: work out better planning to have the construction site placed
