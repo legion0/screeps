@@ -32,6 +32,8 @@ const HIGHWAY_ROAD_BUFFER = 2;
 
 export const HIGHWAY_SEARCH_RADIUS = 5;
 
+export const HIGHWAY_TRAVEL_MIN_LENGTH = 10;
+
 const HIGHWAY_SEGMENT_SIZE = 5;
 
 export class Highway {
@@ -126,7 +128,7 @@ export class Highway {
 			const to = fromMemoryWorld(memory.to);
 			const onRamp = findMinBy(memory.path.map(fromMemoryWorld),
 				(pos) => pos.getRangeTo(current) + pos.getRangeTo(target) / range)!;
-			if (onRamp.getRangeTo(current) <= HIGHWAY_SEARCH_RADIUS) {
+			if (onRamp.getRangeTo(current) <= HIGHWAY_SEARCH_RADIUS && onRamp.getRangeTo(target) >= HIGHWAY_TRAVEL_MIN_LENGTH) {
 				if (Memory.highwayDebugVisuals && room) {
 					room.visual.line(current.x, current.y, onRamp.x, onRamp.y, { color: 'green' });
 					room.visual.line(onRamp.x, onRamp.y, to.x, to.y, { color: 'yellow' });
