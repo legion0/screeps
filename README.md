@@ -17,7 +17,7 @@ rm -rf node_modules && npm install
 
 ## testing
 
-`npx jest` or `npx jest --watch` 
+`npx jest` or `npx jest --watch`
 
 system.setTickDuration(4000)
 
@@ -72,10 +72,16 @@ https://github.com/techfort/LokiJS/wiki
 
 * `Memory.logger.printLevel = LogLevel.DEBUG`
 * `Memory.logCreepActions = true`
-* `Memory.creepSayAction = true` 
-* `Memory.creepSayName = true` 
-* `Memory.highwayDebugVisuals = true` 
-* `Memory.showHighways = true` 
-* `Memory.clearHighways = true` 
-* `Memory.clearSpawnQueue = true` 
-* `Memory.hardReset = true` 
+* `Memory.creepSayAction = true`
+
+* `Memory.creepSayName = true`
+
+* `Memory.highwayDebugVisuals = true`
+
+* `Memory.showHighways = true`
+
+* `Memory.clearHighways = true`
+
+* `Memory.clearSpawnQueue = true`
+
+* `Memory.hardReset = true`
