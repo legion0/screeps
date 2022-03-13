@@ -28,10 +28,7 @@ export class TaskUpgradeController extends Task {
 	protected run() {
 		everyN(20, () => {
 			for (const name of this.creepNames()) {
-				const creep = Game.creeps[name];
-				if (!(creep || SpawnQueue.getSpawnQueue().has(name)) && findEnergySourceForUpgrade(this.fakeCreep)) {
-					SpawnQueue.getSpawnQueue().push(buildSpawnRequest(this.room, name, Game.time));
-				}
+				maybeSpawnUpgradeCreep(name, this.room, this.fakeCreep);
 			}
 		});
 
@@ -70,6 +67,22 @@ export class TaskUpgradeController extends Task {
 		}
 		return new TaskUpgradeController(roomName as Id<TaskUpgradeController>);
 	}
+}
+
+function maybeSpawnUpgradeCreep(name: string, room: Room, fakeCreep: Creep) {
+	if (Game.creeps[name]) {
+		return;
+	}
+	if (!hasHarvestCreeps(room)) {
+		return;
+	}
+	if (SpawnQueue.getSpawnQueue().has(name)) {
+		return;
+	}
+	if (!findEnergySourceForUpgrade(fakeCreep)) {
+		return;
+	}
+	SpawnQueue.getSpawnQueue().push(buildSpawnRequest(room, name, Game.time));
 }
 
 const bodySpec = createBodySpec([

@@ -5,6 +5,7 @@ import { CreepPair } from './creep_pair';
 import { Highway } from './Highway';
 import { log } from './Logger';
 import { findMySpawns, RoomSync } from './Room';
+import { posKey } from './RoomPosition';
 import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { getEnergyAvailableForSpawn, getEnergyCapacityForSpawn } from './structure.spawn.energy';
 import { Task } from './Task';
@@ -31,9 +32,9 @@ export class TaskHarvestSource extends Task {
 	}
 
 	protected run() {
-		const name = `${this.id}.harvest`;
+		const creepBaseName = `harvest_${posKey(this.source.pos)}`;
 
-		const creepPair = new CreepPair(name);
+		const creepPair = new CreepPair(creepBaseName);
 		everyN(20, () => {
 			for (const spawn of findMySpawns(this.source.room)) {
 				const highway = Highway.createHighway(this.source.pos, spawn.pos);
@@ -43,13 +44,7 @@ export class TaskHarvestSource extends Task {
 					log.e(`Failed to build highway from source at [${this.source.pos}] to spawn at [${spawn.pos}] with error: [${errorCodeToString(highway)}]`);
 				}
 			}
-			if (creepPair.getActiveCreepTtl() < 50) {
-				if (!(creepPair.getSecondaryCreep() || SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName()))) {
-					SpawnQueue.getSpawnQueue().push(
-						buildSpawnRequest(this.source.room, creepPair.getSecondaryCreepName(),
-							this.source.pos, Game.time + creepPair.getActiveCreepTtl()));
-				}
-			}
+			maybeSpawnNewHarvester(creepPair, this.source.room, this.source.pos);
 		});
 
 		for (const creep of creepPair.getLiveCreeps()) {
@@ -66,8 +61,25 @@ export class TaskHarvestSource extends Task {
 	}
 }
 
+function maybeSpawnNewHarvester(creepPair: CreepPair, room: Room, pos: RoomPosition) {
+	if (creepPair.getActiveCreepTtl() > 100) {
+		return;
+	}
+	if (creepPair.getSecondaryCreep()) {
+		return;
+	}
+	if (SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())) {
+		return;
+	}
+
+	log.e(creepPair.getActiveCreepTtl(), creepPair.getSecondaryCreep(), creepPair.getSecondaryCreepName());
+	SpawnQueue.getSpawnQueue().push(
+		buildSpawnRequest(room, creepPair.getSecondaryCreepName(),
+			pos, Game.time + creepPair.getActiveCreepTtl()));
+}
+
 export function hasHarvestCreeps(room: Room): boolean {
-	return Object.values(Game.creeps).filter(creep => (creep.name.endsWith('.harvest') || creep.name.endsWith('.harvest_alt')) && creep.pos.roomName == room.name).length != 0;
+	return Object.values(Game.creeps).filter(creep => (creep.name.startsWith('harvest_')) && creep.pos.roomName == room.name).length != 0;
 }
 
 Task.register.registerTaskClass(TaskHarvestSource);
