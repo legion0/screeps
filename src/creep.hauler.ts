@@ -1,7 +1,9 @@
-import { ActionType, isPickupTarget, isWithdrawTarget, PickupTarget, TransferTarget, WithdrawTarget } from './Action';
-import { build, creepActions, idle, pickupResource, repair, transferToTarget, withdrawFromTarget } from './actions2';
+import { ActionType, isPickupTarget, isWithdrawTarget, moveTo, PickupTarget, TransferTarget, WithdrawTarget } from './Action';
+import { build, creepActions, pickupResource, repair, transferToTarget, withdrawFromTarget } from './actions2';
+import { errorCodeToString } from './constants';
 import { creepIsSpawning } from './Creep';
 import { CreepPair } from './creep_pair';
+import { log } from './Logger';
 import { findMySpawns, findRoomSource } from './Room';
 import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
 import { hasFreeCapacity, hasUsedCapacity } from './Store';
@@ -70,11 +72,16 @@ export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
     return;
   }
 
-  const spawn = findMySpawns(creep.room)?.[0];
-  if (spawn && !creep.pos.inRangeTo(spawn.pos, 2)) {
-    creepActions.setAction(creep, ActionType.MOVE, (creep: Creep) => {
-      return idle(creep);
-    });
+  const idleFlagName = `${creep.pos.roomName}.hauler.idle`;
+  const idleFlag = Game.flags[idleFlagName];
+  if (!idleFlag) {
+    const rv = creep.room.createFlag(creep.pos, idleFlagName);
+    if (typeof rv != 'string') {
+      log.e(`Failed to create idle flag [${idleFlagName}] at position [${creep.pos}] with error: [${errorCodeToString(rv)}]`);
+    }
+  }
+  if (idleFlag && !creep.pos.isEqualTo(idleFlag.pos)) {
+    moveTo(creep, idleFlag.pos, /*useHighways=*/true, /*range=*/0);
     return;
   }
 

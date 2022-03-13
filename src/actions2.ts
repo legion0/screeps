@@ -104,14 +104,6 @@ export function withdrawFromTarget(creep: Creep, target: WithdrawTarget) {
   }
 }
 
-// if the creep has nothing else to do it can move to an idle positioin where its not blocking anyone
-export function idle(creep: Creep) {
-  const spawn = findMySpawns(creep.room)?.[0];
-  if (spawn && !creep.pos.inRangeTo(spawn.pos, 2)) {
-    return moveTo(creep, spawn.pos, /*highway=*/false, /*range=*/2);
-  }
-}
-
 type ActionCallback = (creep: Creep) => ScreepsReturnCode;
 type ActionEntry = { actionType: ActionType, actionCallback: ActionCallback; };
 
@@ -137,7 +129,10 @@ class CreepActions {
         log.i(creep.name, actionTypeName(actionEntry.actionType), errorCodeToString(rv));
       }
       if (rv != OK) {
-        log.e(`[${creep.name}] at pos [${creep.pos}] failed to perform action [${actionTypeName(actionEntry.actionType)}] with error [${errorCodeToString(rv)}]`);
+        // DO NOT SUBMIT: temporarily disable havest pathing errors as they get in the way of finding the cause for harvester double spawn.
+        if (!(creep.name.startsWith('harvest_') && actionEntry.actionType == ActionType.HARVEST && rv == ERR_NO_PATH)) {
+          log.e(`[${creep.name}] at pos [${creep.pos}] failed to perform action [${actionTypeName(actionEntry.actionType)}] with error [${errorCodeToString(rv)}]`);
+        }
       }
     }
     this.actionCache_.clear();
