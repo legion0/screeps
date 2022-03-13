@@ -13,6 +13,7 @@ declare global {
 }
 
 export type RoomPositionMemory = number;
+export type WorldPositionMemory = number;
 
 
 // RoomPosition.prototype.isWalkable = function(): boolean {
@@ -43,7 +44,7 @@ function getRoomNameFromXY(x: number, y: number) {
 	return xStr + yStr;
 }
 
-export function fromMemoryWorld(memory: RoomPositionMemory): RoomPosition {
+export function fromMemoryWorld(memory: WorldPositionMemory): RoomPosition {
 	assert.ok(_.isNumber(memory));
 	const worldY = memory % maxWorldCord;
 	const worldX = (memory - worldY) / maxWorldCord;
@@ -55,7 +56,7 @@ export function fromMemoryWorld(memory: RoomPositionMemory): RoomPosition {
 	return new RoomPosition(x, y, roomName);
 }
 
-export function toMemoryWorld(pos: RoomPosition): RoomPositionMemory {
+export function toMemoryWorld(pos: RoomPosition): WorldPositionMemory {
 	assert.instanceOf(pos, RoomPosition);
 	const roomXY = roomNameToXY(pos.roomName);
 	const worldX = roomXY[0] * ROOM_WIDTH + pos.x;

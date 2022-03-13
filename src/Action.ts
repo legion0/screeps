@@ -13,8 +13,9 @@ declare global {
 	interface CreepMemory {
 		lastAction?: ActionType;
 		highway?: {
-			name: string;
-			path: RoomPositionMemory[];
+			name?: string;
+			path?: RoomPositionMemory[];
+			target: RoomPositionMemory;
 		};
 		lastPos?: {
 			pos: RoomPositionMemory;
@@ -25,6 +26,7 @@ declare global {
 		creepSayAction?: boolean;
 		creepSayName?: boolean;
 		highwayDebugVisuals?: boolean;
+		disableHighways?: boolean;
 	}
 }
 
@@ -114,6 +116,11 @@ export function actionTypeName(actionType: ActionType) {
 
 const CREEP_STUCK_INTERVAL = 3;
 
+// Do not navigate to target via highway if the distance to target is 4 or
+// less, since its likely there is a creep standing at distance 3 working on
+// the target.
+const HIGHWAY_NAVIGATION_BUFFER = 4;
+
 function creepStuckDuration(creep: Creep) {
 	const lastPos = memInit(creep.memory, 'lastPos', {
 		pos: toMemoryRoom(creep.pos),
@@ -126,35 +133,56 @@ function isCreepStuck(creep: Creep) {
 	return creepStuckDuration(creep) >= CREEP_STUCK_INTERVAL;
 }
 
+// Initial minimal distance required to initiate highway navigation.
 const HIGHWAY_NAVIGTION_RANGE = 8;
 
 function getNextHighwayWaypoint(creep: Creep, target: RoomPosition) {
 	// console.log(`getNextHighwayWaypoint: creep.pos: [${creep.pos}], target: [${target}]`);
+	let highway = null;
 	if (!creep.memory.highway) {
-		const highway = Highway.findHighway(creep.pos, target);
-		if (!highway) {
+		highway = Highway.findHighway(creep.pos, target);
+		creep.memory.highway = {
+			target: toMemoryWorld(target),
+		};
+		if (highway) {
+			creep.memory.highway.name = highway.getName();
+		} else {
 			return ERR_NOT_FOUND;
 		}
-		creep.memory.highway = {
-			name: highway.getName(),
-			path: [],
-		};
-		return getNextHighwayWaypoint(creep, target);
 	}
-	const highway = Highway.loadHighway(creep.memory.highway.name);
-	if (highway == null || !highway.exits().some(pos => pos.getRangeTo(target) < HIGHWAY_SEARCH_RADIUS)) {
+	if (creep.memory.highway.target != toMemoryWorld(target)) {
 		delete creep.memory.highway;
 		return getNextHighwayWaypoint(creep, target);
 	}
+	if (!creep.memory.highway.name) {
+		// TODO refresh highway search if there are highways leading to the target, need new API with `Highway`.
+		return ERR_NOT_FOUND;
+	}
+	if (!highway) {
+		highway = Highway.loadHighway(creep.memory.highway.name);
+		if (!highway) {
+			delete creep.memory.highway;
+			return getNextHighwayWaypoint(creep, target);
+		}
+	}
+	// if (!highway.exits().some((pos: RoomPosition) => pos.getRangeTo(target) < HIGHWAY_SEARCH_RADIUS)) {
+	// 	delete creep.memory.highway;
+	// 	return getNextHighwayWaypoint(creep, target);
+	// }
 
 	return getNextHighwayWaypointR(creep, creep.pos, target, highway);
 }
 
 function getNextHighwayWaypointR(creep: Creep, current: RoomPosition, target: RoomPosition, highway: Highway): RoomPosition | ScreepsReturnCode {
 	// console.log(`getNextHighwayWaypoint: creep.pos: [${creep.pos}], current: [${current}], target: [${target}], highway: [${highway}]`);
-	if (creep.memory.highway.path.length) {
+	if (creep.memory.highway.path?.length) {
+		if (isCreepStuck(creep)) {
+			creep.memory.highway.path.shift();
+			creep.memory.lastPos.since = Game.time;
+			return getNextHighwayWaypointR(creep, current, target, highway);
+		}
 		const next = fromMemoryWorld(creep.memory.highway.path[0]);
-		// if we succesfully advanced to the next position, remove from memory and get the next postion.
+		// /if we succesfully advanced to the next position, remove from memory and get the next postion.
 		if (current.isEqualTo(next)) {
 			creep.memory.highway.path.shift();
 			return getNextHighwayWaypointR(creep, current, target, highway);
@@ -166,9 +194,12 @@ function getNextHighwayWaypointR(creep: Creep, current: RoomPosition, target: Ro
 		}
 		return next;
 	}
-	// If we don't have a stored path, load the next segment into memory and re run this function.
 	const nextSegment = highway.nextSegment(current, target);
 	if (!nextSegment.length) {
+		// End of highway.
+		// log.d2(`End of highway for creep [${creep.name}] at pos [${creep.pos}] for highways [${creep.memory.highway.name}]`);
+		delete creep.memory.highway.name;
+		delete creep.memory.highway.path;
 		return ERR_NOT_FOUND;
 	}
 	creep.memory.highway.path = nextSegment.map(toMemoryWorld);
@@ -183,7 +214,8 @@ export function moveTo(creep: Creep, target: RoomPosition, useHighways: boolean,
 	let nextWaypoint: RoomPosition = null;
 	// TODO: after the creep gets unstuck it can immediately go back to the
 	// highway, need to fix this and do short detourts around obstacle.
-	if (!isCreepStuck(creep) && (creep.memory.highway?.path?.length || creep.pos.getRangeTo(target) > HIGHWAY_NAVIGTION_RANGE)) {
+	if (!Memory.disableHighways && /*useHighways &&*/ (creep.memory.highway?.path || creep.pos.getRangeTo(target) > HIGHWAY_NAVIGTION_RANGE)
+		&& creep.pos.getRangeTo(target) > HIGHWAY_NAVIGATION_BUFFER) {
 		const highwayNextWaypoint = getNextHighwayWaypoint(creep, target);
 		if (highwayNextWaypoint instanceof RoomPosition) {
 			nextWaypoint = highwayNextWaypoint;
@@ -191,8 +223,8 @@ export function moveTo(creep: Creep, target: RoomPosition, useHighways: boolean,
 			if (highwayNextWaypoint != ERR_NOT_FOUND) {
 				log.e(`Creep [${creep}] at [${creep.pos}] failed to walk highway from [${creep.pos}] to [${target}] with error [${errorCodeToString(highwayNextWaypoint)}]`);
 			}
-			if (creep.memory.highway) {
-				delete creep.memory.highway;
+			if (creep.memory.highway?.path) {
+				delete creep.memory.highway?.path;
 			}
 		}
 	}

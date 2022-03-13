@@ -40,7 +40,6 @@ https://github.com/techfort/LokiJS/wiki
 
 ### P0
 
-* Fix creeps getting stuck on highway.
 * Create a temporary container(s) close to spawn to use as room source until we have a larger storage unit, otherwise the hauler has to walk far to fill spawn and creep swapning times out and drops requests. Then designate it as storage, if storage does not exist yet, for finding creep energy source. Make sure its not too close to spawn to avoid congestion next to spawn.
   + Repurpose storage container to spawn container.
   + Repurpose hauler as spawn hauler.
