@@ -44,12 +44,16 @@ https://github.com/techfort/LokiJS/wiki
   + Repurpose storage container to spawn container.
   + Repurpose hauler as spawn hauler.
   + Make sure haulers don't steal from each other.
+  + make hauler fix container when its broken.
 
 * Combat Creep Group to combat first invasion wave.
 * Figure out task replacment strategy, when/how does harvester_hauler replace boot task?
 
 ### P1
 
+* Build roads based on server cache creep position heat map.
+* Don't search for a highway every single tick, separate cases where there is no highway ending at the target, then there is no point to search again for this target for this time walking there, and cases where there are highways but not from here, then search every N ticks to see if we are near one of them.
+* Build highway all the way from source to target, even if we don't use that road for highway navigation, it will get used for regular navigation.
 * Make existing highway path cost lower than regular tiles when calculating new highways to reuse existing road segments.
 * Replace creepSayName with debugCreepRole with a 2 letter role shorthand (can we use unicode emoji?).
 * Enable strict in tsconfig compiler options.
@@ -76,15 +80,10 @@ https://github.com/techfort/LokiJS/wiki
 * `Memory.logger.printLevel = LogLevel.DEBUG`
 * `Memory.logCreepActions = true`
 * `Memory.creepSayAction = true`
-
 * `Memory.creepSayName = true`
-
 * `Memory.highwayDebugVisuals = true`
-
 * `Memory.showHighways = true`
-
 * `Memory.clearHighways = true`
-
+* `Memory.disableHighways = true`
 * `Memory.clearSpawnQueue = true`
-
 * `Memory.hardReset = true`
