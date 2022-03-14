@@ -129,10 +129,7 @@ class CreepActions {
         log.i(creep.name, actionTypeName(actionEntry.actionType), errorCodeToString(rv));
       }
       if (rv != OK) {
-        // DO NOT SUBMIT: temporarily disable havest pathing errors as they get in the way of finding the cause for harvester double spawn.
-        if (!(creep.name.startsWith('harvest_') && actionEntry.actionType == ActionType.HARVEST && rv == ERR_NO_PATH)) {
-          log.e(`[${creep.name}] at pos [${creep.pos}] failed to perform action [${actionTypeName(actionEntry.actionType)}] with error [${errorCodeToString(rv)}]`);
-        }
+        log.e(`[${creep.name}] at pos [${creep.pos}] failed to perform action [${actionTypeName(actionEntry.actionType)}] with error [${errorCodeToString(rv)}]`);
       }
     }
     this.actionCache_.clear();

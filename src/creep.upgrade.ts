@@ -1,8 +1,7 @@
-import { ActionType, recycle } from './Action';
+import { ActionType, moveTo, recycle } from './Action';
 import { build, creepActions, repair, upgradeController, withdrawFromTarget } from './actions2';
 import { createBodySpec, getBodyForEnergyFromSpec } from './BodySpec';
 import { creepIsSpawning } from './Creep';
-import { reverseDirection } from './directions';
 import { findEnergySourceForCreep } from './Room';
 import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
 import { hasFreeCapacity, hasUsedCapacity } from './Store';
@@ -70,7 +69,7 @@ export function runUpgradeCreep(creep: Creep, room: Room) {
 
   const source = findEnergySourceForUpgrade(creep);
 
-  if (source && creep.store.getFreeCapacity(RESOURCE_ENERGY)) {
+  if (source && hasFreeCapacity(creep)) {
     creepActions.setAction(creep, ActionType.WITHDRAW, (creep: Creep) => {
       return withdrawFromTarget(creep, source);
     });
@@ -80,7 +79,7 @@ export function runUpgradeCreep(creep: Creep, room: Room) {
   if (source && creep.pos.getRangeTo(source.pos) < 2) {
     // Move away
     creepActions.setAction(creep, ActionType.MOVE, (creep: Creep) => {
-      return creep.move(reverseDirection(creep.pos.getDirectionTo(source.pos)));;
+      return moveTo(creep, room.controller.pos, /*useHighways=*/true, /*range=*/1);
     });
     return;
   }

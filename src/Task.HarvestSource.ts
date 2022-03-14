@@ -68,11 +68,11 @@ function maybeSpawnNewHarvester(creepPair: CreepPair, room: Room, pos: RoomPosit
 	if (creepPair.getSecondaryCreep()) {
 		return;
 	}
-	if (SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())) {
+	if (SpawnQueue.getSpawnQueue().has(creepPair.getActiveCreepName())
+		|| SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())) {
 		return;
 	}
 
-	log.e(creepPair.getActiveCreepTtl(), creepPair.getSecondaryCreep(), creepPair.getSecondaryCreepName());
 	SpawnQueue.getSpawnQueue().push(
 		buildSpawnRequest(room, creepPair.getSecondaryCreepName(),
 			pos, Game.time + creepPair.getActiveCreepTtl()));

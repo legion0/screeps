@@ -6,7 +6,6 @@ import { memInit } from './Memory';
 import { findStructuresByType } from './Room';
 import { BodyPartsCallback, SpawnQueue, SpawnQueuePriority, SpawnRequest } from './SpawnQueue';
 import { getFreeCapacity } from './Store';
-import { getEnergyAvailableForSpawn, getEnergyCapacityForSpawn } from './structure.spawn.energy';
 import { everyN } from './Tick';
 
 declare global {
@@ -87,11 +86,17 @@ class EnergyWeb {
 }
 
 function maybeRequestNextHaulerCreep(room: Room, creepPair: CreepPair) {
-	if (creepPair.getActiveCreepTtl() > 50
-		|| creepPair.getSecondaryCreep()
+	if (creepPair.getActiveCreepTtl() > 100) {
+		return;
+	}
+	if (creepPair.getSecondaryCreep()) {
+		return;
+	}
+	if (SpawnQueue.getSpawnQueue().has(creepPair.getActiveCreepName())
 		|| SpawnQueue.getSpawnQueue().has(creepPair.getSecondaryCreepName())) {
 		return;
 	}
+
 	SpawnQueue.getSpawnQueue().push(
 		buildSpawnRequest(
 			room,
