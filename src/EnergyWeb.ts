@@ -1,4 +1,5 @@
 import { TransferTarget } from './Action';
+import { findMaxBy, findMinBy } from './Array';
 import { getHaulerCreepName, runHaulerCreep } from './creep.hauler';
 import { CreepPair } from './creep_pair';
 import { EventEnum, events } from './Events';
@@ -43,21 +44,27 @@ class EnergyWeb {
 
 	run() {
 		const haulerAssignments: { [key: string]: Partial<SequenceContext>; } = {};
-
-		for (const [key, request] of Object.entries(Memory.energyWeb.take)) {
-			const dest = Game.getObjectById(request.dest);
-			if (!dest) {
-				delete Memory.energyWeb.take[key];
-				continue;
+		const allRequests = Object.values(Memory.energyWeb.take)
+			.map(r => ({
+				dest: Game.getObjectById(r.dest),
+				amount: r.amount,
+				priority: r.priority,
+			}))
+			.filter(r => r.dest && getFreeCapacity(r.dest));
+		for (const room of Object.values(Game.rooms)) {
+			const creepBaseName = getHaulerCreepName(room);
+			const creepPair = new CreepPair(creepBaseName);
+			const creep = creepPair.getActiveCreep();
+			if (creep) {
+				let requests = allRequests.filter(r => r.dest.pos.roomName == room.name);
+				if (requests.length) {
+					const highestPriority = findMaxBy(requests, r => r.priority);
+					requests = requests.filter(r => r.priority == highestPriority.priority);
+					const closestTake = findMinBy(requests, r => r.dest.pos.getRangeTo(creep.pos));
+					haulerAssignments[creepBaseName] = { transferTarget: closestTake.dest };
+					break;
+				}
 			}
-			const freeCapacity = getFreeCapacity(dest);
-			if (freeCapacity === 0) {
-				delete Memory.energyWeb.take[key];
-				continue;
-			}
-
-			haulerAssignments[getHaulerCreepName(Game.rooms[dest.pos.roomName])] = { transferTarget: dest };
-			break;
 		}
 
 		this.runCreeps(haulerAssignments);
