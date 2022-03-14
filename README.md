@@ -40,17 +40,13 @@ https://github.com/techfort/LokiJS/wiki
 
 ### P0
 
-* Create a temporary container(s) close to spawn to use as room source until we have a larger storage unit, otherwise the hauler has to walk far to fill spawn and creep swapning times out and drops requests. Then designate it as storage, if storage does not exist yet, for finding creep energy source. Make sure its not too close to spawn to avoid congestion next to spawn.
-  + Repurpose storage container to spawn container.
-  + Repurpose hauler as spawn hauler.
-  + Make sure haulers don't steal from each other.
-  + make hauler fix container when its broken.
-
 * Combat Creep Group to combat first invasion wave.
 * Figure out task replacment strategy, when/how does harvester_hauler replace boot task?
 
 ### P1
 
+* Account for amount withdrawn when calculating container load for withdraw.
+* Move highways away from exists, make exists more costly for highway cost matrix.
 * Build roads based on server cache creep position heat map.
 * Don't search for a highway every single tick, separate cases where there is no highway ending at the target, then there is no point to search again for this target for this time walking there, and cases where there are highways but not from here, then search every N ticks to see if we are near one of them.
 * Build highway all the way from source to target, even if we don't use that road for highway navigation, it will get used for regular navigation.
@@ -74,6 +70,18 @@ https://github.com/techfort/LokiJS/wiki
 * Use segments to sync across servers for server cache (for objects with ids or that implement serialization themselves)
 * Have creep spawn requests take in destination position and time and plan creep spawns to arrive at the destination position at the given time.
 * Create energy monitoring and slow down or stop actions like controller upgrade or room building if energy reserves are getting low. Ideally we monitor energy change in addition to current available energy.
+
+## Spawn energy levels
+
+Level 0: 300
+Level 1 300
+Level 2: 550
+Level 3: 800
+Level 4: 1300
+Level 5: 1800
+Level 6: 2300
+Level 7: 5300
+Level 8: 12300
 
 ## Console Commands
 

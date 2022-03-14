@@ -5,7 +5,7 @@ import { EventEnum, events } from './Events';
 import { log } from './Logger';
 import { memInit } from './Memory';
 import { PriorityQueue } from './PriorityQueue';
-import { fromMemoryWorld, lookForStructureAt, posKey, posNear, RoomPositionMemory, toMemoryWorld, getClearance } from './RoomPosition';
+import { fromMemoryWorld, getClearance, lookForStructureAt, posKey, posNear, RoomPositionMemory, toMemoryWorld } from './RoomPosition';
 import { objectServerCache } from './ServerCache';
 import { getUsedCapacity, hasUsedCapacity } from './Store';
 import { filterStructureType, isExtension, isSpawn, isSpawnOrExtension, isWalkableStructure } from './Structure';

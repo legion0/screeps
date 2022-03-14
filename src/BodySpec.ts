@@ -1,7 +1,7 @@
-import * as assert from './assert';
-
 import { findMaxBy } from './Array';
+import * as assert from './assert';
 import { getEnergyAvailableForSpawn, getEnergyCapacityForSpawn } from './structure.spawn.energy';
+
 
 export interface BodySpec {
 	body: BodyPartConstant[];
@@ -17,11 +17,14 @@ export function createBodySpec(bodyOptions: BodyPartConstant[][]): BodySpec[] {
 }
 
 export function getBodyForRoom(room: Room, specs: BodySpec[]) {
-	assert.ok(specs.length > 0);
-	return findMaxBy(specs, (spec) => (spec.cost <= getEnergyCapacityForSpawn(room) ? spec.cost : 0))!.body;
+	return getBodyForEnergyFromSpec(specs, getEnergyCapacityForSpawn(room));
 }
 
 export function getBodyForSpawn(spawn: StructureSpawn, specs: BodySpec[]) {
+	return getBodyForEnergyFromSpec(specs, getEnergyAvailableForSpawn(spawn));
+}
+
+export function getBodyForEnergyFromSpec(specs: BodySpec[], energy: number) {
 	assert.ok(specs.length > 0);
-	return findMaxBy(specs, spec => (spec.cost <= getEnergyAvailableForSpawn(spawn) ? spec.cost : 0))!.body;
+	return findMaxBy(specs, spec => (spec.cost <= energy ? spec.cost : 0))!.body;
 }

@@ -1,6 +1,5 @@
-import { createBodySpec, getBodyForRoom } from './BodySpec';
-import { errorCodeToString, GENERIC_WORKER } from './constants';
-import { findEnergySourceForUpgrade, runUpgradeCreep } from './creep.upgrade';
+import { errorCodeToString } from './constants';
+import { findEnergySourceForUpgrade, getUpgradeCreepBodyForEnergy, runUpgradeCreep } from './creep.upgrade';
 import { Highway } from './Highway';
 import { log } from './Logger';
 import { findStructuresByType } from './Room';
@@ -85,11 +84,6 @@ function maybeSpawnUpgradeCreep(name: string, room: Room, fakeCreep: Creep) {
 	SpawnQueue.getSpawnQueue().push(buildSpawnRequest(room, name, Game.time));
 }
 
-const bodySpec = createBodySpec([
-	[WORK, WORK, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
-	GENERIC_WORKER,
-]);
-
 function buildSpawnRequest(room: Room, name: string, time: number): SpawnRequest {
 	return {
 		name,
@@ -103,12 +97,12 @@ function buildSpawnRequest(room: Room, name: string, time: number): SpawnRequest
 	};
 }
 
-function bodyPartsCallback(request: SpawnRequest): BodyPartConstant[] {
+function bodyPartsCallback(request: SpawnRequest, maxEnergy: number): BodyPartConstant[] {
 	const room = Game.rooms[request.context.roomName];
 	if (!hasHarvestCreeps(room)) {
 		return null;
 	}
-	return getBodyForRoom(room, bodySpec);
+	return getUpgradeCreepBodyForEnergy(maxEnergy);
 }
 
 const bodyPartsCallbackName = 'UpgradeCreep' as Id<BodyPartsCallback>;

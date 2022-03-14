@@ -65,3 +65,30 @@ export function hasFreeCapacity(
 ): boolean {
 	return getFreeCapacity(target, resource) > 0;
 }
+
+export function getCapacity(
+	target: ObjectWithStore | ObjectWithEnergy | ObjectWithAmount, resource: ResourceConstant = RESOURCE_ENERGY
+): number {
+	if (isObjectWithStore(target)) {
+		if (target instanceof StructureTower) {
+			return resource === RESOURCE_ENERGY ? target.store.getCapacity(resource) : 0;
+		} else if ((target instanceof Ruin) || (target instanceof Tombstone)) {
+			return target.store.getCapacity(resource);
+		} else {
+			return target.store.getCapacity(resource);
+		}
+	} else if (isObjectWithEnergy(target)) {
+		return target.energyCapacity;
+	} else if (isObjectWithAmount(target)) {
+		return target.amount;
+	}
+	log.e(`Invalid target for getUsedCapacity [${target}] [${resource}]`);
+	return 0;
+}
+
+export function getCapacityLoad(
+	target: ObjectWithEnergy | ObjectWithStore, resource: ResourceConstant = RESOURCE_ENERGY
+): number {
+	const capacity = getCapacity(target, resource);
+	return getUsedCapacity(target, resource) / capacity;
+}

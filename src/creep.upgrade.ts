@@ -1,5 +1,6 @@
-import { ActionType, isPickupTarget, isWithdrawTarget, recycle } from './Action';
-import { build, creepActions, harvest, pickupResource, repair, upgradeController, withdrawFromTarget } from './actions2';
+import { ActionType, recycle } from './Action';
+import { build, creepActions, repair, upgradeController, withdrawFromTarget } from './actions2';
+import { createBodySpec, getBodyForEnergyFromSpec } from './BodySpec';
 import { creepIsSpawning } from './Creep';
 import { reverseDirection } from './directions';
 import { findEnergySourceForCreep } from './Room';
@@ -36,7 +37,7 @@ export function runUpgradeCreep(creep: Creep, room: Room) {
     }
   }
 
-  if (creep.memory.highway && creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0.9 * creep.store.getCapacity(RESOURCE_ENERGY)) {
+  if (creep.memory.highway && creep.store.getUsedCapacity(RESOURCE_ENERGY)) {
     const roadConstruction = lookForConstructionAt(STRUCTURE_ROAD, creep.pos);
     if (roadConstruction) {
       // Build road
@@ -57,9 +58,13 @@ export function runUpgradeCreep(creep: Creep, room: Room) {
 
   if (hasUsedCapacity(creep)) {
     // Upgrade controller
-    creepActions.setAction(creep, ActionType.REPAIR, (creep: Creep) => {
+    creepActions.setAction(creep, ActionType.UPGRADE_CONTROLLER, (creep: Creep) => {
       return upgradeController(creep, room.controller);
     });
+    // Reset energy source so we select a new one next round.
+    if (creep.memory.energy_source) {
+      delete creep.memory.energy_source;
+    }
     return;
   }
 
@@ -84,3 +89,16 @@ export function runUpgradeCreep(creep: Creep, room: Room) {
     creep.say('.');
   }
 }
+
+export function getUpgradeCreepBodyForEnergy(energy: number) {
+  return getBodyForEnergyFromSpec(upgradeCreepBodySpec, energy);
+}
+
+const upgradeCreepBodySpec = createBodySpec([
+  /*1200*/[WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE],
+  /*800*/[WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE],
+  /*550*/[WORK, WORK, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE],
+  /*300*/[WORK, CARRY, CARRY, MOVE, MOVE],
+	/*250*/[WORK, CARRY, MOVE, MOVE],
+	/*200*/[WORK, CARRY, MOVE],
+]);

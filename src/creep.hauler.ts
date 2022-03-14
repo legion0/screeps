@@ -1,12 +1,14 @@
-import { ActionType, isPickupTarget, isWithdrawTarget, moveTo, PickupTarget, TransferTarget, WithdrawTarget } from './Action';
+import { ActionType, isPickupTarget, isWithdrawTarget, moveTo, TransferTarget } from './Action';
 import { build, creepActions, pickupResource, repair, transferToTarget, withdrawFromTarget } from './actions2';
+import { findMaxBy, findMinBy } from './Array';
 import { errorCodeToString } from './constants';
 import { creepIsSpawning } from './Creep';
 import { CreepPair } from './creep_pair';
 import { log } from './Logger';
-import { findMySpawns, findRoomSource } from './Room';
+import { findStructuresByType, getRecyclePos } from './Room';
 import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
-import { hasFreeCapacity, hasUsedCapacity } from './Store';
+import { findStorageContainerPosition } from './room_layout';
+import { getCapacityLoad, getUsedCapacity, hasFreeCapacity, hasUsedCapacity } from './Store';
 import { isDamaged } from './Structure';
 
 export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
@@ -14,6 +16,7 @@ export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
     return;
   }
 
+  // Pickup nearby energy
   if (hasFreeCapacity(creep)) {
     const nearbyEnergy = findNearbyEnergy(creep.pos);
     if (nearbyEnergy) {
@@ -24,7 +27,8 @@ export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
     }
   }
 
-  if (creep.memory.highway && creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0.9 * creep.store.getCapacity(RESOURCE_ENERGY)) {
+  // Build/Repair road at creep position
+  if (creep.memory.highway && getCapacityLoad(creep) > 0.9) {
     const roadConstruction = lookForConstructionAt(STRUCTURE_ROAD, creep.pos);
     if (roadConstruction) {
       // Build road
@@ -43,33 +47,74 @@ export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
     }
   }
 
-  if (transferTarget && hasFreeCapacity(transferTarget) && hasUsedCapacity(creep)) {
-    creepActions.setAction(creep, ActionType.TRANSFER, (creep: Creep) => {
-      return transferToTarget(creep, transferTarget);
-    });
-    return;
-  }
-
-  let source = findRoomSource(creep.room);
-  if (source instanceof Source) {
-    if (Memory.creepSayAction) {
-      creep.say('NO_SRC');
+  if (hasUsedCapacity(creep)) {
+    // Transfer resources to target
+    if (transferTarget && hasFreeCapacity(transferTarget)) {
+      creepActions.setAction(creep, ActionType.TRANSFER, (creep: Creep) => {
+        return transferToTarget(creep, transferTarget);
+      });
+      return;
     }
-    return;
+
+    // Transfer resources to storage container
+    const storageContainer = findStorageContainer(creep.room);
+    if (storageContainer && hasFreeCapacity(storageContainer)) {
+      creepActions.setAction(creep, ActionType.TRANSFER, (creep: Creep) => {
+        return transferToTarget(creep, storageContainer);
+      });
+      return;
+    }
+
+    // Repair storage container
+    if (storageContainer && storageContainer.hits < storageContainer.hitsMax) {
+      creepActions.setAction(creep, ActionType.REPAIR, (creep: Creep) => {
+        return repair(creep, storageContainer);
+      });
+      return;
+    }
   }
 
-  if (isPickupTarget(source) && hasFreeCapacity(creep) && hasUsedCapacity(source)) {
-    creepActions.setAction(creep, ActionType.PICKUP, (creep: Creep) => {
-      return pickupResource(creep, source as PickupTarget);
-    });
-    return;
-  }
+  if (hasFreeCapacity(creep)) {
+    // Pickup recycled resources
+    const energy = findRecycledEnergy(creep.room);
+    if (energy && energy instanceof Tombstone) {
+      creepActions.setAction(creep, ActionType.PICKUP, (creep: Creep) => {
+        return withdrawFromTarget(creep, energy);
+      });
+      return;
+    } else if (energy) {
+      creepActions.setAction(creep, ActionType.PICKUP, (creep: Creep) => {
+        return pickupResource(creep, energy as Resource<RESOURCE_ENERGY>);
+      });
+      return;
+    }
 
-  if (isWithdrawTarget(source) && hasFreeCapacity(creep) && hasUsedCapacity(source)) {
-    creepActions.setAction(creep, ActionType.WITHDRAW, (creep: Creep) => {
-      return withdrawFromTarget(creep, source as WithdrawTarget);
-    });
-    return;
+    const storageContainer = findStorageContainer(creep.room);
+    if (storageContainer && transferTarget && hasUsedCapacity(storageContainer) && storageContainer.id != transferTarget.id) {
+      // Pickup from storage container
+      creepActions.setAction(creep, ActionType.WITHDRAW, (creep: Creep) => {
+        return withdrawFromTarget(creep, storageContainer);
+      });
+      return;
+    }
+
+    // Pickup distant source
+    const source = findDistantSource(creep.room, creep.pos);
+    if (source) {
+      if (isPickupTarget(source)) {
+        creepActions.setAction(creep, ActionType.PICKUP, (creep: Creep) => {
+          return pickupResource(creep, source);
+        });
+        return;
+      }
+
+      if (isWithdrawTarget(source)) {
+        creepActions.setAction(creep, ActionType.WITHDRAW, (creep: Creep) => {
+          return withdrawFromTarget(creep, source);
+        });
+        return;
+      }
+    }
   }
 
   const idleFlagName = `${creep.pos.roomName}.hauler.idle`;
@@ -88,6 +133,49 @@ export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
   if (Memory.creepSayAction) {
     creep.say('.');
   }
+}
+
+function findRecycledEnergy(room: Room) {
+  const recyclePos = getRecyclePos(room);
+  if (recyclePos) {
+    const tombStone = recyclePos.lookFor(LOOK_TOMBSTONES).find((t) => t.store.energy);
+    if (tombStone) {
+      return tombStone;
+    }
+    const recycledEnergy = recyclePos.lookFor(LOOK_ENERGY)[0];
+    if (recycledEnergy) {
+      return recycledEnergy;
+    }
+  }
+  return null;
+}
+
+function findDistantSource(room: Room, haulerPos: RoomPosition) {
+  const resources = room.find(FIND_DROPPED_RESOURCES).filter(r => r.resourceType == RESOURCE_ENERGY);
+  if (resources.length) {
+    return findMinBy(resources, r => r.pos.getRangeTo(haulerPos));
+  }
+  const tombStones = room.find(FIND_TOMBSTONES).filter(r => hasUsedCapacity(r));
+  if (tombStones.length) {
+    return findMinBy(tombStones, r => r.pos.getRangeTo(haulerPos));
+  }
+  const storageContainer = findStorageContainer(room);
+  let containers = findStructuresByType(room, STRUCTURE_CONTAINER).filter(s => hasUsedCapacity(s));
+  if (storageContainer) {
+    containers = containers.filter(s => !s.pos.isEqualTo(storageContainer.pos));
+  }
+  return containers.length ? findMaxBy(containers, getUsedCapacity) : null;
+}
+
+function findStorageContainer(room: Room) {
+  const pos = findStorageContainerPosition(room);
+  if (pos) {
+    const container = lookForStructureAt(STRUCTURE_CONTAINER, pos);
+    if (container) {
+      return container;
+    }
+  }
+  return null;
 }
 
 export function getHaulerCreepName(room: Room) {

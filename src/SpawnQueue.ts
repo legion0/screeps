@@ -6,9 +6,9 @@ import { log } from './Logger';
 import { memInit } from './Memory';
 import { fromMemoryWorld, RoomPositionMemory, toMemoryWorld } from './RoomPosition';
 import { rawServerCache } from './ServerCache';
-import { sortById } from './util';
-import { everyN } from './Tick';
 import { getEnergyAvailableForSpawn, getEnergyCapacityForSpawn } from './structure.spawn.energy';
+import { everyN } from './Tick';
+import { sortById } from './util';
 
 
 declare global {
@@ -118,7 +118,7 @@ export class SpawnQueue {
 			context: request.context,
 		};
 
-		log.d(`Pushing new request for [${request.name}]`);
+		log.d(`Pushing new request for [${request.name}] with cost [${r.cost}]`);
 		this.memory.array.push(r);
 		this.memory.index[r.name] = null;
 		this.bubbleUpR(this.memory.array.length - 1);
