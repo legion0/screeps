@@ -77,7 +77,7 @@ export function runUpgradeCreep(creep: Creep, room: Room) {
     return;
   }
 
-  if (creep.pos.getRangeTo(room.controller.pos) < 2) {
+  if (creep.pos.getRangeTo(room.controller.pos) > UPGRADE_RANGE) {
     // Move away
     creepActions.setAction(creep, ActionType.MOVE, (creep: Creep) => {
       return moveTo(creep, room.controller.pos, /*useHighways=*/true, /*range=*/UPGRADE_RANGE);
