@@ -1,11 +1,11 @@
-import { ActionType, isPickupTarget, isWithdrawTarget, moveTo, TransferTarget } from './Action';
+import { ActionType, isPickupTarget, isWithdrawTarget, moveTo, recycle, TransferTarget } from './Action';
 import { build, creepActions, pickupResource, repair, transferToTarget, withdrawFromTarget } from './actions2';
 import { findMaxBy, findMinBy } from './Array';
 import { errorCodeToString } from './constants';
 import { creepIsSpawning } from './Creep';
 import { CreepPair } from './creep_pair';
 import { log } from './Logger';
-import { findStructuresByType, getRecyclePos } from './Room';
+import { findRecycledEnergy, findStructuresByType, getRecyclePos } from './Room';
 import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
 import { findStorageContainerPosition } from './room_layout';
 import { getCapacityLoad, getUsedCapacity, hasFreeCapacity, hasUsedCapacity } from './Store';
@@ -13,6 +13,16 @@ import { isDamaged } from './Structure';
 
 export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
   if (creepIsSpawning(creep)) {
+    return;
+  }
+
+  if (!creep.getActiveBodyparts(MOVE)) {
+    creep.suicide();
+    return;
+  }
+
+  if (!creep.getActiveBodyparts(CARRY) || !creep.getActiveBodyparts(WORK)) {
+    recycle(creep);
     return;
   }
 
@@ -78,7 +88,7 @@ export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
     // Pickup recycled resources
     const energy = findRecycledEnergy(creep.room);
     if (energy && energy instanceof Tombstone) {
-      creepActions.setAction(creep, ActionType.PICKUP, (creep: Creep) => {
+      creepActions.setAction(creep, ActionType.WITHDRAW, (creep: Creep) => {
         return withdrawFromTarget(creep, energy);
       });
       return;
@@ -133,21 +143,6 @@ export function runHaulerCreep(creep: Creep, transferTarget?: TransferTarget) {
   if (Memory.creepSayAction) {
     creep.say('.');
   }
-}
-
-function findRecycledEnergy(room: Room) {
-  const recyclePos = getRecyclePos(room);
-  if (recyclePos) {
-    const tombStone = recyclePos.lookFor(LOOK_TOMBSTONES).find((t) => t.store.energy);
-    if (tombStone) {
-      return tombStone;
-    }
-    const recycledEnergy = recyclePos.lookFor(LOOK_ENERGY)[0];
-    if (recycledEnergy) {
-      return recycledEnergy;
-    }
-  }
-  return null;
 }
 
 function findDistantSource(room: Room, haulerPos: RoomPosition) {

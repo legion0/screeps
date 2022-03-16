@@ -45,6 +45,7 @@ https://github.com/techfort/LokiJS/wiki
 
 ### P1
 
+* Replace null body return value with pop from spawn queue.
 * Account for amount withdrawn when calculating container load for withdraw.
 * Move highways away from exists, make exists more costly for highway cost matrix.
 * Build roads based on server cache creep position heat map.
@@ -94,3 +95,4 @@ Level 8: 12300
 * `Memory.disableHighways = true`
 * `Memory.clearSpawnQueue = true`
 * `Memory.hardReset = true`
+* `Object.values(Game.rooms).forEach(r => console.log(r.name, r.energyCapacityAvailable));`

@@ -367,3 +367,18 @@ export function getRoomStorageLoad(room: Room, resource: ResourceConstant) {
 	}
 	return getRoomStorageUsedCapacity(room, resource) / capacity;
 }
+
+export function findRecycledEnergy(room: Room) {
+	const recyclePos = getRecyclePos(room);
+	if (recyclePos) {
+		const tombStone = recyclePos.lookFor(LOOK_TOMBSTONES).find((t) => t.store.getUsedCapacity(RESOURCE_ENERGY));
+		if (tombStone) {
+			return tombStone;
+		}
+		const recycledEnergy = recyclePos.lookFor(LOOK_ENERGY)[0];
+		if (recycledEnergy) {
+			return recycledEnergy;
+		}
+	}
+	return null;
+}

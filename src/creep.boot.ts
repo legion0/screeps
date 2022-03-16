@@ -1,14 +1,14 @@
 import { ActionType, moveTo, recycle } from './Action';
-import { build, creepActions, harvest, repair, transferToTarget } from './actions2';
+import { build, creepActions, harvest, pickupResource, repair, transferToTarget, withdrawFromTarget } from './actions2';
 import { errorCodeToString, TERRAIN_PLAIN } from './constants';
-import { getHaulerCreepName, isHaulerCreepAlive } from './creep.hauler';
+import { creepIsSpawning } from './Creep';
+import { isHaulerCreepAlive } from './creep.hauler';
 import { log } from './Logger';
-import { findRoomSync } from './Room';
-import { findNearbyEnergy, lookNear, posNear } from './RoomPosition';
+import { findRecycledEnergy, findRoomSync } from './Room';
+import { findNearbyEnergy, lookForStructureAt, lookNear, posNear } from './RoomPosition';
+import { findStorageContainerPosition } from './room_layout';
 import { hasFreeCapacity, hasUsedCapacity } from './Store';
 import { isConcreteStructure, isConstructionSiteForStructure, isDamaged } from './Structure';
-import { reverseDirection } from './directions';
-import { creepIsSpawning } from './Creep';
 
 function findContainer(pos: RoomPosition): StructureContainer | null {
   const containers = lookNear(
@@ -69,13 +69,40 @@ export function runBootCreep(creep: Creep, source: Source) {
   }
 
   const roomSync = findRoomSync(source.room);
-  if (hasUsedCapacity(creep) && (roomSync instanceof StructureExtension || roomSync instanceof StructureSpawn) && !isHaulerCreepAlive(source.room)) {
+  if ((roomSync instanceof StructureExtension || roomSync instanceof StructureSpawn) && !isHaulerCreepAlive(source.room)) {
+
+  }
+  if (hasUsedCapacity(creep)) {
     // Transfer to spawn/extension
     creepActions.setAction(creep, ActionType.TRANSFER, (creep: Creep) => {
       return transferToTarget(creep, roomSync);
     });
     return;
+  } else {
+    // Pickup recycled resources
+    const energy = findRecycledEnergy(creep.room);
+    if (energy && energy instanceof Tombstone) {
+      creepActions.setAction(creep, ActionType.WITHDRAW, (creep: Creep) => {
+        return withdrawFromTarget(creep, energy);
+      });
+      return;
+    } else if (energy) {
+      creepActions.setAction(creep, ActionType.PICKUP, (creep: Creep) => {
+        return pickupResource(creep, energy as Resource<RESOURCE_ENERGY>);
+      });
+      return;
+    }
+
+    const storageContainer = findStorageContainer(creep.room);
+    if (storageContainer && hasUsedCapacity(storageContainer)) {
+      // Pickup from storage container
+      creepActions.setAction(creep, ActionType.WITHDRAW, (creep: Creep) => {
+        return withdrawFromTarget(creep, storageContainer);
+      });
+      return;
+    }
   }
+
 
   const container = findContainer(source.pos);
   let constructionSite = null;
@@ -152,4 +179,15 @@ export function getBootCreepBodyForEnergy(energy: number) {
     return /*300*/[WORK, WORK, CARRY, MOVE];
   }
   return /*200*/[WORK, CARRY, MOVE];
+}
+
+function findStorageContainer(room: Room) {
+  const pos = findStorageContainerPosition(room);
+  if (pos) {
+    const container = lookForStructureAt(STRUCTURE_CONTAINER, pos);
+    if (container) {
+      return container;
+    }
+  }
+  return null;
 }

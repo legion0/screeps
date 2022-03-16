@@ -1,6 +1,7 @@
 import { ActionType, moveTo, recycle } from './Action';
 import { build, creepActions, repair, upgradeController, withdrawFromTarget } from './actions2';
 import { createBodySpec, getBodyForEnergyFromSpec } from './BodySpec';
+import { UPGRADE_RANGE } from './constants';
 import { creepIsSpawning } from './Creep';
 import { findEnergySourceForCreep } from './Room';
 import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
@@ -76,10 +77,10 @@ export function runUpgradeCreep(creep: Creep, room: Room) {
     return;
   }
 
-  if (source && creep.pos.getRangeTo(source.pos) < 2) {
+  if (creep.pos.getRangeTo(room.controller.pos) < 2) {
     // Move away
     creepActions.setAction(creep, ActionType.MOVE, (creep: Creep) => {
-      return moveTo(creep, room.controller.pos, /*useHighways=*/true, /*range=*/1);
+      return moveTo(creep, room.controller.pos, /*useHighways=*/true, /*range=*/UPGRADE_RANGE);
     });
     return;
   }
