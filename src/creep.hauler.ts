@@ -5,7 +5,7 @@ import { errorCodeToString } from './constants';
 import { creepIsSpawning } from './Creep';
 import { CreepPair } from './creep_pair';
 import { log } from './Logger';
-import { findRecycledEnergy, findStructuresByType, getRecyclePos } from './Room';
+import { findRecycledEnergy, findStructuresByType } from './Room';
 import { findNearbyEnergy, lookForConstructionAt, lookForStructureAt } from './RoomPosition';
 import { findStorageContainerPosition } from './room_layout';
 import { getCapacityLoad, getUsedCapacity, hasFreeCapacity, hasUsedCapacity } from './Store';
