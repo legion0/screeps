@@ -90,7 +90,7 @@ export class SpawnQueue {
 	private memory: SpawnQueueMemory;
 
 	push(request: SpawnRequest): void {
-		if (request.name in this.memory.index) {
+		if (this.has(request.name)) {
 			throw new Error(`Trying to re-queue [${request.name}]`);
 		}
 		const spawnRoom = findClosestSpawnRoom(request.pos);
@@ -201,9 +201,14 @@ export class SpawnQueue {
 				log.e(`[${spawn}] failed to spawn [${JSON.stringify(request)}] with error [${errorCodeToString(rv)}]`);
 			}
 		} else {
-			everyN(50, () => {
+			let recalculateInterval = 50;
+			const room = Game.rooms[fromMemoryWorld(request.pos).roomName];
+			if (room && room.find(FIND_HOSTILE_CREEPS)) {
+				recalculateInterval = 5;
+			}
+			everyN(recalculateInterval, () => {
 				log.d(`Not enough energy for spawning next request [${request.name}] with cost [${request.cost}], recalculating in [${request.endTime + 200 - Game.time}]`);
-				if (request.endTime + 200 < Game.time) {
+				if (request.endTime + 4 * recalculateInterval < Game.time) {
 					log.d(`Recalculating cost for request [${request.name}] with cost [${request.cost}]`);
 					// Recalculate cost
 					const spawnRoom = findClosestSpawnRoom(requestPos);

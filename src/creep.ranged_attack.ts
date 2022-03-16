@@ -1,5 +1,6 @@
 import { ActionType, actionTypeName, moveTo, recycle } from './Action';
 import { creepActions, rangedAttack } from './actions2';
+import { createBodySpec, getBodyForEnergyFromSpec } from './BodySpec';
 import { errorCodeToString, RALLY_RANGE, RANGED_ATTACK_RANGE } from './constants';
 import { creepIsSpawning, getCreepTtl, isAnyCreep } from './Creep';
 import { reverseDirection } from './directions';
@@ -67,21 +68,30 @@ export function requestRangedAttackCreepAt(name: string, pos: RoomPosition) {
   });
 }
 
-function getBodyForEnergy(energy: number) {
-  if (energy > /*250*/BODYPART_COST[HEAL] + /*150*/BODYPART_COST[RANGED_ATTACK] + 2 * /*50*/BODYPART_COST[MOVE]) {
-    return /*500*/[RANGED_ATTACK, MOVE, MOVE, HEAL];
-  } else if (energy > /*10*/BODYPART_COST[TOUGH] + /*150*/BODYPART_COST[RANGED_ATTACK] + 2 * /*50*/BODYPART_COST[MOVE]) {
-    return /*260*/[TOUGH, RANGED_ATTACK, MOVE, MOVE];
-  }
-  return /*200*/[RANGED_ATTACK, MOVE];
-}
+const bodySpec = createBodySpec([
+  /*1700*/[RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL],
+  /*1500*/[RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL],
+  /*1300*/[RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL],
+  /*1000*/[RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE],
+  /*800*/[RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE],
+  /*600*/[RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE],
+  /*520*/[TOUGH, TOUGH, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE],
+  /*460*/[TOUGH, RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE, MOVE],
+  /*400*/[RANGED_ATTACK, RANGED_ATTACK, MOVE, MOVE],
+  /*260*/[TOUGH, RANGED_ATTACK, MOVE, MOVE],
+  /*200*/[RANGED_ATTACK, MOVE],
+]);
+
+// for (const spec of bodySpec) {
+//   console.log(spec.cost, spec.body);
+// }
 
 function bodyPartsCallback(request: SpawnRequest, maxEnergy: number): BodyPartConstant[] {
   const room = Game.rooms[request.context.roomName];
   if (room.find(FIND_HOSTILE_CREEPS).length == 0) {
     return null;
   }
-  return getBodyForEnergy(maxEnergy);
+  return getBodyForEnergyFromSpec(bodySpec, maxEnergy);
 }
 
 const bodyPartsCallbackName = 'RangedAttackCreep' as Id<BodyPartsCallback>;
